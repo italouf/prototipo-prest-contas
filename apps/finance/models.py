@@ -7,6 +7,7 @@ class FinanceiroConsolidado(models.Model):
     TIPOS = [
         ("EMBRAPII", "Embrapii"),
         ("AT", "Associação Tecnológica"),
+        ("AT_LEI_TICS", "AT – Lei de TICs"),
         ("OUTRAS_FONTES", "Outras Fontes"),
     ]
 
