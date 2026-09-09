@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% block title %}Organograma · Portal QuIIN{% endblock %}
+{% block content %}
+
+<h1>Organograma</h1>
+
+<div class="panel">
+  <form method="get">
+    <label for="filtro-pilar">Pilar</label>
+    <select id="filtro-pilar" name="pilar">
+      <option value="">Todos</option>
+      {% for p in pilares %}
+      <option value="{{ p.codigo }}"{% if p.codigo == pilar_selecionado %} selected{% endif %}>{{ p.nome }}</option>
+      {% endfor %}
+    </select>
+    <label for="filtro-competencia">Competência</label>
+    <select id="filtro-competencia" name="competencia">
+      <option value="">Todas</option>
+      {% for c in competencias %}
+      <option value="{{ c.pk }}"{% if c.pk|stringformat:'s' == competencia_selecionada %} selected{% endif %}>{{ c.nome }}</option>
+      {% endfor %}
+    </select>
+    <button class="btn" type="submit">Filtrar</button>
+    <a class="btn btn-ghost" href="{% url 'talentos:organograma' %}">Limpar</a>
+  </form>
+</div>
+
+{% if colaboradores %}
+<div class="table-wrap">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Foto</th>
+        <th>Nome</th>
+        <th>Cargo</th>
+        <th>Pilar</th>
+        <th>Competências</th>
+        <th>Lattes</th>
+        <th>Alocações vigentes</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in colaboradores %}
+      <tr>
+        <td>{% if c.foto %}<img src="{{ c.foto.url }}" alt="Foto de {{ c.nome }}" width="48">{% endif %}</td>
+        <td>{{ c.nome }}</td>
+        <td>{{ c.cargo }}</td>
+        <td>{{ c.pilar_principal.nome|default:'—' }}</td>
+        <td>{% for comp in c.competencias.all %}<span class="badge">{{ comp.nome }}</span>{% empty %}—{% endfor %}</td>
+        <td>{% if c.lattes_url %}<a href="{{ c.lattes_url }}">Currículo Lattes</a>{% else %}—{% endif %}</td>
+        <td>
+          {% for a in c.alocacoes.all %}
+          {{ a.projeto_ou_area }} ({{ a.horas_semanais }}h/sem){% if not forloop.last %}; {% endif %}
+          {% empty %}—{% endfor %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<p class="muted">Nenhum colaborador encontrado para os filtros selecionados.</p>
+{% endif %}
+{% endblock %}
