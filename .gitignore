@@ -7,3 +7,9 @@ __pycache__/
 node_modules/
 test-results/
 playwright-report/
+# Arquivos excel
+*.xlsx
+*.xls
+*.ods
+# Scratch de workspace (briefs, reports e pacotes de review locais)
+.superpowers/
