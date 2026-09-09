@@ -42,7 +42,7 @@ def mapear_aba(nome_aba):
     """Mapeia o nome da aba para (pilar, tipo_recurso) ou None se fora do mapa."""
     n = normalizar(nome_aba)
     # 6.1 primeiro: nunca pode cair na regra genérica do AT.
-    if re.search(r"(^|[^0-9])6\.1", n) or ("conta" in n and "at" in n and ("tics" in n or "tic" in n or "lei" in n)):
+    if re.search(r"(^|[^0-9])6\.1", n) or ("conta" in n and re.search(r"\bat\b", n) and ("tics" in n or "tic" in n or "lei" in n)):
         return ("AT", "AT_LEI_TICS")
     if "afcct" in n:
         return ("PDI", "EMBRAPII")
@@ -54,7 +54,7 @@ def mapear_aba(nome_aba):
         return ("OUTRASFONTES", "OUTRAS_FONTES")
     if "infraestrutura" in n and "ampliacao" not in n:
         return ("INFRA", "EMBRAPII")
-    if re.search(r"(^|[^0-9])6\.", n) and "at" in n and "tics" not in n and "tic" not in n and "lei" not in n:
+    if re.search(r"(^|[^0-9])6\.", n) and re.search(r"\bat\b", n) and "tics" not in n and "tic" not in n and "lei" not in n:
         return ("AT", "AT")
     return None
 
@@ -224,31 +224,44 @@ def aplicar_consolidado(linhas, periodo, usuario=None, arquivo_nome="excel.xlsx"
     """Persiste linhas consolidadas via update_or_create (mesma regra de importar_csv)."""
     if not periodo.permite_edicao:
         raise ValidationError("Importação bloqueada: o período está fechado (RN-010).")
-    with transaction.atomic():
-        for linha in linhas:
-            pilar = Pilar.objects.filter(codigo__iexact=linha["pilar"]).first()
-            if pilar is None:
-                raise ValidationError(f"Pilar '{linha['pilar']}' não encontrado. Cadastre o pilar antes de aplicar.")
-            FinanceiroConsolidado.objects.update_or_create(
+    try:
+        with transaction.atomic():
+            for linha in linhas:
+                pilar = Pilar.objects.filter(codigo__iexact=linha["pilar"]).first()
+                if pilar is None:
+                    raise ValidationError(f"Pilar '{linha['pilar']}' não encontrado. Cadastre o pilar antes de aplicar.")
+                FinanceiroConsolidado.objects.update_or_create(
+                    periodo=periodo,
+                    pilar=pilar,
+                    tipo_recurso=linha["tipo_recurso"],
+                    defaults={
+                        "valor_captado": linha["valor_captado"],
+                        "valor_executado": linha["valor_executado"],
+                        "observacao": linha["observacao"],
+                    },
+                )
+            log = f"{len(linhas)} registro(s) consolidados de {arquivo_nome} para {periodo.rotulo}."
+            ImportacaoFinanceira.objects.create(
                 periodo=periodo,
-                pilar=pilar,
-                tipo_recurso=linha["tipo_recurso"],
-                defaults={
-                    "valor_captado": linha["valor_captado"],
-                    "valor_executado": linha["valor_executado"],
-                    "observacao": linha["observacao"],
-                },
+                arquivo_nome=arquivo_nome,
+                status="SUCESSO",
+                usuario=usuario,
+                log=log,
             )
-    log = f"{len(linhas)} registro(s) consolidados de {arquivo_nome} para {periodo.rotulo}."
-    ImportacaoFinanceira.objects.create(
-        periodo=periodo,
-        arquivo_nome=arquivo_nome,
-        status="SUCESSO",
-        usuario=usuario,
-        log=log,
-    )
-    registrar_auditoria(
-        usuario, "IMPORTAR_FINANCEIRO", "FinanceiroConsolidado",
-        registro_id=periodo.pk, campo="excel", valor_novo=f"{len(linhas)} registros · {arquivo_nome}",
-    )
+            registrar_auditoria(
+                usuario, "IMPORTAR_FINANCEIRO", "FinanceiroConsolidado",
+                registro_id=periodo.pk, campo="excel", valor_novo=f"{len(linhas)} registros · {arquivo_nome}",
+            )
+    except ValidationError as exc:
+        _falha_excel(periodo, arquivo_nome, usuario, "; ".join(exc.messages))
+        raise
     return "SUCESSO", log
+
+
+def _falha_excel(periodo, nome, usuario, log):
+    """Registra ImportacaoFinanceira ERRO + auditoria (mesmo padrão de services._falha)."""
+    ImportacaoFinanceira.objects.create(periodo=periodo, arquivo_nome=nome, status="ERRO", usuario=usuario, log=log)
+    registrar_auditoria(
+        usuario, "IMPORTAR_FINANCEIRO_ERRO", "ImportacaoFinanceira",
+        registro_id=periodo.pk, campo="excel", valor_novo=log,
+    )

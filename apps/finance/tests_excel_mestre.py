@@ -18,7 +18,7 @@ from openpyxl.utils.datetime import to_excel
 
 from apps.accounts.models import User
 from apps.core.permissions import adicionar_grupo, garantir_grupos
-from apps.finance.excel_mestre import consolidar_excel
+from apps.finance.excel_mestre import consolidar_excel, mapear_aba
 from apps.finance.models import FinanceiroConsolidado, ImportacaoFinanceira
 from apps.periods.models import Periodo
 from apps.pillars.models import Pilar
@@ -93,6 +93,11 @@ class ConsolidarExcelTestes(TestCase):
         _, resultado = self._por_chave("2026-04")
         self.assertTrue(any("10. Equipe" in aviso for aviso in resultado["avisos"]))
 
+    def test_at_casa_por_palavra_e_nao_por_substring(self):
+        self.assertEqual(mapear_aba("6. Conta Ação - AT"), ("AT", "AT"))
+        self.assertEqual(mapear_aba("6.1 Conta Ação - AT (Lei TICs)"), ("AT", "AT_LEI_TICS"))
+        self.assertIsNone(mapear_aba("6. Formato atual"))
+
 
 class ProcessarExcelMestreCommandTestes(TestCase):
     def setUp(self):
@@ -158,3 +163,19 @@ class ProcessarExcelMestreCommandTestes(TestCase):
                 aplicar=True,
                 stdout=io.StringIO(),
             )
+
+    def test_aplicar_com_falha_registra_erro_sem_persistir(self):
+        # PDI ordena por último: AT persiste primeiro e o rollback precisa desfazer tudo.
+        Pilar.objects.filter(codigo="PDI").delete()
+        periodo = Periodo.objects.create(competencia=date(2026, 4, 1), status="ABERTO", aberto_por=self.erica)
+        with self.assertRaisesRegex(CommandError, "Pilar 'PDI' não encontrado"):
+            call_command(
+                "processar_excel_mestre",
+                arquivo=self.arquivo,
+                periodo="2026-04",
+                aplicar=True,
+                stdout=io.StringIO(),
+            )
+        self.assertEqual(FinanceiroConsolidado.objects.filter(periodo=periodo).count(), 0)
+        erro = ImportacaoFinanceira.objects.get(periodo=periodo, status="ERRO")
+        self.assertIn("Pilar 'PDI' não encontrado", erro.log)
