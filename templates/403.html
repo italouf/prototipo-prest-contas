@@ -1,0 +1,9 @@
+{% extends 'base.html' %}
+{% block title %}Sem permissão · Portal QuIIN{% endblock %}
+{% block content %}
+<div class="panel">
+  <h1>403 — Sem permissão</h1>
+  <p>Seu perfil não permite acessar esta área. Caso precise, fale com a coordenação (Master).</p>
+  <a class="btn btn-primary" href="{% url 'core:dashboard' %}">Voltar ao início</a>
+</div>
+{% endblock %}

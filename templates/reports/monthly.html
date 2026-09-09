@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+{% load core_extras %}
+{% block title %}Relatório Mensal {{ periodo.rotulo }} · Portal QuIIN{% endblock %}
+{% block content %}
+
+<div class="report-actions no-print">
+  <button class="btn btn-primary" onclick="window.print()">Imprimir / Salvar PDF</button>
+  <a class="btn btn-ghost" href="{% url 'core:dashboard' %}?periodo={{ periodo.competencia|date:'Y-m-d' }}">Voltar</a>
+</div>
+
+<div class="report">
+  <header class="report-header">
+    <div class="report-brand"><span class="brand-mark">Q</span> <strong>Portal QuIIN</strong></div>
+    <h1>Relatório Mensal de Gestão e Prestação de Contas</h1>
+    <p class="report-meta">
+      Competência: <strong>{{ periodo.rotulo }}</strong> ·
+      Status do período: <strong>{{ periodo.get_status_display }}</strong><br>
+      Gerado em {{ gerado_em|date:'d/m/Y H:i' }} por {{ gerado_por.nome_exibicao }} ({{ papel }})
+    </p>
+  </header>
+
+  <section class="report-section">
+    <h2>Resumo executivo</h2>
+    <table class="table table-report">
+      <tr>
+        <th>Total captado</th>
+        <th>Total executado</th>
+        <th>Lançamentos aprovados no mês</th>
+        <th>Pilares sem pendência</th>
+      </tr>
+      <tr>
+        <td>{{ total_captado|brl }}</td>
+        <td>{{ total_executado|brl }}</td>
+        <td>{{ total_aprovados|default:0 }}</td>
+        <td>{{ pilares_ok }}/{{ secoes|length }}</td>
+      </tr>
+    </table>
+  </section>
+
+  {% for secao in secoes %}
+  <section class="report-section">
+    <h2>{{ secao.pilar.codigo }} — {{ secao.pilar.nome }}</h2>
+    <table class="table table-report">
+      <thead>
+        <tr>
+          <th>Indicador</th>
+          <th>Un.</th>
+          <th>Meta</th>
+          <th>Realizado</th>
+          <th>% execução</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in secao.itens %}
+        <tr class="{% if item.percentual is not None and item.percentual < 100 %}row-warn{% endif %}">
+          <td>{{ item.indicador.nome }} <span class="muted small">({{ item.indicador.codigo }})</span></td>
+          <td>{{ item.indicador.unidade }}</td>
+          <td>{% if item.meta is not None %}{{ item.meta|nbr }}{% else %}—{% endif %}</td>
+          <td>{{ item.realizado|nbr }}{% if item.ytd %} <span class="muted small">(YTD)</span>{% endif %}</td>
+          <td>{% if item.percentual is not None %}{{ item.percentual|pct }}{% else %}—{% endif %}</td>
+          <td><span class="badge badge-status status-{{ item.lc.status|lower|default:'pendente' }}">{{ item.lc.status|default:'Pendente'|status_lancamento }}</span></td>
+        </tr>
+        {% if item.lc and item.lc.comentario %}
+        <tr class="row-comment">
+          <td colspan="6" class="small"><strong>Comentário aprovado:</strong> {{ item.lc.comentario }}</td>
+        </tr>
+        {% endif %}
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+  {% endfor %}
+
+  <section class="report-section">
+    <h2>Financeiro consolidado — {{ periodo.rotulo }}</h2>
+    <table class="table table-report">
+      <thead>
+        <tr>
+          <th>Pilar</th>
+          <th>Tipo de recurso</th>
+          <th>Valor captado</th>
+          <th>Valor executado</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for f in financeiro %}
+        <tr>
+          <td>{{ f.pilar.nome }}</td>
+          <td>{{ f.get_tipo_recurso_display }}</td>
+          <td>{{ f.valor_captado|brl }}</td>
+          <td>{{ f.valor_executado|brl }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="4" class="muted">Sem dados financeiros consolidados neste período.</td></tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="2"><strong>Totais</strong></td>
+          <td><strong>{{ total_captado|brl }}</strong></td>
+          <td><strong>{{ total_executado|brl }}</strong></td>
+        </tr>
+      </tfoot>
+    </table>
+  </section>
+
+  <footer class="report-footer">
+    Documento gerado pelo Portal QuIIN (protótipo local). Dados fictícios para demonstração.
+    Para salvar em PDF, use "Imprimir &gt; Salvar como PDF" no navegador (RF-091).
+  </footer>
+</div>
+{% endblock %}

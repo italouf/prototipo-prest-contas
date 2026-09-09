@@ -1,0 +1,2670 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Portal QuIIN — Relatório Executivo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preconnect" href="https://www.plantuml.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --navy-950: #0a1a33;
+      --navy-900: #0e2347;
+      --navy-800: #14305e;
+      --navy-700: #1c4079;
+      --ink: #1d2838;
+      --slate: #5a6b85;
+      --muted: #7c8aa3;
+      --line: #dfe6f0;
+      --line-strong: #c8d2e0;
+      --bg-soft: #f5f7fb;
+      --bg-tint: #edf2fa;
+      --gold: #b98a2f;
+      --gold-soft: #c9a227;
+      --gold-pale: #f5ead2;
+      --blue: #1d5aa8;
+      --amber: #b45309;
+      --amber-bg: #fdf6e7;
+      --serif: 'Playfair Display', Georgia, 'Times New Roman', serif;
+      --sans: 'Inter', 'Segoe UI', system-ui, -apple-system, Arial, sans-serif;
+      --mono: ui-monospace, 'Cascadia Code', Consolas, 'Courier New', monospace;
+      --shadow-sm: 0 1px 2px rgba(10, 26, 51, .07), 0 2px 6px rgba(10, 26, 51, .05);
+      --shadow-md: 0 8px 24px rgba(10, 26, 51, .12);
+      --shadow-lg: 0 20px 48px rgba(10, 26, 51, .18);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    [id] {
+      scroll-margin-top: 84px;
+    }
+
+    body {
+      font-family: var(--sans);
+      font-size: 10.6pt;
+      line-height: 1.62;
+      color: var(--ink);
+      margin: 0;
+      background: #e9edf4;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    ::selection {
+      background: var(--gold-pale);
+      color: var(--navy-950);
+    }
+
+    h1, h2, h3, h4 {
+      color: var(--navy-950);
+      line-height: 1.3;
+    }
+
+    h1 {
+      position: relative;
+      font-family: var(--serif);
+      font-size: 25px;
+      font-weight: 700;
+      margin: 0 0 20px 0;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    h1::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      bottom: -1px;
+      width: 68px;
+      height: 3px;
+      background: var(--gold);
+      border-radius: 2px;
+    }
+
+    h2 {
+      font-size: 15.5px;
+      font-weight: 700;
+      color: var(--navy-800);
+      margin: 28px 0 12px 0;
+      padding-left: 13px;
+      border-left: 4px solid var(--gold);
+    }
+
+    h3 {
+      font-size: 13.5px;
+      font-weight: 700;
+      color: var(--ink);
+      margin: 20px 0 9px 0;
+    }
+
+    p {
+      margin: 9px 0;
+      text-align: justify;
+    }
+
+    strong {
+      color: var(--navy-900);
+      font-weight: 700;
+    }
+
+    ul, ol {
+      margin: 9px 0;
+      padding-left: 24px;
+    }
+
+    li {
+      margin: 5px 0;
+    }
+
+    ul li::marker {
+      color: var(--gold);
+    }
+
+    ol li::marker {
+      color: var(--navy-800);
+      font-weight: 700;
+    }
+
+    a {
+      color: var(--blue);
+    }
+
+    /* ============ Barra de ferramentas ============ */
+    .toolbar {
+      position: sticky;
+      top: 0;
+      z-index: 60;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 10px 22px;
+      background: rgba(10, 26, 51, .92);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      color: #e8eef8;
+      border-bottom: 1px solid rgba(201, 162, 39, .35);
+    }
+
+    .toolbar-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 600;
+      font-size: 12.5px;
+      letter-spacing: .02em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .tb-mark {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 27px;
+      height: 27px;
+      flex: 0 0 auto;
+      border: 1px solid var(--gold-soft);
+      color: var(--gold-soft);
+      font-family: var(--serif);
+      font-weight: 800;
+      border-radius: 6px;
+      font-size: 16px;
+      background: rgba(201, 162, 39, .08);
+    }
+
+    .toolbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex: 0 0 auto;
+    }
+
+    .btn-ghost {
+      color: #cdd9ea;
+      text-decoration: none;
+      font-size: 12px;
+      padding: 7px 13px;
+      border: 1px solid rgba(255, 255, 255, .28);
+      border-radius: 7px;
+      transition: border-color .15s ease, color .15s ease, background .15s ease;
+    }
+
+    .btn-ghost:hover {
+      border-color: var(--gold-soft);
+      color: #ffffff;
+      background: rgba(255, 255, 255, .06);
+    }
+
+    .btn-primary {
+      background: var(--gold-soft);
+      color: #10294d;
+      font-family: var(--sans);
+      font-weight: 700;
+      font-size: 12px;
+      padding: 8px 14px;
+      border: 0;
+      border-radius: 7px;
+      cursor: pointer;
+      transition: background .15s ease, transform .15s ease, box-shadow .15s ease;
+      box-shadow: 0 2px 10px rgba(201, 162, 39, .35);
+    }
+
+    .btn-primary:hover {
+      background: #dcb64e;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 14px rgba(201, 162, 39, .45);
+    }
+
+    /* ============ Capa ============ */
+    .capa {
+      position: relative;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      color: #f2f5fa;
+      background:
+        radial-gradient(1100px 560px at 88% -12%, rgba(201, 162, 39, .18), transparent 62%),
+        radial-gradient(900px 520px at -8% 112%, rgba(28, 64, 121, .6), transparent 58%),
+        linear-gradient(160deg, #0a1a33 0%, #0e2347 55%, #10294d 100%);
+      padding: 56px 26px;
+      overflow: hidden;
+      page-break-after: always;
+    }
+
+    .capa::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255, 255, 255, .035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, .035) 1px, transparent 1px);
+      background-size: 46px 46px;
+      pointer-events: none;
+    }
+
+    .capa::after {
+      content: "";
+      position: absolute;
+      inset: 20px;
+      border: 1px solid rgba(201, 162, 39, .35);
+      border-radius: 4px;
+      pointer-events: none;
+    }
+
+    .capa-inner {
+      position: relative;
+      max-width: 780px;
+      width: 100%;
+      z-index: 1;
+    }
+
+    .capa-tag {
+      display: inline-block;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: .34em;
+      text-transform: uppercase;
+      color: var(--gold-soft);
+      border: 1px solid rgba(201, 162, 39, .55);
+      border-radius: 999px;
+      padding: 7px 18px 6px;
+      margin-bottom: 30px;
+      background: rgba(201, 162, 39, .08);
+    }
+
+    .monogram {
+      width: 64px;
+      height: 64px;
+      margin: 0 auto 26px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--serif);
+      font-size: 34px;
+      font-weight: 800;
+      color: var(--gold-soft);
+      border: 2px solid var(--gold-soft);
+      border-radius: 12px;
+      background: rgba(201, 162, 39, .1);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+    }
+
+    .capa-kicker {
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: .22em;
+      text-transform: uppercase;
+      color: #a9bcd6;
+      margin-bottom: 14px;
+    }
+
+    .capa .titulo-principal {
+      font-family: var(--serif);
+      font-size: 46px;
+      font-weight: 800;
+      line-height: 1.12;
+      color: #ffffff;
+      margin-bottom: 18px;
+      letter-spacing: .01em;
+    }
+
+    .capa-rule {
+      width: 92px;
+      height: 3px;
+      background: linear-gradient(90deg, var(--gold-soft), #e8cd8a);
+      margin: 0 auto 22px;
+      border-radius: 2px;
+    }
+
+    .capa .subtitulo {
+      font-size: 15.5px;
+      font-weight: 400;
+      color: #c9d6e8;
+      line-height: 1.55;
+      margin-bottom: 38px;
+    }
+
+    .capa-meta {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 4px 34px;
+      max-width: 620px;
+      margin: 0 auto 32px;
+      text-align: left;
+    }
+
+    .capa .info {
+      font-size: 12px;
+      color: #b9c8dd;
+      padding: 8px 2px;
+      border-bottom: 1px solid rgba(255, 255, 255, .12);
+    }
+
+    .capa .info strong {
+      color: #e9eef7;
+      font-weight: 600;
+    }
+
+    .capa .destaque {
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 16px 22px;
+      border: 1px solid rgba(201, 162, 39, .55);
+      border-left: 4px solid var(--gold-soft);
+      background: rgba(201, 162, 39, .1);
+      color: #f4ead2;
+      border-radius: 10px;
+      font-size: 13.5px;
+      font-weight: 500;
+      line-height: 1.5;
+    }
+
+    /* ============ Corpo do relatório ============ */
+    main.pagina {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 26px 18px 90px;
+    }
+
+    main.pagina > section {
+      background: #ffffff;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      box-shadow: var(--shadow-sm);
+      padding: 42px 48px;
+      margin: 0 0 26px;
+    }
+
+    .page-break {
+      page-break-before: always;
+    }
+
+    /* ============ Sumário ============ */
+    .sumario ol {
+      list-style: none;
+      margin: 8px 0 0;
+      padding: 0;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 0 52px;
+      counter-reset: toc;
+    }
+
+    .sumario li {
+      counter-increment: toc;
+      margin: 0;
+    }
+
+    .sumario a {
+      display: flex;
+      align-items: baseline;
+      gap: 14px;
+      padding: 9px 2px;
+      color: var(--ink);
+      text-decoration: none;
+      border-bottom: 1px dotted var(--line-strong);
+      transition: color .15s ease, border-color .15s ease, padding-left .15s ease;
+    }
+
+    .sumario a::before {
+      content: counter(toc, decimal-leading-zero);
+      font-family: var(--serif);
+      font-weight: 700;
+      font-size: 12.5px;
+      color: var(--gold);
+      flex: 0 0 auto;
+    }
+
+    .sumario a::after {
+      content: "";
+      flex: 1;
+    }
+
+    .sumario a:hover {
+      color: var(--navy-800);
+      border-bottom-color: var(--gold);
+      padding-left: 7px;
+    }
+
+    /* ============ Tabelas ============ */
+    table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      margin: 14px 0 22px;
+      font-size: 9.6pt;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+    }
+
+    th, td {
+      border: 0;
+      padding: 9px 13px;
+      vertical-align: top;
+      text-align: left;
+    }
+
+    th {
+      background: var(--navy-900);
+      color: #f2f6fc;
+      font-weight: 600;
+      font-size: 8.3pt;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+    }
+
+    td {
+      color: var(--ink);
+      border-top: 1px solid var(--line);
+      background: #ffffff;
+    }
+
+    tr:nth-child(even) td {
+      background: var(--bg-soft);
+    }
+
+    td:first-child {
+      font-weight: 600;
+      color: #24334d;
+    }
+
+    @media (hover: hover) {
+      tr:hover td {
+        background: var(--gold-pale);
+      }
+    }
+
+    /* ============ Caixas de destaque ============ */
+    .resumo {
+      position: relative;
+      background: linear-gradient(180deg, #ffffff, #fafcff);
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--gold);
+      border-radius: 10px;
+      padding: 16px 18px 15px;
+      margin: 16px 0 20px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .resumo::before {
+      content: "Resumo executivo";
+      display: block;
+      font-size: 8.4pt;
+      font-weight: 700;
+      letter-spacing: .2em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 7px;
+    }
+
+    .resumo strong {
+      color: var(--navy-900);
+    }
+
+    .alerta {
+      position: relative;
+      background: var(--amber-bg);
+      border: 1px solid #f0dcab;
+      border-left: 4px solid var(--amber);
+      border-radius: 10px;
+      padding: 15px 18px;
+      margin: 14px 0 20px;
+    }
+
+    .alerta::before {
+      content: "Ponto de atenção";
+      display: block;
+      font-size: 8.4pt;
+      font-weight: 700;
+      letter-spacing: .2em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 7px;
+    }
+
+    .alerta strong {
+      color: var(--amber);
+    }
+
+    .tecnico {
+      position: relative;
+      background: #f7f9fd;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--blue);
+      border-radius: 10px;
+      padding: 15px 18px;
+      margin: 14px 0 20px;
+    }
+
+    .tecnico::before {
+      content: "Nota técnica";
+      display: block;
+      font-size: 8.4pt;
+      font-weight: 700;
+      letter-spacing: .2em;
+      text-transform: uppercase;
+      color: var(--blue);
+      margin-bottom: 7px;
+    }
+
+    /* ============ Cards ============ */
+    .dois-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .card {
+      background: #ffffff;
+      border: 1px solid var(--line);
+      border-top: 3px solid var(--navy-800);
+      border-radius: 10px;
+      padding: 17px 19px;
+      box-shadow: var(--shadow-sm);
+      transition: transform .18s ease, box-shadow .18s ease;
+    }
+
+    @media (hover: hover) {
+      .card:hover {
+        transform: translateY(-3px);
+        box-shadow: var(--shadow-md);
+        border-top-color: var(--gold);
+      }
+    }
+
+    .card h3 {
+      margin-top: 0;
+      font-size: 12.5pt;
+      color: var(--navy-800);
+    }
+
+    /* ============ Código e diagramas ============ */
+    pre {
+      background: #0d1830;
+      color: #dbe4f0;
+      padding: 15px 17px;
+      border-radius: 8px;
+      border: 1px solid #24324f;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      font-family: var(--mono);
+      font-size: 8.4pt;
+      line-height: 1.55;
+      overflow: hidden;
+    }
+
+    .uml-figure {
+      margin: 14px 0 22px;
+    }
+
+    .uml-canvas {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 90px;
+      margin: 6px 0 10px;
+      padding: 16px;
+      background: #ffffff;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .uml-canvas img {
+      max-width: 100%;
+      height: auto;
+    }
+
+    .uml-canvas.uml-error {
+      background: var(--amber-bg);
+      color: var(--amber);
+      font-size: 9.5pt;
+      text-align: center;
+    }
+
+    .uml-canvas.uml-error img {
+      display: none;
+    }
+
+    details.uml-source {
+      border: 1px dashed var(--line-strong);
+      border-radius: 9px;
+      padding: 2px 14px 4px;
+      margin: 4px 0 6px;
+      background: #fbfcfe;
+    }
+
+    details.uml-source summary {
+      cursor: pointer;
+      font-size: 8.3pt;
+      font-weight: 700;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--slate);
+      padding: 8px 0;
+      user-select: none;
+      transition: color .15s ease;
+      list-style: none;
+    }
+
+    details.uml-source summary::-webkit-details-marker {
+      display: none;
+    }
+
+    details.uml-source summary::before {
+      content: "▸ ";
+      color: var(--gold);
+    }
+
+    details.uml-source[open] summary::before {
+      content: "▾ ";
+    }
+
+    details.uml-source summary:hover {
+      color: var(--gold);
+    }
+
+    details.uml-source .tag {
+      display: inline-block;
+      margin-left: 6px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 7.6pt;
+      letter-spacing: .1em;
+      background: var(--bg-tint);
+      color: var(--navy-700);
+      border: 1px solid var(--line-strong);
+    }
+
+    details.uml-source pre {
+      margin: 0 0 10px;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 3px 9px;
+      border-radius: 999px;
+      font-size: 8.4pt;
+      font-weight: 600;
+      margin-right: 6px;
+      background: var(--bg-tint);
+      color: var(--navy-700);
+      border: 1px solid var(--line-strong);
+    }
+
+    .small {
+      font-size: 9.2pt;
+      color: var(--muted);
+      font-style: italic;
+    }
+
+    .rodape {
+      margin-top: 34px;
+      font-size: 9pt;
+      color: var(--muted);
+      border-top: 1px solid var(--line);
+      padding-top: 12px;
+    }
+
+    /* ============ Voltar ao topo ============ */
+    .btn-topo {
+      position: fixed;
+      right: 22px;
+      bottom: 22px;
+      z-index: 70;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: 1px solid var(--line-strong);
+      background: #ffffff;
+      color: var(--navy-900);
+      font-size: 18px;
+      line-height: 1;
+      cursor: pointer;
+      box-shadow: var(--shadow-md);
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(10px);
+      transition: opacity .2s ease, transform .2s ease, visibility .2s ease, background .2s ease, color .2s ease;
+    }
+
+    .btn-topo.show {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+
+    .btn-topo:hover {
+      background: var(--navy-900);
+      color: #ffffff;
+    }
+
+    /* ============ Responsivo ============ */
+    @media (max-width: 760px) {
+      main.pagina > section {
+        padding: 28px 22px;
+      }
+
+      .dois-col {
+        grid-template-columns: 1fr;
+      }
+
+      .capa-meta {
+        grid-template-columns: 1fr;
+      }
+
+      .capa .titulo-principal {
+        font-size: 34px;
+      }
+
+      .toolbar {
+        padding: 8px 12px;
+      }
+
+      .btn-ghost {
+        display: none;
+      }
+    }
+
+    /* ============ Impressão / PDF ============ */
+    @page {
+      size: A4;
+      margin: 22mm 17mm 24mm;
+    }
+
+    @page {
+      @bottom-left {
+        content: "Portal QuIIN — Relatório Executivo";
+        font-family: var(--sans);
+        font-size: 8pt;
+        color: #94a3b8;
+      }
+      @bottom-right {
+        content: "Página " counter(page);
+        font-family: var(--sans);
+        font-size: 8pt;
+        color: #94a3b8;
+      }
+    }
+
+    @page :first {
+      @bottom-left {
+        content: none;
+      }
+      @bottom-right {
+        content: none;
+      }
+    }
+
+    @media print {
+      body {
+        background: #ffffff;
+        font-size: 10.2pt;
+      }
+
+      .no-print {
+        display: none !important;
+      }
+
+      .toolbar, .btn-topo {
+        display: none !important;
+      }
+
+      main.pagina {
+        max-width: none;
+        padding: 0;
+      }
+
+      main.pagina > section {
+        background: transparent;
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+        padding: 0;
+        margin: 0 0 10px;
+      }
+
+      .capa {
+        min-height: 23.5cm;
+      }
+
+      a {
+        text-decoration: none;
+        color: inherit;
+      }
+
+      th, td, .card, .resumo, .alerta, .tecnico, .uml-canvas {
+        break-inside: avoid;
+      }
+
+      details.uml-source {
+        display: none;
+      }
+
+      h1, h2, h3, figure {
+        break-after: avoid;
+      }
+
+      details.uml-source summary {
+        text-transform: none;
+        letter-spacing: 0;
+        color: var(--muted);
+      }
+
+      details.uml-source .tag {
+        display: none;
+      }
+
+      * {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!--
+    Documento: Relatório Executivo — Portal QuIIN
+    Stack recomendada: Python/Django
+    Como gerar PDF: abrir este arquivo no navegador e usar "Imprimir > Salvar como PDF".
+  -->
+
+  <header class="toolbar no-print">
+    <div class="toolbar-brand">
+      <span class="tb-mark" aria-hidden="true">Q</span>
+      <span class="tb-text">Portal QuIIN · Relatório Executivo</span>
+    </div>
+    <nav class="toolbar-actions">
+      <a class="btn-ghost" href="#sumario">Sumário</a>
+      <button class="btn-primary" type="button" onclick="window.print()">Imprimir / Salvar PDF</button>
+    </nav>
+  </header>
+
+  <section class="capa">
+    <div class="capa-inner">
+      <div class="capa-tag">Documento executivo</div>
+      <div class="monogram" aria-hidden="true">Q</div>
+      <div class="capa-kicker">Programa QuIIN · Gestão e Prestação de Contas</div>
+      <div class="titulo-principal">Portal QuIIN</div>
+      <div class="capa-rule"></div>
+      <div class="subtitulo">
+        Relatório Executivo de Requisitos, Roadmap e Arquitetura<br />
+        Gestão e Prestação de Contas Mensal do Programa QuIIN
+      </div>
+
+      <div class="capa-meta">
+        <div class="info"><strong>Versão:</strong> 2.0 Executiva</div>
+        <div class="info"><strong>Data:</strong> 2026</div>
+        <div class="info"><strong>Cliente interno:</strong> Coordenação operacional do QuIIN</div>
+        <div class="info"><strong>Stack recomendada:</strong> Python + Django + PostgreSQL</div>
+      </div>
+
+      <div class="destaque">
+        Objetivo: reduzir o esforço mensal de consolidação de indicadores e apoiar a prestação de contas com a Embrapii.
+      </div>
+    </div>
+  </section>
+
+  <main class="pagina">
+
+    <section id="sumario" class="sumario page-break">
+      <h1>Sumário</h1>
+      <ol>
+        <li><a href="#objetivo">Objetivo do projeto</a></li>
+        <li><a href="#contexto">Contexto e problema</a></li>
+        <li><a href="#produto">Produto proposto</a></li>
+        <li><a href="#beneficios">Benefícios esperados</a></li>
+        <li><a href="#escopo">Escopo executivo</a></li>
+        <li><a href="#stakeholders">Stakeholders e perfis de acesso</a></li>
+        <li><a href="#requisitos">Requisitos essenciais</a></li>
+        <li><a href="#regras">Regras de negócio críticas</a></li>
+        <li><a href="#roadmap">Roadmap de implementação</a></li>
+        <li><a href="#arquitetura">Arquitetura da solução</a></li>
+        <li><a href="#uml">Diagramas UML</a></li>
+        <li><a href="#stack">Stack tecnológica recomendada</a></li>
+        <li><a href="#riscos">Riscos e decisões necessárias</a></li>
+        <li><a href="#metricas">Métricas de sucesso</a></li>
+        <li><a href="#proximos-passos">Próximos passos</a></li>
+      </ol>
+    </section>
+
+    <section id="objetivo" class="page-break">
+      <h1>1. Objetivo do projeto</h1>
+
+      <div class="resumo">
+        Desenvolver uma plataforma web para gestão do Programa QuIIN, permitindo acompanhamento mensal de indicadores físicos, financeiros, estratégicos e operacionais, com foco na prestação de contas à Embrapii e no apoio à liderança interna.
+      </div>
+
+      <p>
+        O sistema deve permitir que a coordenação operacional visualize, de forma consolidada e segregada por pilar, os indicadores necessários para a reunião mensal com a Embrapii, para o BI interno e para reportes ao MCTI.
+      </p>
+
+      <h2>1.1. Finalidade principal</h2>
+      <ul>
+        <li>Apoiar a prestação de contas mensal à Embrapii;</li>
+        <li>Reduzir o esforço manual de consolidação de dados;</li>
+        <li>Garantir rastreabilidade de quem preencheu, alterou ou aprovou informações;</li>
+        <li>Oferecer visão consolidada e por pilar;</li>
+        <li>Evoluir para módulos de talentos, processos, funil comercial e governança.</li>
+      </ul>
+
+      <h2>1.2. Diretriz de produto</h2>
+      <p>
+        A solução deve começar simples, atacando a dor mais urgente: consolidação mensal de indicadores e prestação de contas. A recomendação é iniciar com um MVP funcional e evoluir por módulos, evitando tentar implementar todos os requisitos simultaneamente.
+      </p>
+    </section>
+
+    <section id="contexto">
+      <h1>2. Contexto e problema</h1>
+
+      <p>
+        O QuIIN é um centro de competência acompanhado pela Embrapii e reportado ao MCTI. Mensalmente, a coordenação operacional precisa apresentar o andamento do centro com base no mês de competência anterior. Por exemplo, em uma reunião de julho são apresentados os dados de junho.
+      </p>
+
+      <p>
+        A reunião mensal com a Embrapii ocorre geralmente na segunda quinzena do mês, após o dia 15. Os indicadores apresentados alimentam o BI da Embrapii e suportam avaliações sobre o desenvolvimento dos centros de competência.
+      </p>
+
+      <h2>2.1. Dores identificadas</h2>
+      <ul>
+        <li>Consolidação manual mensal de indicadores financeiros e de entregáveis;</li>
+        <li>Dependência de planilhas pesadas e sensíveis;</li>
+        <li>Necessidade de montar apresentações manualmente;</li>
+        <li>Baixo rastreio de quem atualizou cada dado;</li>
+        <li>Controle descentralizado por pilares;</li>
+        <li>Dificuldade de visualizar cenário consolidado e segregado;</li>
+        <li>Esforço repetitivo para extrair dados financeiros antes de reuniões;</li>
+        <li>Necessidade de atualizar mensalmente kanban estratégico, destaques e indicadores.</li>
+      </ul>
+
+      <h2>2.2. Contexto financeiro</h2>
+      <p>
+        O programa recebeu R$ 60 milhões para criação do centro de competência, distribuídos entre pilares:
+      </p>
+
+      <table>
+        <tr>
+          <th>Pilar</th>
+          <th>Valor previsto</th>
+          <th>Observação</th>
+        </tr>
+        <tr>
+          <td>PDI / FCCT</td>
+          <td>R$ 29 milhões</td>
+          <td>Projetos de pesquisa, desenvolvimento e inovação</td>
+        </tr>
+        <tr>
+          <td>Formação e Capacitação de RH</td>
+          <td>R$ 14 milhões</td>
+          <td>Cursos, turmas, matrículas e pessoas formadas</td>
+        </tr>
+        <tr>
+          <td>Infraestrutura</td>
+          <td>R$ 10 milhões</td>
+          <td>Aquisições, obras, equipamentos e adequações</td>
+        </tr>
+        <tr>
+          <td>Atração e Criação de Startups</td>
+          <td>R$ 7 milhões</td>
+          <td>Programas de startups, times e projetos</td>
+        </tr>
+      </table>
+
+      <p>
+        Além do recurso Embrapii, o programa possui metas de sustentabilidade por meio de Associação Tecnológica e Outras Fontes.
+      </p>
+
+      <table>
+        <tr>
+          <th>Fonte</th>
+          <th>Meta de captação</th>
+          <th>Observação</th>
+        </tr>
+        <tr>
+          <td>Associação Tecnológica — AT</td>
+          <td>R$ 7,75 milhões</td>
+          <td>Captação junto a empresas privadas e parceiras</td>
+        </tr>
+        <tr>
+          <td>Outras Fontes</td>
+          <td>R$ 6,3 milhões</td>
+          <td>Editais, Fapesp, Finep, Senai Cimatec e investimentos comprováveis</td>
+        </tr>
+        <tr>
+          <td>Total de sustentabilidade</td>
+          <td>R$ 14,05 milhões</td>
+          <td>Soma das metas de AT e Outras Fontes</td>
+        </tr>
+      </table>
+
+      <div class="alerta">
+        <strong>Regra importante:</strong> a Embrapii considera execução financeira como o valor efetivamente gasto/comprovado, não apenas o valor captado ou previsto. Além disso, renovações de associados podem contar para captação/receita, mas não contam para a meta de quantidade de CNPJs novos.
+      </div>
+    </section>
+
+    <section id="produto" class="page-break">
+      <h1>3. Produto proposto</h1>
+
+      <p>
+        O produto proposto é um <strong>Portal de Gestão e Prestação de Contas do QuIIN</strong>, acessível via navegador, com controle de acesso por papéis e visibilidade por pilar.
+      </p>
+
+      <h2>3.1. Módulos principais</h2>
+      <table>
+        <tr>
+          <th>Módulo</th>
+          <th>Objetivo</th>
+          <th>Prioridade</th>
+        </tr>
+        <tr>
+          <td>Indicadores e metas</td>
+          <td>Cadastrar indicadores físicos e financeiros por pilar</td>
+          <td>MVP</td>
+        </tr>
+        <tr>
+          <td>Coleta mensal</td>
+          <td>Permitir que pontos focais atualizem dados mensalmente</td>
+          <td>MVP</td>
+        </tr>
+        <tr>
+          <td>Dashboard executivo</td>
+          <td>Visualizar visão consolidada e segregada por pilar</td>
+          <td>MVP</td>
+        </tr>
+        <tr>
+          <td>Financeiro consolidado</td>
+          <td>Acompanhar execução, captação e outras fontes</td>
+          <td>MVP / Fase 2</td>
+        </tr>
+        <tr>
+          <td>Associação tecnológica</td>
+          <td>Controlar associados, CNPJs, renovações, pipeline e captação</td>
+          <td>Fase 2/3</td>
+        </tr>
+        <tr>
+          <td>Relatório mensal</td>
+          <td>Gerar base para prestação de contas à Embrapii</td>
+          <td>MVP / Fase 2</td>
+        </tr>
+        <tr>
+          <td>Auditoria</td>
+          <td>Registrar histórico de alterações</td>
+          <td>MVP</td>
+        </tr>
+        <tr>
+          <td>Kanban estratégico</td>
+          <td>Acompanhar ações estratégicas e programas obrigatórios</td>
+          <td>Evolução</td>
+        </tr>
+        <tr>
+          <td>Banco de talentos</td>
+          <td>Consultar pessoas, competências, funções e Lattes</td>
+          <td>Evolução</td>
+        </tr>
+        <tr>
+          <td>Processos e playbooks</td>
+          <td>Centralizar fluxos, responsabilidades e materiais</td>
+          <td>Evolução</td>
+        </tr>
+      </table>
+
+      <h2>3.2. Conceito central</h2>
+      <p>
+        O sistema deve funcionar como um painel gerencial do programa. A coordenação deve conseguir abrir o portal e visualizar o cenário atual do QuIIN sem precisar reconstruir manualmente apresentações ou consolidar planilhas a cada reunião.
+      </p>
+    </section>
+
+    <section id="beneficios">
+      <h1>4. Benefícios esperados</h1>
+
+      <table>
+        <tr>
+          <th>Benefício</th>
+          <th>Impacto esperado</th>
+        </tr>
+        <tr>
+          <td>Redução do tempo de consolidação</td>
+          <td>Diminui o esforço mensal da coordenação e da equipe de apoio</td>
+        </tr>
+        <tr>
+          <td>Maior rastreabilidade</td>
+          <td>Permite saber quem inseriu, alterou ou aprovou dados</td>
+        </tr>
+        <tr>
+          <td>Visão consolidada e por pilar</td>
+          <td>Apoia decisões da liderança e prestação de contas</td>
+        </tr>
+        <tr>
+          <td>Padronização mensal</td>
+          <td>Reduz erro, retrabalho e inconsistência</td>
+        </tr>
+        <tr>
+          <td>Histórico confiável</td>
+          <td>Facilita auditoria, consultas futuras e comparação entre períodos</td>
+        </tr>
+        <tr>
+          <td>Melhoria de governança</td>
+          <td>Separa papéis, acessos e responsabilidades</td>
+        </tr>
+        <tr>
+          <td>Apoio à sustentabilidade</td>
+          <td>Facilita acompanhamento de AT, outras fontes e execução financeira</td>
+        </tr>
+        <tr>
+          <td>Evolução modular</td>
+          <td>Permite começar simples e crescer por módulos</td>
+        </tr>
+      </table>
+    </section>
+
+    <section id="escopo" class="page-break">
+      <h1>5. Escopo executivo</h1>
+
+      <h2>5.1. MVP recomendado</h2>
+      <p>
+        O MVP deve atacar a dor mais urgente: consolidação mensal de indicadores e apoio à prestação de contas.
+      </p>
+
+      <table>
+        <tr>
+          <th>Item</th>
+          <th>Descrição</th>
+          <th>Prioridade</th>
+        </tr>
+        <tr>
+          <td>Login e usuários</td>
+          <td>Autenticação e controle por papéis</td>
+          <td>Must</td>
+        </tr>
+        <tr>
+          <td>Pilares</td>
+          <td>Cadastro de PDI, Formação, Startups, AT, Infraestrutura e Financeiro</td>
+          <td>Must</td>
+        </tr>
+        <tr>
+          <td>Indicadores</td>
+          <td>Cadastro de indicadores configuráveis</td>
+          <td>Must</td>
+        </tr>
+        <tr>
+          <td>Metas</td>
+          <td>Metas por indicador, período e pilar</td>
+          <td>Must</td>
+        </tr>
+        <tr>
+          <td>Lançamentos mensais</td>
+          <td>Input por ponto focal com comentários e status</td>
+          <td>Must</td>
+        </tr>
+        <tr>
+          <td>Dashboard consolidado</td>
+          <td>Meta x realizado, acumulado e percentual</td>
+          <td>Must</td>
+        </tr>
+        <tr>
+          <td>Dashboard por pilar</td>
+          <td>Visão segregada por pilar</td>
+          <td>Must</td>
+        </tr>
+        <tr>
+          <td>Importação financeira</td>
+          <td>Importar planilha consolidada, sem dados sensíveis brutos</td>
+          <td>Must</td>
+        </tr>
+        <tr>
+          <td>Relatório mensal</td>
+          <td>Exportação para PDF/Excel</td>
+          <td>Must</td>
+        </tr>
+        <tr>
+          <td>Auditoria</td>
+          <td>Registro de usuário, data, valor anterior e valor novo</td>
+          <td>Must</td>
+        </tr>
+        <tr>
+          <td>Painel de pendências</td>
+          <td>Mostrar quais pilares ainda não preencheram ou fecharam</td>
+          <td>Must</td>
+        </tr>
+      </table>
+
+      <h2>5.2. Evolução após o MVP</h2>
+      <ul>
+        <li>Módulo completo de Associação Tecnológica;</li>
+        <li>Funil comercial e pipeline de prospecção;</li>
+        <li>Kanban estratégico;</li>
+        <li>Banco de talentos;</li>
+        <li>Repositório de processos e playbooks;</li>
+        <li>Notificações automáticas;</li>
+        <li>Integração com BI externo;</li>
+        <li>Relatórios customizados.</li>
+      </ul>
+
+      <h2>5.3. Fora do escopo inicial</h2>
+      <ul>
+        <li>ERP financeiro completo;</li>
+        <li>Controle contábil detalhado;</li>
+        <li>Substituição integral das planilhas financeiras confidenciais;</li>
+        <li>Publicação automática no portal da Embrapii;</li>
+        <li>Rede social corporativa completa;</li>
+        <li>Workflow jurídico completo de contratos.</li>
+      </ul>
+    </section>
+
+    <section id="stakeholders">
+      <h1>6. Stakeholders e perfis de acesso</h1>
+
+      <h2>6.1. Stakeholders principais</h2>
+      <table>
+        <tr>
+          <th>Stakeholder</th>
+          <th>Papel</th>
+          <th>Interesse principal</th>
+        </tr>
+        <tr>
+          <td>Erica Rios Almeida</td>
+          <td>Coordenação operacional / PO principal</td>
+          <td>Visão consolidada, prestação de contas, rastreabilidade</td>
+        </tr>
+        <tr>
+          <td>Clarissa</td>
+          <td>Apoio operacional</td>
+          <td>Input, organização e consolidação de dados</td>
+        </tr>
+        <tr>
+          <td>Valéria</td>
+          <td>Coordenação geral / responsável técnica</td>
+          <td>PDI, formação e responsabilidade institucional</td>
+        </tr>
+        <tr>
+          <td>André Dantas</td>
+          <td>Gerência executiva do QuIIN / HPC e Cloud</td>
+          <td>Gestão administrativa, AT, startups e infraestrutura</td>
+        </tr>
+        <tr>
+          <td>Anderson</td>
+          <td>Coordenação adjunta / formação</td>
+          <td>Indicadores de formação, cursos e matrículas</td>
+        </tr>
+        <tr>
+          <td>Mabel</td>
+          <td>Apoio à estratégia e novos negócios</td>
+          <td>Indicadores, análise de dados e visão de liderança</td>
+        </tr>
+        <tr>
+          <td>Líderes de pilar</td>
+          <td>Responsáveis técnicos</td>
+          <td>Atualizar indicadores e ações do pilar</td>
+        </tr>
+        <tr>
+          <td>Pontos focais</td>
+          <td>Alimentadores de dados</td>
+          <td>Preenchimento mensal das informações</td>
+        </tr>
+        <tr>
+          <td>Embrapii</td>
+          <td>Instituição financiadora/acompanhadora</td>
+          <td>Prestação de contas, indicadores e avanço físico-financeiro</td>
+        </tr>
+        <tr>
+          <td>MCTI</td>
+          <td>Instituição destinatária dos indicadores</td>
+          <td>Avaliação dos centros de competência</td>
+        </tr>
+        <tr>
+          <td>TI / ET</td>
+          <td>Infraestrutura e sustentação</td>
+          <td>Servidor, banco de dados, domínio, segurança</td>
+        </tr>
+      </table>
+
+      <h2>6.2. Perfis de acesso recomendados</h2>
+      <table>
+        <tr>
+          <th>Perfil</th>
+          <th>Permissões recomendadas</th>
+        </tr>
+        <tr>
+          <td>Master</td>
+          <td>Acesso total, fecha período, aprova, configura indicadores, gerencia usuários</td>
+        </tr>
+        <tr>
+          <td>Admin / Apoio</td>
+          <td>Apoio operacional, edição limitada, consolidação e validação</td>
+        </tr>
+        <tr>
+          <td>Ponto focal de pilar</td>
+          <td>Edita apenas indicadores do próprio pilar</td>
+        </tr>
+        <tr>
+          <td>Liderança</td>
+          <td>Visualiza dashboards e relatórios autorizados</td>
+        </tr>
+        <tr>
+          <td>Auditor</td>
+          <td>Consulta histórico e auditoria, sem edição</td>
+        </tr>
+      </table>
+
+      <div class="alerta">
+        A reunião reforça a necessidade de rastreabilidade: o sistema deve registrar qual usuário realizou o input, em qual horário e quais alterações foram feitas.
+      </div>
+    </section>
+
+    <section id="requisitos" class="page-break">
+      <h1>7. Requisitos essenciais</h1>
+
+      <h2>7.1. Requisitos funcionais</h2>
+      <table>
+        <tr>
+          <th>ID</th>
+          <th>Requisito</th>
+          <th>Descrição</th>
+          <th>Prioridade</th>
+        </tr>
+        <tr>
+          <td>RF-01</td>
+          <td>Autenticação</td>
+          <td>Login seguro com usuário e senha, preferencialmente preparado para SSO futuro</td>
+          <td>Must</td>
+        </tr>
+        <tr>
+          <td>RF-02</td>
+          <td>Papéis e permissões</td>
+          <td>Controle por perfil: Master, Admin, Ponto Focal, Liderança e Auditor</td>
+          <td>Must</td>
+        </tr>
+        <tr>
+          <td>RF-03</td>
+          <td>Permissão por pilar</td>
+          <td>Ponto focal acessa apenas o pilar designado</td>
+          <td>Must</td>
+        </tr>
+        <tr>
+          <td>RF-04</td>
+          <td>Cadastro de pilares</td>
+          <td>PDI/FCCT, Formação, Startups, AT, Infraestrutura e Financeiro</td>
+          <td>Must</td>
+        </tr>
+        <tr>
+          <td>RF-05</td>
+          <td>Cadastro de indicadores</td>
+          <td>Indicadores configuráveis por pilar, unidade e tipo</td>
+          <td>Must</td>
+        </tr>
+        <tr>
+          <td>RF-06</td>
+          <td>Cadastro de metas</td>
+          <td>Metas mensais, anuais, acumuladas e versionadas</td>
+          <td>Must</td>
+        </tr>
+        <tr>
+          <td>RF-07</td>
+          <td>Lançamentos mensais</td>
+          <td>Input por competência, com comentários e evidências</td>
+          <td>Must</td>
+        </tr>
+        <tr>
+          <td>RF-08</td>
+          <td>Status de preenchimento</td>
+          <td>Rascunho, enviado, validado, aprovado, devolvido e fechado</td>
+          <td>Must</td>
+        </tr>
+        <tr>
+          <td>RF-09</td>
+          <td>Dashboard consolidado</td>
+          <td>Meta x realizado, acumulado, percentual e alertas</td>
+          <td>Must</td>
+        </tr>
+        <tr>
+          <td>RF-10</td>
+          <td>Dashboard por pilar</td>
+          <td>Visão segregada de cada pilar</td>
+          <td>Must</td>
+        </tr>
+        <tr>
+          <td>RF-11</td>
+          <td>Financeiro consolidado</td>
+          <td>Importação de dados consolidados, sem exposição de dados sensíveis brutos</td>
+          <td>Must</td>
+        </tr>
+        <tr>
+          <td>RF-12</td>
+          <td>Fechamento mensal</td>
+          <td>Snapshot mensal imutável após fechamento</td>
+          <td>Must</td>
+        </tr>
+        <tr>
+          <td>RF-13</td>
+          <td>Auditoria</td>
+          <td>Registro de usuário, data, valor anterior e valor novo</td>
+          <td>Must</td>
+        </tr>
+        <tr>
+          <td>RF-14</td>
+          <td>Relatório mensal</td>
+          <td>Geração de relatório para prestação de contas</td>
+          <td>Must</td>
+        </tr>
+        <tr>
+          <td>RF-15</td>
+          <td>Exportação</td>
+          <td>Exportar Excel, CSV e PDF</td>
+          <td>Must</td>
+        </tr>
+        <tr>
+          <td>RF-16</td>
+          <td>Destaques mensais</td>
+          <td>Registrar principais acontecimentos por pilar</td>
+          <td>Should</td>
+        </tr>
+        <tr>
+          <td>RF-17</td>
+          <td>Pendências de tickets</td>
+          <td>Registrar pendências com a Embrapii no portal/tickets</td>
+          <td>Should</td>
+        </tr>
+        <tr>
+          <td>RF-18</td>
+          <td>Foco próximos 30 dias</td>
+          <td>Registrar prioridades do próximo ciclo</td>
+          <td>Should</td>
+        </tr>
+        <tr>
+          <td>RF-19</td>
+          <td>Associação tecnológica</td>
+          <td>CNPJs novos, renovações, captação, pipeline e contratos</td>
+          <td>Should</td>
+        </tr>
+        <tr>
+          <td>RF-20</td>
+          <td>Kanban estratégico</td>
+          <td>Backlog, execução, concluído e ações em rede</td>
+          <td>Could</td>
+        </tr>
+        <tr>
+          <td>RF-21</td>
+          <td>Banco de talentos</td>
+          <td>Pessoas, competências, função, Lattes e alocação</td>
+          <td>Could</td>
+        </tr>
+        <tr>
+          <td>RF-22</td>
+          <td>Processos e playbooks</td>
+          <td>Fluxos, tags, busca, responsáveis e materiais</td>
+          <td>Could</td>
+        </tr>
+      </table>
+
+      <h2>7.2. Requisitos não funcionais</h2>
+      <table>
+        <tr>
+          <th>ID</th>
+          <th>Categoria</th>
+          <th>Requisito</th>
+          <th>Descrição</th>
+        </tr>
+        <tr>
+          <td>RNF-01</td>
+          <td>Acesso</td>
+          <td>Online</td>
+          <td>Acesso via navegador, conforme necessidade indicada pela coordenação</td>
+        </tr>
+        <tr>
+          <td>RNF-02</td>
+          <td>Segurança</td>
+          <td>Controle de acesso</td>
+          <td>Permissões por papel e pilar</td>
+        </tr>
+        <tr>
+          <td>RNF-03</td>
+          <td>Segurança</td>
+          <td>HTTPS</td>
+          <td>Criptografia em trânsito</td>
+        </tr>
+        <tr>
+          <td>RNF-04</td>
+          <td>Auditabilidade</td>
+          <td>Trilha de auditoria</td>
+          <td>Ações críticas devem registrar autor, data e valores alterados</td>
+        </tr>
+        <tr>
+          <td>RNF-05</td>
+          <td>Usabilidade</td>
+          <td>Interface simples</td>
+          <td>Pontos focais devem conseguir preencher dados facilmente</td>
+        </tr>
+        <tr>
+          <td>RNF-06</td>
+          <td>Desempenho</td>
+          <td>Resposta rápida</td>
+          <td>Páginas principais devem carregar rapidamente em rede interna</td>
+        </tr>
+        <tr>
+          <td>RNF-07</td>
+          <td>Confiabilidade</td>
+          <td>Backup</td>
+          <td>Backup diário do banco e arquivos</td>
+        </tr>
+        <tr>
+          <td>RNF-08</td>
+          <td>Conformidade</td>
+          <td>Dados sensíveis</td>
+          <td>Dados financeiros sensíveis devem ser tratados apenas de forma consolidada</td>
+        </tr>
+        <tr>
+          <td>RNF-09</td>
+          <td>Infraestrutura</td>
+          <td>Integração com ET</td>
+          <td>Prever servidor, banco de dados, domínio e certificado</td>
+        </tr>
+        <tr>
+          <td>RNF-10</td>
+          <td>Manutenibilidade</td>
+          <td>Código modular</td>
+          <td>Arquitetura Django organizada em apps por domínio</td>
+        </tr>
+      </table>
+    </section>
+
+    <section id="regras" class="page-break">
+      <h1>8. Regras de negócio críticas</h1>
+
+      <table>
+        <tr>
+          <th>Código</th>
+          <th>Regra</th>
+        </tr>
+        <tr>
+          <td>RN-01</td>
+          <td>A prestação de contas mensal considera o mês de competência anterior. Ex.: em julho apresenta-se junho.</td>
+        </tr>
+        <tr>
+          <td>RN-02</td>
+          <td>A reunião mensal com a Embrapii ocorre normalmente na segunda quinzena, após o dia 15.</td>
+        </tr>
+        <tr>
+          <td>RN-03</td>
+          <td>Os indicadores alimentam o BI da Embrapii e reportes ao MCTI.</td>
+        </tr>
+        <tr>
+          <td>RN-04</td>
+          <td>Indicadores devem ser comparados com metas acumuladas e/ou mensais.</td>
+        </tr>
+        <tr>
+          <td>RN-05</td>
+          <td>Execução financeira considera o valor efetivamente gasto/comprovado, não apenas previsto ou captado.</td>
+        </tr>
+        <tr>
+          <td>RN-06</td>
+          <td>Os pilares possuem orçamentos distintos e devem ser acompanhados separadamente.</td>
+        </tr>
+        <tr>
+          <td>RN-07</td>
+          <td>A Associação Tecnológica possui meta própria de captação e não recebe recurso Embrapii.</td>
+        </tr>
+        <tr>
+          <td>RN-08</td>
+          <td>Renovações de associados podem contar para captação/receita, mas não contam para a meta de quantidade de CNPJs novos.</td>
+        </tr>
+        <tr>
+          <td>RN-09</td>
+          <td>O sistema deve diferenciar empresas novas, renovações, negociações, contratos e distratos.</td>
+        </tr>
+        <tr>
+          <td>RN-10</td>
+          <td>Projetos plurianuais devem reconhecer apenas a execução anual correspondente.</td>
+        </tr>
+        <tr>
+          <td>RN-11</td>
+          <td>Dados financeiros sensíveis não devem ser expostos em sua forma bruta para usuários sem permissão.</td>
+        </tr>
+        <tr>
+          <td>RN-12</td>
+          <td>O fechamento mensal deve gerar snapshot histórico.</td>
+        </tr>
+        <tr>
+          <td>RN-13</td>
+          <td>Toda alteração relevante deve registrar usuário, data, valor anterior e valor novo.</td>
+        </tr>
+        <tr>
+          <td>RN-14</td>
+          <td>Metas devem ser configuráveis, pois podem mudar ao longo do programa.</td>
+        </tr>
+      </table>
+    </section>
+
+    <section id="roadmap" class="page-break">
+      <h1>9. Roadmap de implementação</h1>
+
+      <div class="resumo">
+        O roadmap recomendado é incremental. O MVP foca indicadores, coleta mensal, dashboard e fechamento. Depois, evolui para financeiro consolidado, associação tecnológica, kanban, talentos e processos.
+      </div>
+
+      <h2>9.1. Visão executiva do roadmap</h2>
+      <table>
+        <tr>
+          <th>Fase</th>
+          <th>Nome</th>
+          <th>Duração estimada</th>
+          <th>Objetivo principal</th>
+        </tr>
+        <tr>
+          <td>Fase 0</td>
+          <td>Descoberta e preparação</td>
+          <td>1 a 2 semanas</td>
+          <td>Validar requisitos, planilhas e infraestrutura</td>
+        </tr>
+        <tr>
+          <td>Fase 1</td>
+          <td>MVP Indicadores</td>
+          <td>4 a 6 semanas</td>
+          <td>Coleta, dashboard e fechamento mensal</td>
+        </tr>
+        <tr>
+          <td>Fase 2</td>
+          <td>Financeiro e relatório</td>
+          <td>4 a 6 semanas</td>
+          <td>Importação financeira e prestação mensal</td>
+        </tr>
+        <tr>
+          <td>Fase 3</td>
+          <td>Associação tecnológica</td>
+          <td>4 a 6 semanas</td>
+          <td>Pipeline, CNPJs, renovações e captação</td>
+        </tr>
+        <tr>
+          <td>Fase 4</td>
+          <td>Operacional complementar</td>
+          <td>4 a 6 semanas</td>
+          <td>Kanban, talentos e notificações</td>
+        </tr>
+        <tr>
+          <td>Fase 5</td>
+          <td>Governança e BI</td>
+          <td>4 a 8 semanas</td>
+          <td>Processos, playbooks e integração com BI</td>
+        </tr>
+      </table>
+
+      <h2>9.2. Detalhamento das fases</h2>
+
+      <div class="dois-col">
+        <div class="card">
+          <h3>Fase 0 — Descoberta</h3>
+          <ul>
+            <li>Validar indicadores oficiais;</li>
+            <li>Mapear planilhas atuais;</li>
+            <li>Criar layout da planilha consolidadora;</li>
+            <li>Definir papéis e pontos focais;</li>
+            <li>Solicitar infraestrutura à ET;</li>
+            <li>Criar protótipo inicial.</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <h3>Fase 1 — MVP Indicadores</h3>
+          <ul>
+            <li>Projeto Django inicial;</li>
+            <li>Usuários e papéis;</li>
+            <li>Pilares, indicadores e metas;</li>
+            <li>Lançamentos mensais;</li>
+            <li>Dashboard geral e por pilar;</li>
+            <li>Auditoria e painel de pendências.</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <h3>Fase 2 — Financeiro e relatório</h3>
+          <ul>
+            <li>Importação de planilha consolidada;</li>
+            <li>Execução por pilar;</li>
+            <li>Outras fontes;</li>
+            <li>Relatório mensal HTML/PDF;</li>
+            <li>Destaques e foco dos próximos 30 dias.</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <h3>Fase 3 — Associação tecnológica</h3>
+          <ul>
+            <li>Empresas associadas e prospects;</li>
+            <li>CNPJs novos vs renovações;</li>
+            <li>Pipeline comercial;</li>
+            <li>Contratos e distratos;</li>
+            <li>Indicadores comerciais.</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <h3>Fase 4 — Operacional</h3>
+          <ul>
+            <li>Kanban estratégico;</li>
+            <li>Banco de talentos;</li>
+            <li>Notificações;</li>
+            <li>Alertas de pendência;</li>
+            <li>Responsáveis por ações.</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <h3>Fase 5 — Governança</h3>
+          <ul>
+            <li>Processos da AT;</li>
+            <li>Playbook comercial;</li>
+            <li>Busca por tags e contratos;</li>
+            <li>Materiais de apoio;</li>
+            <li>Integração com BI externo.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="arquitetura" class="page-break">
+      <h1>10. Arquitetura da solução</h1>
+
+      <h2>10.1. Arquitetura recomendada</h2>
+      <p>
+        A arquitetura recomendada é um <strong>monólito modular em Django</strong>, organizado por apps de domínio. Essa abordagem reduz complexidade operacional, acelera o MVP e permite evolução posterior para API ou serviços, se necessário.
+      </p>
+
+      <h2>10.2. Stack principal</h2>
+      <table>
+        <tr>
+          <th>Camada</th>
+          <th>Tecnologia recomendada</th>
+        </tr>
+        <tr>
+          <td>Linguagem</td>
+          <td>Python 3.12+</td>
+        </tr>
+        <tr>
+          <td>Framework backend</td>
+          <td>Django 4.2 LTS ou 5.x</td>
+        </tr>
+        <tr>
+          <td>Banco de dados</td>
+          <td>PostgreSQL 15/16</td>
+        </tr>
+        <tr>
+          <td>Frontend inicial</td>
+          <td>Django Templates + Bootstrap 5 + HTMX</td>
+        </tr>
+        <tr>
+          <td>API futura, se necessário</td>
+          <td>Django REST Framework</td>
+        </tr>
+        <tr>
+          <td>Relatórios PDF</td>
+          <td>WeasyPrint ou wkhtmltopdf</td>
+        </tr>
+        <tr>
+          <td>Excel/CSV</td>
+          <td>openpyxl / pandas / django-import-export</td>
+        </tr>
+        <tr>
+          <td>Tarefas assíncronas</td>
+          <td>Celery + Redis</td>
+        </tr>
+        <tr>
+          <td>Servidor de aplicação</td>
+          <td>Gunicorn</td>
+        </tr>
+        <tr>
+          <td>Reverse proxy</td>
+          <td>Nginx</td>
+        </tr>
+        <tr>
+          <td>Infraestrutura</td>
+          <td>Servidor interno/ET, preferencialmente Linux/Docker</td>
+        </tr>
+      </table>
+
+      <h2>10.3. Apps Django recomendados</h2>
+      <table>
+        <tr>
+          <th>App</th>
+          <th>Responsabilidade</th>
+        </tr>
+        <tr>
+          <td>accounts</td>
+          <td>Usuários, grupos e permissões</td>
+        </tr>
+        <tr>
+          <td>core</td>
+          <td>Configurações gerais, dashboard base e utilitários</td>
+        </tr>
+        <tr>
+          <td>pillars</td>
+          <td>Pilares do programa</td>
+        </tr>
+        <tr>
+          <td>indicators</td>
+          <td>Indicadores e metas</td>
+        </tr>
+        <tr>
+          <td>periods</td>
+          <td>Períodos mensais e fechamento</td>
+        </tr>
+        <tr>
+          <td>entries</td>
+          <td>Lançamentos mensais</td>
+        </tr>
+        <tr>
+          <td>finance</td>
+          <td>Financeiro consolidado e importações</td>
+        </tr>
+        <tr>
+          <td>at</td>
+          <td>Associação tecnológica</td>
+        </tr>
+        <tr>
+          <td>reports</td>
+          <td>Relatórios e exportações</td>
+        </tr>
+        <tr>
+          <td>audit</td>
+          <td>Auditoria e logs de negócio</td>
+        </tr>
+        <tr>
+          <td>talents</td>
+          <td>Banco de talentos</td>
+        </tr>
+        <tr>
+          <td>processes</td>
+          <td>Processos e playbooks</td>
+        </tr>
+        <tr>
+          <td>notifications</td>
+          <td>Alertas e notificações</td>
+        </tr>
+      </table>
+
+      <h2>10.4. Estratégia para dados financeiros</h2>
+      <p>
+        Como as planilhas financeiras possuem dados sensíveis, a recomendação é importar apenas uma planilha consolidadora, gerada a partir das planilhas originais. Essa planilha consolidadora pode ser produzida manualmente ou por script/macro Python.
+      </p>
+
+      <table>
+        <tr>
+          <th>Etapa</th>
+          <th>Descrição</th>
+        </tr>
+        <tr>
+          <td>1. Planilha sensível</td>
+          <td>Permanece restrita à liderança</td>
+        </tr>
+        <tr>
+          <td>2. Consolidação</td>
+          <td>Script/macro extrai apenas valores necessários para o portal</td>
+        </tr>
+        <tr>
+          <td>3. Arquivo consolidado</td>
+          <td>Contém competência, pilar, indicador, meta, valor e observação</td>
+        </tr>
+        <tr>
+          <td>4. Upload no portal</td>
+          <td>Sistema valida layout e período</td>
+        </tr>
+        <tr>
+          <td>5. Auditoria</td>
+          <td>Registro de usuário, data e arquivo importado</td>
+        </tr>
+      </table>
+    </section>
+
+    <section id="uml" class="page-break">
+      <h1>11. Diagramas UML</h1>
+
+      <p class="small">
+        Os diagramas abaixo estão em PlantUML para permitir renderização fidedigna em ferramentas UML. Para o relatório executivo, podem ser mantidos como anexo técnico ou substituídos por imagens renderizadas.
+      </p>
+
+      <h2>11.1. Diagrama de casos de uso</h2>
+      <figure class="uml-figure">
+        <div class="uml-canvas" data-label="Diagrama de casos de uso"></div>
+        <details class="uml-source">
+          <summary>Código-fonte PlantUML <span class="tag">anexo técnico</span></summary>
+          <pre class="uml-code">
+@startuml
+left to right direction
+
+actor "Master" as Master
+actor "Admin" as Admin
+actor "Ponto Focal" as Focal
+actor "Liderança" as Leader
+actor "Auditor" as Auditor
+
+rectangle "Portal QuIIN" {
+  usecase "Autenticar usuário" as UC_Login
+  usecase "Gerenciar usuários" as UC_Users
+  usecase "Configurar pilares" as UC_Pillars
+  usecase "Configurar indicadores" as UC_Indicators
+  usecase "Lançar indicadores" as UC_Input
+  usecase "Aprovar lançamentos" as UC_Approve
+  usecase "Visualizar dashboard" as UC_Dashboard
+  usecase "Fechar período mensal" as UC_Close
+  usecase "Importar financeiro" as UC_Finance
+  usecase "Exportar relatório" as UC_Report
+  usecase "Gerenciar AT" as UC_AT
+  usecase "Consultar auditoria" as UC_Audit
+}
+
+Master --> UC_Login
+Admin --> UC_Login
+Focal --> UC_Login
+Leader --> UC_Login
+Auditor --> UC_Login
+
+Master --> UC_Users
+Admin --> UC_Users
+Master --> UC_Pillars
+Master --> UC_Indicators
+Focal --> UC_Input
+Master --> UC_Approve
+Admin --> UC_Approve
+Leader --> UC_Dashboard
+Master --> UC_Dashboard
+Master --> UC_Close
+Admin --> UC_Finance
+Master --> UC_Finance
+Master --> UC_Report
+Leader --> UC_Report
+Master --> UC_AT
+Admin --> UC_AT
+Auditor --> UC_Audit
+@enduml
+          </pre>
+        </details>
+      </figure>
+
+      <h2>11.2. Diagrama de classes / domínio</h2>
+      <figure class="uml-figure">
+        <div class="uml-canvas" data-label="Diagrama de classes e domínio"></div>
+        <details class="uml-source">
+          <summary>Código-fonte PlantUML <span class="tag">anexo técnico</span></summary>
+          <pre class="uml-code">
+@startuml
+class Usuario {
+  id
+  username
+  nome
+  email
+  ativo
+}
+
+class Papel {
+  id
+  nome
+}
+
+class UsuarioPilar {
+  usuario_id
+  pilar_id
+}
+
+class Pilar {
+  id
+  nome
+  descricao
+}
+
+class Indicador {
+  id
+  pilar_id
+  codigo
+  nome
+  unidade
+  tipo
+  acumulado
+}
+
+class Meta {
+  id
+  indicador_id
+  periodo_inicio
+  periodo_fim
+  valor
+}
+
+class Periodo {
+  id
+  competencia
+  status
+}
+
+class Lancamento {
+  id
+  periodo_id
+  indicador_id
+  valor_numerico
+  valor_texto
+  comentario
+  status
+}
+
+class Anexo {
+  id
+  lancamento_id
+  arquivo
+  descricao
+}
+
+class FinanceiroConsolidado {
+  id
+  periodo_id
+  pilar_id
+  tipo_recurso
+  valor_captado
+  valor_executado
+  observacao
+}
+
+class EmpresaAssociada {
+  id
+  razao_social
+  cnpj
+  status
+  tipo
+}
+
+class OportunidadeAT {
+  id
+  empresa_id
+  etapa_funil
+  valor_previsto
+  status
+}
+
+class ContratoAT {
+  id
+  empresa_id
+  valor
+  data_inicio
+  data_fim
+  status
+}
+
+class Auditoria {
+  id
+  usuario_id
+  entidade
+  registro_id
+  acao
+  data
+}
+
+Usuario "1" -- "*" UsuarioPilar
+UsuarioPilar "*" -- "1" Pilar
+Pilar "1" -- "*" Indicador
+Indicador "1" -- "*" Meta
+Indicador "1" -- "*" Lancamento
+Periodo "1" -- "*" Lancamento
+Lancamento "1" -- "*" Anexo
+Periodo "1" -- "*" FinanceiroConsolidado
+Pilar "1" -- "*" FinanceiroConsolidado
+EmpresaAssociada "1" -- "*" ContratoAT
+EmpresaAssociada "1" -- "*" OportunidadeAT
+Usuario "1" -- "*" Auditoria
+@enduml
+          </pre>
+        </details>
+      </figure>
+
+      <h2>11.3. Diagrama de componentes Django</h2>
+      <figure class="uml-figure">
+        <div class="uml-canvas" data-label="Diagrama de componentes Django"></div>
+        <details class="uml-source">
+          <summary>Código-fonte PlantUML <span class="tag">anexo técnico</span></summary>
+          <pre class="uml-code">
+@startuml
+package "Frontend" {
+  [Django Templates]
+  [Bootstrap/HTMX]
+  [Chart.js]
+}
+
+package "Django Backend" {
+  [accounts]
+  [pillars]
+  [indicators]
+  [periods]
+  [entries]
+  [finance]
+  [at]
+  [reports]
+  [audit]
+  [notifications]
+}
+
+package "Serviços" {
+  [Celery Worker]
+  [Celery Beat]
+}
+
+database "PostgreSQL" as DB
+database "Redis" as Redis
+cloud "E-mail/Teams" as Mail
+folder "Arquivos/Evidências" as Storage
+
+[Django Templates] --> [accounts]
+[Django Templates] --> [indicators]
+[Django Templates] --> [entries]
+[Django Templates] --> [reports]
+
+[accounts] --> DB
+[pillars] --> DB
+[indicators] --> DB
+[periods] --> DB
+[entries] --> DB
+[finance] --> DB
+[at] --> DB
+[reports] --> DB
+[audit] --> DB
+
+[Celery Worker] --> DB
+[Celery Worker] --> Redis
+[Celery Worker] --> Mail
+[Celery Worker] --> Storage
+
+[Celery Beat] --> Redis
+[Celery Beat] --> [Celery Worker]
+@enduml
+          </pre>
+        </details>
+      </figure>
+
+      <h2>11.4. Diagrama de implantação</h2>
+      <figure class="uml-figure">
+        <div class="uml-canvas" data-label="Diagrama de implantação"></div>
+        <details class="uml-source">
+          <summary>Código-fonte PlantUML <span class="tag">anexo técnico</span></summary>
+          <pre class="uml-code">
+@startuml
+node "Estação do usuário" {
+  [Navegador Web] as Browser
+}
+
+node "Servidor interno / ET" {
+  [Nginx] as Proxy
+  [Gunicorn/Django] as App
+  [Celery Worker] as Worker
+  [Celery Beat] as Beat
+
+  database "PostgreSQL" as DB
+  database "Redis" as Redis
+  folder "Arquivos" as Media
+}
+
+cloud "Serviços corporativos" {
+  [E-mail/Teams] as Mail
+  [SSO/AD futuro] as SSO
+}
+
+Browser --> Proxy : HTTPS
+Proxy --> App
+App --> DB
+App --> Redis
+App --> Media
+Worker --> DB
+Worker --> Redis
+Worker --> Mail
+App --> SSO
+@enduml
+          </pre>
+        </details>
+      </figure>
+
+      <h2>11.5. Diagrama de sequência — ciclo mensal</h2>
+      <figure class="uml-figure">
+        <div class="uml-canvas" data-label="Diagrama de sequência — ciclo mensal"></div>
+        <details class="uml-source">
+          <summary>Código-fonte PlantUML <span class="tag">anexo técnico</span></summary>
+          <pre class="uml-code">
+@startuml
+actor "Érica Master" as Erica
+actor "Ponto Focal" as Focal
+participant "Django Web" as Web
+participant "Django Backend" as Backend
+database "PostgreSQL" as DB
+participant "Celery" as Celery
+participant "E-mail/Teams" as Mail
+
+Erica -> Web : Abre período mensal
+Web -> Backend : POST /periodos/abrir
+Backend -> DB : Cria período
+Backend -> Celery : Notificar pontos focais
+Celery -> Mail : Envia alerta
+
+Focal -> Web : Preenche indicadores do pilar
+Web -> Backend : POST /lancamentos
+Backend -> DB : Salva lançamento e histórico
+Backend --> Web : Confirma envio
+
+Erica -> Web : Consulta pendências
+Web -> Backend : GET /pendencias
+Backend -> DB : Consulta status por pilar
+DB --> Backend : Retorna status
+Backend --> Web : Exibe painel
+
+Erica -> Web : Fecha período
+Web -> Backend : POST /periodos/fechar
+Backend -> DB : Gera snapshot mensal
+Backend -> Celery : Gerar relatório mensal
+Celery -> DB : Consolida dados
+Celery --> Web : PDF disponível
+@enduml
+          </pre>
+        </details>
+      </figure>
+
+      <h2>11.6. Diagrama de atividades — roadmap executivo</h2>
+      <figure class="uml-figure">
+        <div class="uml-canvas" data-label="Diagrama de atividades — roadmap executivo"></div>
+        <details class="uml-source">
+          <summary>Código-fonte PlantUML <span class="tag">anexo técnico</span></summary>
+          <pre class="uml-code">
+@startuml
+title Roadmap Executivo - Python/Django
+
+start
+
+partition "Fase 0 - Descoberta" {
+  :Validar requisitos;
+  :Mapear planilhas;
+  :Definir MVP;
+  :Solicitar infraestrutura;
+}
+
+partition "Fase 1 - MVP Indicadores" {
+  :Criar projeto Django;
+  :Implementar usuários e papéis;
+  :Implementar indicadores;
+  :Implementar lançamentos;
+  :Implementar dashboard;
+}
+
+partition "Fase 2 - Financeiro e Relatório" {
+  :Implementar importação consolidada;
+  :Implementar financeiro por pilar;
+  :Implementar relatório mensal;
+  :Gerar PDF;
+}
+
+partition "Fase 3 - Associação Tecnológica" {
+  :Cadastro de empresas;
+  :Pipeline comercial;
+  :CNPJs novos vs renovações;
+  :Dashboard AT;
+}
+
+partition "Fase 4 - Operacional" {
+  :Kanban estratégico;
+  :Banco de talentos;
+  :Notificações;
+}
+
+partition "Fase 5 - Governança e BI" {
+  :Processos;
+  :Playbooks;
+  :Integração com BI;
+}
+
+stop
+@enduml
+          </pre>
+        </details>
+      </figure>
+    </section>
+
+    <section id="stack" class="page-break">
+      <h1>12. Stack tecnológica recomendada</h1>
+
+      <div class="resumo">
+        A stack recomendada é <strong>Python + Django + PostgreSQL</strong>, por produtividade, manutenção simplificada, bom controle de acesso, facilidade para relatórios e forte suporte à manipulação de planilhas e dados.
+      </div>
+
+      <h2>12.1. Justificativa da escolha</h2>
+      <ul>
+        <li>Django possui autenticação, autorização e proteção CSRF nativas;</li>
+        <li>O Django Admin pode acelerar o backoffice inicial;</li>
+        <li>O ORM facilita modelagem de indicadores, metas, períodos e auditoria;</li>
+        <li>Python é forte para manipulação de planilhas e dados;</li>
+        <li>A stack é adequada para sistemas internos com formulários e relatórios;</li>
+        <li>Permite evoluir para API REST sem reescrever o sistema.</li>
+      </ul>
+
+      <h2>12.2. Prós e contras</h2>
+      <table>
+        <tr>
+          <th>Aspecto</th>
+          <th>Avaliação</th>
+        </tr>
+        <tr>
+          <td>Produtividade</td>
+          <td>Alta, especialmente para CRUD, admin e relatórios</td>
+        </tr>
+        <tr>
+          <td>Manutenibilidade</td>
+          <td>Alta, se o projeto for organizado em apps por domínio</td>
+        </tr>
+        <tr>
+          <td>Controle de acesso</td>
+          <td>Nativo, podendo ser complementado com permissões customizadas</td>
+        </tr>
+        <tr>
+          <td>Manipulação de dados</td>
+          <td>Muito forte com Python, openpyxl e pandas</td>
+        </tr>
+        <tr>
+          <td>Comunidade</td>
+          <td>Python e Django possuem comunidades grandes e maduras</td>
+        </tr>
+        <tr>
+          <td>Deploy</td>
+          <td>Requer validação com ET/TI; recomendado Linux/Docker</td>
+        </tr>
+        <tr>
+          <td>Frontend avançado</td>
+          <td>Pode começar com templates/HTMX e evoluir para API/React se necessário</td>
+        </tr>
+      </table>
+
+      <h2>12.3. Comunidade ativa</h2>
+      <table>
+        <tr>
+          <th>Tecnologia</th>
+          <th>Comunidade</th>
+          <th>Observação</th>
+        </tr>
+        <tr>
+          <td>Python</td>
+          <td>Muito grande</td>
+          <td>Linguagem amplamente adotada em dados, automação e backend</td>
+        </tr>
+        <tr>
+          <td>Django</td>
+          <td>Grande/muito grande</td>
+          <td>Framework maduro, forte em sistemas internos e admin</td>
+        </tr>
+        <tr>
+          <td>PostgreSQL</td>
+          <td>Muito grande</td>
+          <td>Banco relacional robusto e open-source</td>
+        </tr>
+        <tr>
+          <td>Django REST Framework</td>
+          <td>Grande</td>
+          <td>Forte para APIs futuras</td>
+        </tr>
+        <tr>
+          <td>Celery</td>
+          <td>Grande</td>
+          <td>Amplamente usado para tarefas assíncronas</td>
+        </tr>
+        <tr>
+          <td>Redis</td>
+          <td>Muito grande</td>
+          <td>Usado para cache e broker de filas</td>
+        </tr>
+        <tr>
+          <td>HTMX</td>
+          <td>Média/grande e crescente</td>
+          <td>Boa combinação com Django para interatividade leve</td>
+        </tr>
+        <tr>
+          <td>WeasyPrint</td>
+          <td>Média</td>
+          <td>Boa opção para gerar PDF a partir de HTML/CSS</td>
+        </tr>
+        <tr>
+          <td>openpyxl/pandas</td>
+          <td>Muito grande</td>
+          <td>Forte para manipulação de planilhas e dados</td>
+        </tr>
+      </table>
+    </section>
+
+    <section id="riscos">
+      <h1>13. Riscos e decisões necessárias</h1>
+
+      <h2>13.1. Principais riscos</h2>
+      <table>
+        <tr>
+          <th>Risco</th>
+          <th>Impacto</th>
+          <th>Mitigação</th>
+        </tr>
+        <tr>
+          <td>Infraestrutura interna demorar</td>
+          <td>Atraso no deploy</td>
+          <td>Solicitar cedo à ET; usar Docker se possível</td>
+        </tr>
+        <tr>
+          <td>Dados financeiros sensíveis</td>
+          <td>Risco de segurança</td>
+          <td>Importar apenas dados consolidados</td>
+        </tr>
+        <tr>
+          <td>Escopo crescer demais</td>
+          <td>Atraso do MVP</td>
+          <td>Começar com indicadores e dashboard</td>
+        </tr>
+        <tr>
+          <td>Planilhas não padronizadas</td>
+          <td>Retrabalho na importação</td>
+          <td>Criar layout padrão de importação</td>
+        </tr>
+        <tr>
+          <td>Mudança de metas</td>
+          <td>Retrabalho de configuração</td>
+          <td>Metas configuráveis e versionadas</td>
+        </tr>
+        <tr>
+          <td>Baixa adesão dos pontos focais</td>
+          <td>Dados incompletos</td>
+          <td>Interface simples, painel de pendências e notificações</td>
+        </tr>
+        <tr>
+          <td>Equipe depender de poucos desenvolvedores</td>
+          <td>Risco de sustentação</td>
+          <td>Documentação, testes e código modular</td>
+        </tr>
+      </table>
+
+      <h2>13.2. Decisões necessárias</h2>
+      <table>
+        <tr>
+          <th>Decisão</th>
+          <th>Recomendação</th>
+        </tr>
+        <tr>
+          <td>Stack principal</td>
+          <td>Python/Django</td>
+        </tr>
+        <tr>
+          <td>Frontend inicial</td>
+          <td>Django Templates + Bootstrap + HTMX</td>
+        </tr>
+        <tr>
+          <td>Banco de dados</td>
+          <td>PostgreSQL</td>
+        </tr>
+        <tr>
+          <td>Hospedagem</td>
+          <td>Servidor interno/ET, preferencialmente Linux/Docker</td>
+        </tr>
+        <tr>
+          <td>Dados financeiros</td>
+          <td>Somente consolidados</td>
+        </tr>
+        <tr>
+          <td>MVP</td>
+          <td>Indicadores, dashboard, relatório mensal e auditoria</td>
+        </tr>
+        <tr>
+          <td>BI externo</td>
+          <td>Avaliar Metabase ou Power BI futuramente</td>
+        </tr>
+        <tr>
+          <td>Autenticação futura</td>
+          <td>Avaliar SSO corporativo</td>
+        </tr>
+      </table>
+    </section>
+
+    <section id="metricas" class="page-break">
+      <h1>14. Métricas de sucesso</h1>
+
+      <table>
+        <tr>
+          <th>Métrica</th>
+          <th>Meta recomendada</th>
+        </tr>
+        <tr>
+          <td>Tempo de consolidação mensal</td>
+          <td>Reduzir em pelo menos 50% após o primeiro ciclo</td>
+        </tr>
+        <tr>
+          <td>Preenchimento mensal</td>
+          <td>100% dos pilares antes da reunião com a Embrapii</td>
+        </tr>
+        <tr>
+          <td>Rastreabilidade</td>
+          <td>100% das alterações críticas auditadas</td>
+        </tr>
+        <tr>
+          <td>Erros de consolidação</td>
+          <td>Redução significativa após primeiro ciclo mensal</td>
+        </tr>
+        <tr>
+          <td>Disponibilidade</td>
+          <td>Superior a 99% em horário útil</td>
+        </tr>
+        <tr>
+          <td>Adoção</td>
+          <td>Todos os pilares usando o sistema em até 2 ciclos mensais</td>
+        </tr>
+        <tr>
+          <td>Satisfação da coordenação</td>
+          <td>Nota mínima 4/5 após primeiro ciclo</td>
+        </tr>
+      </table>
+    </section>
+
+    <section id="proximos-passos">
+      <h1>15. Próximos passos</h1>
+
+      <ol>
+        <li>Validar este escopo executivo com Erica, Mabel e liderança;</li>
+        <li>Definir lista oficial de indicadores do MVP;</li>
+        <li>Criar layout da planilha consolidadora financeira;</li>
+        <li>Solicitar infraestrutura à ET:
+          <ul>
+            <li>Servidor;</li>
+            <li>Banco PostgreSQL;</li>
+            <li>Domínio/subdomínio;</li>
+            <li>Certificado TLS;</li>
+            <li>Política de backup.</li>
+          </ul>
+        </li>
+        <li>Criar protótipo de baixa fidelidade;</li>
+        <li>Iniciar projeto Django;</li>
+        <li>Entregar MVP de indicadores e dashboard;</li>
+        <li>Validar primeiro ciclo mensal com dados reais ou simulados;</li>
+        <li>Evoluir para financeiro, AT, talentos e processos.</li>
+      </ol>
+
+      <div class="resumo">
+        <strong>Recomendação final:</strong> iniciar com um MVP simples em Python/Django, focado em indicadores, coleta mensal, dashboard, auditoria e relatório mensal. A evolução deve ocorrer por módulos, reduzindo risco e gerando valor rápido para a coordenação operacional.
+      </div>
+
+      <div class="rodape">
+        Documento gerado para fins executivos e técnicos. Recomenda-se revisar metas e valores com a coordenação operacional antes do início do desenvolvimento.
+      </div>
+    </section>
+
+  </main>
+
+  <button id="btn-topo" class="btn-topo no-print" type="button" aria-label="Voltar ao topo">↑</button>
+
+  <script src="https://cdn.jsdelivr.net/npm/plantuml-encoder@1.4.0/dist/plantuml-encoder.min.js"></script>
+  <script>
+    (function () {
+      "use strict";
+
+      var ENDPOINT = "https://www.plantuml.com/plantuml/svg/";
+
+      function cleanUml(raw) {
+        var lines = raw.replace(/\r\n/g, "\n").split("\n");
+        while (lines.length && !lines[0].trim()) { lines.shift(); }
+        while (lines.length && !lines[lines.length - 1].trim()) { lines.pop(); }
+        var indent = Infinity;
+        lines.forEach(function (line) {
+          if (!line.trim()) { return; }
+          var lead = line.match(/^\s*/)[0].length;
+          if (lead < indent) { indent = lead; }
+        });
+        if (indent === Infinity) { indent = 0; }
+        return lines.map(function (line) {
+          return line.slice(Math.min(indent, line.length));
+        }).join("\n");
+      }
+
+      document.querySelectorAll(".uml-figure").forEach(function (figure) {
+        var pre = figure.querySelector("pre.uml-code");
+        var canvas = figure.querySelector(".uml-canvas");
+        if (!pre || !canvas) { return; }
+
+        if (typeof plantumlEncoder === "undefined") {
+          canvas.className += " uml-error";
+          var msg = document.createElement("p");
+          msg.textContent = "O carregador de diagramas não pôde ser iniciado (CDN indisponível). O código-fonte PlantUML está preservado no anexo técnico abaixo.";
+          canvas.appendChild(msg);
+          return;
+        }
+
+        var img = document.createElement("img");
+        img.className = "uml-img";
+        img.alt = canvas.getAttribute("data-label") || "Diagrama UML";
+        img.src = ENDPOINT + plantumlEncoder.encode(cleanUml(pre.textContent));
+
+        img.addEventListener("error", function () {
+          canvas.className += " uml-error";
+          var note = document.createElement("p");
+          note.textContent = "Não foi possível renderizar o diagrama neste momento (verifique a conexão com a internet). O código-fonte PlantUML está preservado no anexo técnico abaixo.";
+          canvas.appendChild(note);
+        });
+
+        canvas.appendChild(img);
+      });
+
+      var topBtn = document.getElementById("btn-topo");
+      if (topBtn) {
+        window.addEventListener("scroll", function () {
+          topBtn.classList.toggle("show", window.scrollY > 500);
+        }, { passive: true });
+
+        topBtn.addEventListener("click", function () {
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        });
+      }
+    })();
+  </script>
+
+</body>
+</html>

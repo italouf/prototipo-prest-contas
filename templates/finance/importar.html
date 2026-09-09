@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+{% block title %}Importar Financeiro · Portal QuIIN{% endblock %}
+{% block content %}
+
+<h1>Importação de financeiro consolidado</h1>
+
+<div class="panel">
+  <h2>Layout obrigatório do CSV (RF-081)</h2>
+  <pre>competencia,pilar,tipo_recurso,valor_captado,valor_executado,observacao</pre>
+  <p class="small muted">
+    Tipos de recurso: EMBRAPII, AT, OUTRAS_FONTES. A importação é atômica: qualquer erro rejeita o arquivo inteiro (RF-082).
+  </p>
+</div>
+
+<form method="post" enctype="multipart/form-data" class="panel">
+  {% csrf_token %}
+  <div class="field">
+    <label for="periodo">Período de competência</label>
+    <select id="periodo" name="periodo" required>
+      {% for p in periodos %}
+        <option value="{{ p.pk }}">{{ p.rotulo }} — {{ p.get_status_display }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="field">
+    <label for="arquivo">Arquivo CSV</label>
+    <input type="file" id="arquivo" name="arquivo" accept=".csv" required>
+  </div>
+  <button class="btn btn-primary" type="submit">Importar</button>
+</form>
+
+<h2>Histórico de importações</h2>
+<div class="table-wrap">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Data/hora</th>
+        <th>Período</th>
+        <th>Arquivo</th>
+        <th>Status</th>
+        <th>Log</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for imp in importacoes %}
+      <tr>
+        <td>{{ imp.criado_em|date:'d/m/Y H:i' }}</td>
+        <td>{{ imp.periodo.rotulo }}</td>
+        <td>{{ imp.arquivo_nome }}</td>
+        <td><span class="badge badge-status status-{{ imp.status|lower }}">{{ imp.get_status_display }}</span></td>
+        <td class="small">{{ imp.log|default:'—' }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="5" class="muted">Nenhuma importação registrada.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

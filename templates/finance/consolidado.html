@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% load core_extras %}
+{% block title %}Financeiro Consolidado · Portal QuIIN{% endblock %}
+{% block content %}
+
+<h1>Financeiro consolidado</h1>
+
+<form method="get" class="form-inline">
+  <label for="periodo">Período</label>
+  <select id="periodo" name="periodo" onchange="this.form.submit()">
+    {% for p in periodos %}
+      <option value="{{ p.competencia|date:'Y-m-d' }}" {% if p.pk == periodo.pk %}selected{% endif %}>{{ p.rotulo }}</option>
+    {% endfor %}
+  </select>
+</form>
+
+{% if pode_importar_financeiro %}
+  <p><a class="btn btn-primary" href="{% url 'finance:importar' %}">Importar CSV consolidado</a></p>
+{% endif %}
+
+{% if not periodo %}
+  <div class="panel"><p class="muted">Nenhum período cadastrado.</p></div>
+{% else %}
+<div class="table-wrap">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Pilar</th>
+        <th>Tipo de recurso</th>
+        <th>Valor captado</th>
+        <th>Valor executado</th>
+        <th>Observação</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for f in linhas %}
+      <tr>
+        <td>{{ f.pilar.nome }}</td>
+        <td>{{ f.get_tipo_recurso_display }}</td>
+        <td>{{ f.valor_captado|brl }}</td>
+        <td>{{ f.valor_executado|brl }}</td>
+        <td class="small">{{ f.observacao|default:'—' }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="5" class="muted">Nenhum dado financeiro para este período. Importe o CSV ou aguarde o fechamento.</td></tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr>
+        <td colspan="2"><strong>Totais</strong></td>
+        <td><strong>{{ total_captado|brl }}</strong></td>
+        <td><strong>{{ total_executado|brl }}</strong></td>
+        <td></td>
+      </tr>
+    </tfoot>
+  </table>
+</div>
+<p class="muted small">RN-003: execução é o valor efetivamente gasto/comprovado. RN-004: captação não é igual a execução. RN-015: projetos plurianuais reconhecem apenas a execução do período.</p>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% load core_extras %}
+{% block title %}{{ pilar.nome }} · Portal QuIIN{% endblock %}
+{% block content %}
+
+<h1>{{ pilar.nome }}</h1>
+<p class="muted">{{ pilar.descricao }}</p>
+
+{% if not periodo %}
+  <div class="panel"><p>Nenhum período cadastrado.</p></div>
+{% else %}
+<form method="get" class="form-inline">
+  <label for="periodo">Período</label>
+  <select id="periodo" name="periodo" onchange="this.form.submit()">
+    {% for p in periodos %}
+      <option value="{{ p.competencia|date:'Y-m-d' }}" {% if p.pk == periodo.pk %}selected{% endif %}>{{ p.rotulo }} — {{ p.get_status_display }}</option>
+    {% endfor %}
+  </select>
+</form>
+
+<div class="table-wrap">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Indicador</th>
+        <th>Un.</th>
+        <th>Tipo</th>
+        <th>Meta</th>
+        <th>Realizado</th>
+        <th>% execução</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in itens %}
+      <tr class="{% if item.percentual is not None and item.percentual < 100 %}row-warn{% endif %}">
+        <td><strong>{{ item.indicador.nome }}</strong><br><span class="muted small">{{ item.indicador.codigo }}</span></td>
+        <td>{{ item.indicador.unidade }}</td>
+        <td>{{ item.indicador.get_tipo_display }}</td>
+        <td>{% if item.meta is not None %}{{ item.meta|nbr }}{% else %}—{% endif %}</td>
+        <td>{{ item.realizado|nbr }}{% if item.ytd %} <span class="muted small">(YTD)</span>{% endif %}</td>
+        <td>{% if item.percentual is not None %}{{ item.percentual|pct }}{% else %}—{% endif %}</td>
+        <td><span class="badge badge-status status-{{ item.lc.status|lower|default:'pendente' }}">{{ item.lc.status|default:'Pendente'|status_lancamento }}</span></td>
+      </tr>
+      {% if item.lc and item.lc.comentario %}
+      <tr class="row-comment">
+        <td colspan="7" class="small"><strong>Comentário:</strong> {{ item.lc.comentario }}</td>
+      </tr>
+      {% endif %}
+      {% empty %}
+      <tr><td colspan="7" class="muted">Nenhum indicador ativo.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+{% endblock %}

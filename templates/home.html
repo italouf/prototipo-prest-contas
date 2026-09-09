@@ -1,0 +1,202 @@
+{% extends 'base.html' %}
+{% load core_extras %}
+{% block title %}Dashboard Executivo · Portal QuIIN{% endblock %}
+{% block content %}
+
+<h1>Dashboard Executivo</h1>
+
+{% if not periodo %}
+  <div class="panel">
+    <p>Nenhum período mensal cadastrado ainda. Execute <code>python manage.py seed_demo</code> para criar a base de demonstração.</p>
+  </div>
+{% else %}
+
+<div class="toolbar-page">
+  <form method="get" class="form-inline">
+    <label for="periodo">Período de competência</label>
+    <select id="periodo" name="periodo" onchange="this.form.submit()">
+      {% for p in periodos %}
+        <option value="{{ p.competencia|date:'Y-m-d' }}" {% if p.pk == periodo.pk %}selected{% endif %}>
+          {{ p.rotulo }} — {{ p.get_status_display }}
+        </option>
+      {% endfor %}
+    </select>
+  </form>
+
+  <div class="period-status">
+    <span class="badge badge-status status-{{ periodo.status|lower }}">{{ periodo.get_status_display }}</span>
+    {% if pode_gerenciar_periodos %}
+      {% if periodo.status == 'PLANEJADO' %}
+        <form method="post" action="{% url 'periods:acao' periodo.pk 'abrir' %}">
+          {% csrf_token %}<input type="hidden" name="next" value="core:dashboard">
+          <button class="btn btn-primary">Abrir período</button>
+        </form>
+      {% elif periodo.permite_edicao %}
+        <form method="post" action="{% url 'periods:acao' periodo.pk 'fechar' %}"
+              onsubmit="return confirm('Fechar o período gera o snapshot e bloqueia edições. Confirma?');">
+          {% csrf_token %}<input type="hidden" name="next" value="core:dashboard">
+          <button class="btn btn-warn">Fechar período</button>
+        </form>
+      {% elif periodo.status == 'FECHADO' %}
+        <form method="post" action="{% url 'periods:acao' periodo.pk 'reabrir' %}" class="form-inline">
+          {% csrf_token %}<input type="hidden" name="next" value="core:dashboard">
+          <input type="text" name="justificativa" placeholder="Justificativa da reabertura (obrigatória)" required>
+          <button class="btn btn-ghost">Reabrir</button>
+        </form>
+      {% endif %}
+    {% endif %}
+  </div>
+</div>
+
+<section class="kpi-strip" aria-label="Indicadores-chave do período">
+  <div class="kpi kpi-destaque">
+    <span class="kpi-label">Execução acumulada</span>
+    <span class="kpi-value">{{ cards.execucao|escala_ptbr }}</span>
+    <span class="kpi-detail">{{ cards.execucao|moeda_ptbr }} executado no ano</span>
+  </div>
+  <div class="kpi">
+    <span class="kpi-label">Captação AT</span>
+    <span class="kpi-value">{{ cards.captacao_at|escala_ptbr }}</span>
+    <span class="kpi-detail">{{ cards.captacao_at|moeda_ptbr }} junto a empresas privadas</span>
+  </div>
+  <div class="kpi">
+    <span class="kpi-label">Outras fontes</span>
+    <span class="kpi-value">{{ cards.outras_fontes|escala_ptbr }}</span>
+    <span class="kpi-detail">{{ cards.outras_fontes|moeda_ptbr }} captado no ano</span>
+  </div>
+  {% for key, card in cards.items %}
+    {% if card and card.nome %}
+    <div class="kpi">
+      <span class="kpi-label">{{ card.nome }}</span>
+      <span class="kpi-value">{{ card.dados.realizado|numero_ptbr }}{% if card.dados.percentual is not None %} <span class="kpi-pct">{{ card.dados.percentual|pct }}</span>{% endif %}</span>
+      <span class="kpi-detail">Meta: {{ card.dados.meta|numero_ptbr }}</span>
+    </div>
+    {% endif %}
+  {% endfor %}
+</section>
+
+<div class="two-col">
+  <section class="panel">
+    <h2>Lançamentos — {{ periodo.rotulo }}</h2>
+    <div class="segbar" role="img" aria-label="Distribuição de lançamentos por status">
+      <div class="seg seg-aprovado" style="width: {{ status_counts.APROVADO.pct }}%" title="Aprovados: {{ status_counts.APROVADO.quantidade }}"></div>
+      <div class="seg seg-enviado" style="width: {{ status_counts.ENVIADO.pct }}%" title="Enviados: {{ status_counts.ENVIADO.quantidade }}"></div>
+      <div class="seg seg-rascunho" style="width: {{ status_counts.RASCUNHO.pct }}%" title="Rascunhos: {{ status_counts.RASCUNHO.quantidade }}"></div>
+      <div class="seg seg-devolvido" style="width: {{ status_counts.DEVOLVIDO.pct }}%" title="Devolvidos: {{ status_counts.DEVOLVIDO.quantidade }}"></div>
+    </div>
+    <ul class="seg-legend">
+      <li><span class="dot dot-aprovado"></span> Aprovado — {{ status_counts.APROVADO.quantidade }} ({{ status_counts.APROVADO.pct }}%)</li>
+      <li><span class="dot dot-enviado"></span> Enviado — {{ status_counts.ENVIADO.quantidade }} ({{ status_counts.ENVIADO.pct }}%)</li>
+      <li><span class="dot dot-rascunho"></span> Rascunho — {{ status_counts.RASCUNHO.quantidade }} ({{ status_counts.RASCUNHO.pct }}%)</li>
+      <li><span class="dot dot-devolvido"></span> Devolvido — {{ status_counts.DEVOLVIDO.quantidade }} ({{ status_counts.DEVOLVIDO.pct }}%)</li>
+    </ul>
+    <p class="muted small">{{ status_counts.total }} lançamentos no total · apenas aprovados alimentam os dashboards.</p>
+    {% if pode_aprovar and status_counts.ENVIADO.quantidade %}
+      <a class="btn btn-primary" href="{% url 'entries:aprovacao' periodo.pk %}">Aprovar {{ status_counts.ENVIADO.quantidade }} pendente{{ status_counts.ENVIADO.quantidade|pluralize }}</a>
+    {% endif %}
+  </section>
+
+  <section class="panel">
+    <h2>Pendências por pilar</h2>
+    {% if pendencias %}
+      <ul class="pendencias">
+      {% for p in pendencias %}
+        <li>
+          <strong>{{ p.pilar.nome }}</strong>
+          {% if p.faltantes %}
+            <span class="muted">— sem lançamento aprovado:</span>
+            {% for ind in p.faltantes %}<span class="badge badge-warn">{{ ind.codigo }}</span>{% endfor %}
+          {% else %}
+            <span class="badge badge-ok">ok</span>
+          {% endif %}
+        </li>
+      {% endfor %}
+      </ul>
+    {% else %}
+      <p class="muted">Nenhuma pendência.</p>
+    {% endif %}
+    <ul class="plain-list">
+      {% for pilar in linhas %}
+        <li><a href="{% url 'core:pilar' pilar.pilar.pk %}">{{ pilar.pilar.nome }}</a></li>
+      {% endfor %}
+    </ul>
+  </section>
+</div>
+
+{% if chart_mensal %}
+<section class="panel">
+  <h2>Evolução financeira mensal — {{ periodo.competencia|date:'Y' }}</h2>
+  <div class="chart-columns" role="img" aria-label="Gráfico de colunas da evolução mensal de captação e execução">
+    {% for m in chart_mensal %}
+    <div class="chart-col">
+      <div class="chart-bars">
+        <div class="col col-captado" style="height: {{ m.pct_captado }}%" title="Captado {{ m.rotulo }}: {{ m.captado|moeda_ptbr }}"></div>
+        <div class="col col-executado" style="height: {{ m.pct_executado }}%" title="Executado {{ m.rotulo }}: {{ m.executado|moeda_ptbr }}"></div>
+      </div>
+      <div class="chart-label">{{ m.rotulo }}</div>
+    </div>
+    {% endfor %}
+  </div>
+  <ul class="seg-legend">
+    <li><span class="dot dot-captado"></span> Valor captado</li>
+    <li><span class="dot dot-executado"></span> Valor executado</li>
+  </ul>
+</section>
+{% endif %}
+
+{% if chart_financeiro %}
+<section class="panel">
+  <h2>Captação × execução por pilar — acumulado {{ periodo.competencia|date:'Y' }}</h2>
+  <div class="hbars">
+    {% for p in chart_financeiro %}
+    <div class="hbar-group">
+      <div class="hbar-label">
+        <strong>{{ p.nome }}</strong>
+        <span class="muted small">{{ p.captado|escala_ptbr }} captado · {{ p.executado|escala_ptbr }} executado</span>
+      </div>
+      <div class="hbar-track"><div class="hbar bar-captado" style="width: {{ p.pct_captado }}%" title="Captado: {{ p.captado|moeda_ptbr }}"></div></div>
+      <div class="hbar-track"><div class="hbar bar-executado" style="width: {{ p.pct_executado }}%" title="Executado: {{ p.executado|moeda_ptbr }}"></div></div>
+    </div>
+    {% endfor %}
+  </div>
+  <p class="muted small">RN-003: execução é o valor efetivamente gasto/comprovado. RN-004: captação não é igual a execução.</p>
+</section>
+{% endif %}
+
+<section class="panel">
+  <h2>Consolidado por pilar — {{ periodo.rotulo }}</h2>
+  {% for linha in linhas %}
+    <h3 class="pillar-title">{{ linha.pilar.nome }}</h3>
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Indicador</th>
+            <th>Un.</th>
+            <th>Meta</th>
+            <th>Realizado</th>
+            <th>% execução</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in linha.itens %}
+          <tr class="{% if item.percentual is not None and item.percentual < 100 %}row-warn{% endif %}">
+            <td><strong>{{ item.indicador.nome }}</strong><br><span class="muted small">{{ item.indicador.codigo }}</span></td>
+            <td>{{ item.indicador.unidade }}</td>
+            <td>{% if item.meta is not None %}{{ item.meta|numero_ptbr }}{% else %}—{% endif %}</td>
+            <td>{{ item.realizado|numero_ptbr }}{% if item.ytd %} <span class="muted small">(YTD)</span>{% endif %}</td>
+            <td>{% if item.percentual is not None %}{{ item.percentual|pct }}{% else %}—{% endif %}</td>
+            <td><span class="badge badge-status status-{{ item.lc.status|lower|default:'pendente' }}">{{ item.lc.status|default:'Pendente'|status_lancamento }}</span></td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="6" class="muted">Nenhum indicador ativo neste pilar.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endfor %}
+</section>
+
+{% endif %}
+{% endblock %}

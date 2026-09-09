@@ -1,0 +1,69 @@
+{% load static %}<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}Portal QuIIN{% endblock %}</title>
+<link rel="stylesheet" href="{% static 'css/local.css' %}">
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="{% url 'core:dashboard' %}">
+      <span class="brand-mark">Q</span>
+      <span class="brand-name">Portal QuIIN</span>
+    </a>
+    {% if user.is_authenticated %}
+    <nav class="nav" aria-label="Navegação principal">
+      <a href="{% url 'core:dashboard' %}">Início</a>
+      {% if pode_lancar and periodo_aberto_nav and pilares_nav %}
+        <a href="{% url 'entries:formulario' periodo_aberto_nav.pk pilares_nav.0.pk %}">Lançamentos</a>
+      {% endif %}
+      {% if pode_aprovar and periodo_aberto_nav %}
+        <a href="{% url 'entries:aprovacao' periodo_aberto_nav.pk %}">Aprovação</a>
+      {% endif %}
+      {% if pode_importar_financeiro %}
+        <a href="{% url 'finance:consolidado' %}">Financeiro</a>
+      {% endif %}
+      {% if ultimo_periodo_nav %}
+        <a href="{% url 'reports:mensal' ultimo_periodo_nav.pk %}">Relatório Mensal</a>
+      {% endif %}
+      {% if pode_ver_auditoria %}
+        <a href="{% url 'audit:lista' %}">Auditoria</a>
+      {% endif %}
+      {% if papel == 'Master' or papel == 'Admin' %}
+        <a href="/admin/">Admin</a>
+      {% endif %}
+    </nav>
+    <div class="topbar-user">
+      <span class="user-name">{{ user.nome_exibicao }}</span>
+      <span class="badge badge-papel">{{ papel }}</span>
+      <form method="post" action="{% url 'accounts:logout' %}">
+        {% csrf_token %}
+        <button class="btn btn-ghost" type="submit">Sair</button>
+      </form>
+    </div>
+    {% else %}
+    <nav class="nav">
+      <a href="{% url 'accounts:login' %}">Entrar</a>
+    </nav>
+    {% endif %}
+  </div>
+</header>
+
+<main class="container">
+  {% if messages %}
+    <div class="messages" role="status">
+      {% for message in messages %}
+        <div class="alert alert-{{ message.tags|default:'info' }}">{{ message }}</div>
+      {% endfor %}
+    </div>
+  {% endif %}
+  {% block content %}{% endblock %}
+</main>
+
+<footer class="footer">
+  <p>Portal QuIIN — protótipo local de gestão e prestação de contas. Dados fictícios para demonstração.</p>
+</footer>
+</body>
+</html>

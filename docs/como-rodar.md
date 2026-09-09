@@ -1,0 +1,92 @@
+# Como rodar (Windows / Linux / macOS)
+
+## 1. Criar ambiente virtual
+
+```text
+python -m venv .venv
+```
+
+Windows:
+
+```text
+.venv\Scripts\activate
+```
+
+Linux/macOS:
+
+```text
+source .venv/bin/activate
+```
+
+## 2. Instalar dependências
+
+```text
+pip install -r requirements.txt
+```
+
+(Somente Django; SQLite e a lib `csv` são nativos do Python.)
+
+## 3. Migrar o banco
+
+```text
+python manage.py migrate
+```
+
+## 4. Rodar o seed de demonstração
+
+```text
+python manage.py seed_demo
+```
+
+Idempotente — pode rodar quantas vezes quiser.
+
+## 5. Rodar o servidor local
+
+```text
+python manage.py runserver
+```
+
+Acesse: http://127.0.0.1:8000/
+
+## 6. Usuários demo
+
+| Usuário | Senha | Perfil |
+|---|---|---|
+| erica | erica123 | Master |
+| clarissa | clarissa123 | Admin |
+| focal_pdi | focal123 | PontoFocal (PDI) |
+| focal_formacao | focal123 | PontoFocal (Formação) |
+| focal_startups | focal123 | PontoFocal (Startups) |
+| focal_at | focal123 | PontoFocal (AT) |
+| lideranca | lider123 | Liderança |
+| auditor | auditor123 | Auditor |
+
+## 7. Testes
+
+```text
+python manage.py test
+```
+
+## 8. Roteiro de validação manual
+
+1. Login com cada perfil demo.
+2. Master: abrir período 2026-06 (já aberto no seed) e fechar o 2026-05.
+3. PontoFocal (focal_pdi): lançar indicadores do PDI e enviar.
+4. Master/Admin: aprovar ou devolver em Aprovação.
+5. Dashboard geral e por pilar: meta × realizado × percentual.
+6. Financeiro: importar `data/seed/financeiro_demo.csv` no período 2026-06.
+7. Relatório Mensal: gerar e usar Imprimir → Salvar como PDF.
+8. Auditoria: consultar histórico com o usuário auditor.
+
+## 9. Testes E2E (Playwright, opcional)
+
+Requer Node.js já presente (o projeto contém `playwright.config.ts`).
+
+```text
+npx playwright install chromium
+python manage.py migrate && python manage.py seed_demo
+python manage.py runserver
+npx playwright test
+```
+
+O servidor Django pode continuar rodando; o Playwright reutiliza a porta 8000.

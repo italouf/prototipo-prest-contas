@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+{% load core_extras %}
+{% block title %}Auditoria · Portal QuIIN{% endblock %}
+{% block content %}
+
+<h1>Auditoria</h1>
+<p class="muted">Histórico de ações relevantes do portal — quem fez, quando e o que mudou.</p>
+
+<div class="panel">
+  <form method="get" class="filter-grid">
+    <div class="field">
+      <label for="usuario">Usuário</label>
+      <input type="text" id="usuario" name="usuario" value="{{ f_usuario }}" placeholder="ex.: erica">
+    </div>
+    <div class="field">
+      <label for="acao">Ação</label>
+      <select id="acao" name="acao">
+        <option value="">Todas</option>
+        {% for a in acoes %}
+          <option value="{{ a }}" {% if f_acao == a %}selected{% endif %}>{{ a|acao_amigavel }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="field">
+      <label for="entidade">Entidade</label>
+      <select id="entidade" name="entidade">
+        <option value="">Todas</option>
+        {% for e in entidades %}
+          <option value="{{ e }}" {% if f_entidade == e %}selected{% endif %}>{{ e }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="field">
+      <label for="data_inicio">De</label>
+      <input type="date" id="data_inicio" name="data_inicio" value="{{ f_data_inicio }}">
+    </div>
+    <div class="field">
+      <label for="data_fim">Até</label>
+      <input type="date" id="data_fim" name="data_fim" value="{{ f_data_fim }}">
+    </div>
+    <div class="field filter-actions">
+      <button class="btn btn-primary" type="submit">Filtrar</button>
+      <a class="btn btn-ghost" href="{% url 'audit:lista' %}">Limpar</a>
+    </div>
+  </form>
+  <p class="muted small"><strong>{{ total }}</strong> evento{{ total|pluralize }} encontrado{{ total|pluralize }}.</p>
+</div>
+
+{% if page_obj.object_list %}
+<div class="table-wrap">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Data/hora</th>
+        <th>Usuário</th>
+        <th>Ação</th>
+        <th>Entidade</th>
+        <th>Alteração</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for log in page_obj.object_list %}
+      <tr>
+        <td>{{ log.data_hora|date:'d/m/Y H:i:s' }}</td>
+        <td>{{ log.usuario.nome_exibicao|default:'—' }}</td>
+        <td><span class="badge badge-action acao-{{ log.acao|acao_classe }}">{{ log.acao|acao_amigavel }}</span></td>
+        <td>{{ log.entidade }}{% if log.registro_id %} <span class="muted small">#{{ log.registro_id }}</span>{% endif %}</td>
+        <td class="small">
+          {% if log.campo %}
+            {{ log.campo }}: <strong>{{ log.valor_novo|default:'—' }}</strong>
+          {% else %}
+            <span class="muted">—</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if log.valor_anterior or log.valor_novo and log.campo or log.justificativa %}
+          <details class="audit-detail">
+            <summary>Detalhes</summary>
+            <div class="audit-detail-body">
+              {% if log.valor_anterior %}<p><strong>Valor anterior:</strong> {{ log.valor_anterior }}</p>{% endif %}
+              {% if log.valor_novo and log.valor_anterior %}<p><strong>Valor novo:</strong> {{ log.valor_novo }}</p>{% endif %}
+              {% if log.justificativa %}<p><strong>Justificativa:</strong> {{ log.justificativa }}</p>{% endif %}
+            </div>
+          </details>
+          {% else %}
+            <span class="muted">—</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<nav class="pagination" aria-label="Paginação da auditoria">
+  {% if page_obj.has_previous %}
+    <a class="btn btn-ghost btn-sm" href="?page={{ page_obj.previous_page_number }}&usuario={{ f_usuario }}&acao={{ f_acao }}&entidade={{ f_entidade }}&data_inicio={{ f_data_inicio }}&data_fim={{ f_data_fim }}">← Anterior</a>
+  {% endif %}
+  <span class="muted">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+  {% if page_obj.has_next %}
+    <a class="btn btn-ghost btn-sm" href="?page={{ page_obj.next_page_number }}&usuario={{ f_usuario }}&acao={{ f_acao }}&entidade={{ f_entidade }}&data_inicio={{ f_data_inicio }}&data_fim={{ f_data_fim }}">Próxima →</a>
+  {% endif %}
+</nav>
+{% else %}
+<div class="panel">
+  <p class="muted">Nenhum registro de auditoria encontrado. Ajuste ou limpe os filtros.</p>
+  <a class="btn btn-ghost" href="{% url 'audit:lista' %}">Limpar filtros</a>
+</div>
+{% endif %}
+{% endblock %}

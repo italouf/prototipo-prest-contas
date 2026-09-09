@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+{% load core_extras %}
+{% block title %}Lançamentos · {{ pilar.nome }} · Portal QuIIN{% endblock %}
+{% block content %}
+
+<h1>Lançamentos mensais</h1>
+<p class="muted">Período: <strong>{{ periodo.rotulo }}</strong> ({{ periodo.get_status_display }}) · Pilar: <strong>{{ pilar.nome }}</strong></p>
+
+<div class="pilar-switch">
+  {% for p in pilares_nav %}
+    <a class="btn btn-sm {% if p.pk == pilar.pk %}btn-active{% endif %}"
+       href="{% url 'entries:formulario' periodo.pk p.pk %}">{{ p.codigo }}</a>
+  {% endfor %}
+</div>
+
+{% if bloqueado %}
+  <div class="alert alert-warn">Este período está fechado. Os dados abaixo são somente leitura (RN-010).</div>
+{% endif %}
+
+<form method="post">
+  {% csrf_token %}
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Indicador</th>
+          <th>Un.</th>
+          <th>Valor</th>
+          <th>Comentário</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for ind in indicadores %}
+        {% with info=existentes|lancamento_info:ind.pk %}
+        <tr>
+          <td>
+            <strong>{{ ind.nome }}</strong><br>
+            <span class="muted small">{{ ind.codigo }} · {{ ind.get_tipo_display }}</span>
+          </td>
+          <td>{{ ind.unidade }}</td>
+          <td>
+            {% if ind.tipo == 'TXT' %}
+              <textarea name="valor_{{ ind.pk }}" rows="2" {% if bloqueado %}disabled{% endif %}>{{ info.valor }}</textarea>
+            {% else %}
+              <input type="text" name="valor_{{ ind.pk }}" inputmode="decimal"
+                     value="{{ info.valor }}" placeholder="0,00" {% if bloqueado %}disabled{% endif %}>
+            {% endif %}
+          </td>
+          <td>
+            <input type="text" name="comentario_{{ ind.pk }}"
+                   value="{{ info.comentario }}"
+                   placeholder="Observação do mês" {% if bloqueado %}disabled{% endif %}>
+            {% if info.revisao %}
+              <div class="muted small">Revisão: {{ info.revisao }}</div>
+            {% endif %}
+          </td>
+          <td>
+            <span class="badge badge-status status-{{ info.status|lower|default:'pendente' }}">
+              {{ info.status|default:'Pendente'|status_lancamento }}
+            </span>
+          </td>
+        </tr>
+        {% endwith %}
+        {% empty %}
+        <tr><td colspan="5" class="muted">Nenhum indicador ativo neste pilar.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if not bloqueado %}
+  <div class="form-actions">
+    <button class="btn btn-ghost" type="submit" name="salvar" value="1">Salvar rascunho</button>
+    <button class="btn btn-primary" type="submit" name="enviar" value="1">Enviar para validação</button>
+  </div>
+  {% endif %}
+</form>
+{% endblock %}

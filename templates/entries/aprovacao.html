@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% load core_extras %}
+{% block title %}Aprovação · {{ periodo.rotulo }} · Portal QuIIN{% endblock %}
+{% block content %}
+
+<h1>Painel de aprovação</h1>
+<p class="muted">Período: <strong>{{ periodo.rotulo }}</strong> ({{ periodo.get_status_display }})</p>
+
+{% if enviados %}
+<div class="table-wrap">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Indicador</th>
+        <th>Pilar</th>
+        <th>Valor</th>
+        <th>Comentário do ponto focal</th>
+        <th>Enviado por</th>
+        <th>Ações</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for lc in enviados %}
+      <tr>
+        <td><strong>{{ lc.indicador.nome }}</strong><br><span class="muted small">{{ lc.indicador.codigo }}</span></td>
+        <td>{{ lc.indicador.pilar.codigo }}</td>
+        <td>{{ lc.valor_numerico|nbr }}{{ lc.valor_texto }}</td>
+        <td class="small">{{ lc.comentario|default:'—' }}</td>
+        <td>{{ lc.usuario_criacao.nome_exibicao }}</td>
+        <td>
+          <div class="approve-row">
+            <form method="post">
+              {% csrf_token %}
+              <input type="hidden" name="lancamento_id" value="{{ lc.pk }}">
+              <button class="btn btn-primary btn-sm" name="aprovar" value="1">Aprovar</button>
+            </form>
+            <form method="post" class="form-inline">
+              {% csrf_token %}
+              <input type="hidden" name="lancamento_id" value="{{ lc.pk }}">
+              <input type="text" name="comentario_revisao" placeholder="Motivo da devolução" required>
+              <button class="btn btn-warn btn-sm" name="devolver" value="1">Devolver</button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="panel"><p class="muted">Nenhum lançamento aguardando validação neste período.</p></div>
+{% endif %}
+{% endblock %}
