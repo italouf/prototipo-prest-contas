@@ -10,5 +10,6 @@ urlpatterns = [
     path("", include("apps.entries.urls", namespace="entries")),
     path("financeiro/", include("apps.finance.urls", namespace="finance")),
     path("relatorio/", include("apps.reports.urls", namespace="reports")),
+    path("crm-at/", include("apps.crm_at.urls", namespace="crm_at")),
     path("auditoria/", include("apps.audit.urls", namespace="audit")),
 ]

@@ -35,6 +35,7 @@ INSTALLED_APPS = [
     "apps.reports",
     "apps.audit",
     "apps.highlights",
+    "apps.crm_at",
     "apps.seed",
 ]
 

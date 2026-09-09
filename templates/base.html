@@ -25,6 +25,9 @@
       {% if pode_importar_financeiro %}
         <a href="{% url 'finance:consolidado' %}">Financeiro</a>
       {% endif %}
+      {% if pode_aprovar or pode_lancar %}
+        <a href="{% url 'crm_at:funil' %}">Funil AT</a>
+      {% endif %}
       {% if ultimo_periodo_nav %}
         <a href="{% url 'reports:mensal' ultimo_periodo_nav.pk %}">Relatório Mensal</a>
       {% endif %}

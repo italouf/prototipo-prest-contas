@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% load core_extras %}
+{% block title %}Funil AT · Portal QuIIN{% endblock %}
+{% block content %}
+
+<h1>Funil AT</h1>
+
+<div class="panel">
+  <p><strong>Pipeline em aberto:</strong> {{ pipeline_open|brl }}</p>
+  <p><strong>Renovações em andamento:</strong> {{ renovacoes_qtd }} ({{ renovacoes_total|brl }})</p>
+</div>
+
+{% for grupo in grupos %}
+<section class="panel">
+  <h2>{{ grupo.rotulo }} <span class="badge">{{ grupo.oportunidades|length }}</span></h2>
+  {% if grupo.oportunidades %}
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Empresa</th>
+          <th>Tipo</th>
+          <th>Valor previsto</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for o in grupo.oportunidades %}
+        <tr>
+          <td>{{ o.empresa.nome }}</td>
+          <td>{{ o.get_tipo_display }}</td>
+          <td>{{ o.valor_previsto|brl }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="2"><strong>Total</strong></td>
+          <td><strong>{{ grupo.total|brl }}</strong></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+  {% else %}
+  <p class="muted">Nenhuma oportunidade nesta fase.</p>
+  {% endif %}
+</section>
+{% empty %}
+<p class="muted">Nenhuma oportunidade cadastrada no funil.</p>
+{% endfor %}
+{% endblock %}
