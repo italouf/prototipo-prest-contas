@@ -54,6 +54,16 @@ class ImportacaoFinanceiraTestes(TestCase):
         linha = FinanceiroConsolidado.objects.get(pilar=self.pilar_pdi)
         self.assertEqual(linha.tipo_recurso, "EMBRAPII")
 
+    def test_csv_com_at_lei_tics_importa_com_sucesso(self):
+        csv_tics = (
+            "competencia,pilar,tipo_recurso,valor_captado,valor_executado,observacao\n"
+            "2026-06,AT,AT_LEI_TICS,0,60000,Repasse Lei de TICs\n"
+        )
+        status, _ = importar_csv(_arquivo(csv_tics), self.periodo, self.erica)
+        self.assertEqual(status, "SUCESSO")
+        linha = FinanceiroConsolidado.objects.get(pilar=self.pilar_at, tipo_recurso="AT_LEI_TICS")
+        self.assertEqual(linha.valor_executado, Decimal("60000"))
+
     def test_captado_e_executado_ficam_separados(self):
         importar_csv(_arquivo(CSV_VALIDO), self.periodo, self.erica)
         linha = FinanceiroConsolidado.objects.get(pilar=self.pilar_at)
