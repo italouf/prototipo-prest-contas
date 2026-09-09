@@ -18,6 +18,19 @@
   </select>
 </form>
 
+{% if destaques %}
+<section class="panel"><h2>Destaques do período</h2>
+  {% for d in destaques %}
+  <div class="kpi">
+    <span class="kpi-label">{{ d.titulo }}</span>
+    <span class="badge">{{ d.get_tipo_display }}</span>
+    <span class="kpi-detail">{% if d.pilar %}{{ d.pilar.nome }}{% else %}Geral{% endif %}</span>
+    <p>{{ d.descricao }}</p>
+  </div>
+  {% endfor %}
+</section>
+{% endif %}
+
 <div class="table-wrap">
   <table class="table">
     <thead>

@@ -2,11 +2,12 @@
 from decimal import Decimal
 
 from django.contrib.auth.decorators import login_required
-from django.db.models import Sum
+from django.db.models import Q, Sum
 from django.shortcuts import get_object_or_404, render
 
 from apps.entries.models import Lancamento
 from apps.finance.models import FinanceiroConsolidado
+from apps.highlights.models import DestaqueMensal
 from apps.indicators.models import Indicador
 from apps.pillars.models import Pilar
 
@@ -30,6 +31,7 @@ def dashboard(request):
         "chart_mensal": [],
         "status_counts": {},
         "eh_gestor": eh_gestor(request.user),
+        "destaques": [],
     }
     if periodo is None:
         return render(request, "home.html", contexto)
@@ -66,6 +68,7 @@ def dashboard(request):
             "chart_financeiro": _chart_financeiro(fin_ytd),
             "chart_mensal": _chart_mensal(fin_ytd, ano),
             "status_counts": _status_counts(periodo, pilares),
+            "destaques": DestaqueMensal.objects.filter(periodo=periodo).select_related("pilar").order_by("-criado_em")[:3],
         }
     )
     return render(request, "home.html", contexto)
@@ -78,13 +81,15 @@ def pilar(request, pk):
         return sem_permissao(request)
     periodo, periodos = periodo_selecionado(request)
     itens = []
+    destaques = []
     if periodo is not None:
         indicadores = Indicador.objects.filter(pilar=pilar_obj, ativo=True)
         itens = [{"indicador": ind, **meta_realizado_percentual(ind, periodo)} for ind in indicadores]
+        destaques = DestaqueMensal.objects.filter(periodo=periodo).filter(Q(pilar=pilar_obj) | Q(pilar__isnull=True)).order_by("-criado_em")
     return render(
         request,
         "dashboard/pilar.html",
-        {"pilar": pilar_obj, "periodo": periodo, "periodos": periodos, "itens": itens},
+        {"pilar": pilar_obj, "periodo": periodo, "periodos": periodos, "itens": itens, "destaques": destaques},
     )
 
 

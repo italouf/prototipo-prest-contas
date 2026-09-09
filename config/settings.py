@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     "apps.finance",
     "apps.reports",
     "apps.audit",
+    "apps.highlights",
     "apps.seed",
 ]
 
