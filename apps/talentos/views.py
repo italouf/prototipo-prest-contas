@@ -1,19 +1,26 @@
 """Organograma geral do Banco de Talentos."""
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db.models import Prefetch, Q
 from django.shortcuts import render
+from django.utils import timezone
 from django.views import View
 
 from apps.pillars.models import Pilar
 
-from .models import Colaborador, Competencia
+from .models import Alocacao, Colaborador, Competencia
 
 
 class OrganogramaView(LoginRequiredMixin, View):
     def get(self, request):
         pilar_selecionado = request.GET.get("pilar", "") or ""
         competencia_selecionada = request.GET.get("competencia", "") or ""
+        hoje = timezone.localdate()
+        vigentes = Alocacao.objects.filter(
+            Q(data_fim__isnull=True) | Q(data_fim__gte=hoje)
+        ).order_by("-data_inicio")
         qs = Colaborador.objects.select_related("pilar_principal").prefetch_related(
-            "competencias", "alocacoes"
+            "competencias",
+            Prefetch("alocacoes", queryset=vigentes, to_attr="alocacoes_vigentes"),
         )
         if pilar_selecionado:
             if Pilar.objects.filter(codigo=pilar_selecionado).exists():

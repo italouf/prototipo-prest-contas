@@ -49,7 +49,7 @@
         <td>{% for comp in c.competencias.all %}<span class="badge">{{ comp.nome }}</span>{% empty %}—{% endfor %}</td>
         <td>{% if c.lattes_url %}<a href="{{ c.lattes_url }}">Currículo Lattes</a>{% else %}—{% endif %}</td>
         <td>
-          {% for a in c.alocacoes.all %}
+          {% for a in c.alocacoes_vigentes %}
           {{ a.projeto_ou_area }} ({{ a.horas_semanais }}h/sem){% if not forloop.last %}; {% endif %}
           {% empty %}—{% endfor %}
         </td>

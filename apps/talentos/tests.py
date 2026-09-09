@@ -1,6 +1,6 @@
 """Testes do app talentos — Banco de Talentos e Organograma (LOOP 5)."""
 import tempfile
-from datetime import date
+from datetime import date, timedelta
 from unittest import mock
 
 from django.core.exceptions import ValidationError
@@ -111,6 +111,30 @@ class OrganogramaFiltrosTestes(TalentosBaseTestes):
             {c.nome for c in contexto["competencias"]},
             {"Gestão de Eventos", "Análise de Dados"},
         )
+
+
+class OrganogramaVigenciaTestes(TalentosBaseTestes):
+    def test_vigentes_exclui_encerrada_mas_mostra_ativa(self):
+        from apps.talentos.models import Alocacao
+
+        hoje = date.today()
+        Alocacao.objects.create(
+            colaborador=self.emprestavel,
+            projeto_ou_area="Projeto Encerrado",
+            horas_semanais=4,
+            data_inicio=hoje - timedelta(days=60),
+            data_fim=hoje - timedelta(days=30),
+        )
+        Alocacao.objects.create(
+            colaborador=self.emprestavel,
+            projeto_ou_area="Projeto Atual",
+            horas_semanais=10,
+            data_inicio=hoje - timedelta(days=10),
+        )
+        contexto = self._contexto()
+        por_nome = {c.nome: c for c in contexto["colaboradores"]}
+        vigentes = [a.projeto_ou_area for a in por_nome["Ana Emprestável"].alocacoes_vigentes]
+        self.assertEqual(vigentes, ["Projeto Atual"])
 
 
 class ColaboradorModeloTestes(TalentosBaseTestes):
