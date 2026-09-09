@@ -10,11 +10,11 @@ _GRUPOS_LEITURA = {"Master", "Admin", "PontoFocal", "Lideranca", "Auditor"}
 
 
 def _papel_pode_escrever(request):
-    return papel_do_usuario(request.user) in _GRUPOS_ESCRITA
+    return getattr(request.user, "is_superuser", False) or papel_do_usuario(request.user) in _GRUPOS_ESCRITA
 
 
 def _papel_pode_ver(request):
-    return papel_do_usuario(request.user) in _GRUPOS_LEITURA
+    return getattr(request.user, "is_superuser", False) or papel_do_usuario(request.user) in _GRUPOS_LEITURA
 
 
 @admin.register(DestaqueMensal)

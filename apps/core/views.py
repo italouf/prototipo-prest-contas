@@ -85,7 +85,7 @@ def pilar(request, pk):
     if periodo is not None:
         indicadores = Indicador.objects.filter(pilar=pilar_obj, ativo=True)
         itens = [{"indicador": ind, **meta_realizado_percentual(ind, periodo)} for ind in indicadores]
-        destaques = DestaqueMensal.objects.filter(periodo=periodo).filter(Q(pilar=pilar_obj) | Q(pilar__isnull=True)).order_by("-criado_em")
+        destaques = DestaqueMensal.objects.filter(periodo=periodo).filter(Q(pilar=pilar_obj) | Q(pilar__isnull=True)).select_related("pilar").order_by("-criado_em")
     return render(
         request,
         "dashboard/pilar.html",

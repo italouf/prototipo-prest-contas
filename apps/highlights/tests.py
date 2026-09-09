@@ -135,6 +135,25 @@ class PilarDestaquesTestes(TestCase):
         self.assertIn(do_pilar, destaques)
         self.assertNotIn(de_outro, destaques)
 
+    def test_pilar_destaques_evita_n1_ao_ler_pilar(self):
+        from apps.core.views import pilar as pilar_view
+
+        DestaqueMensal.objects.create(
+            periodo=self.periodo, pilar=self.pdi, titulo="Com pilar 1", descricao="Um."
+        )
+        DestaqueMensal.objects.create(
+            periodo=self.periodo, pilar=self.pdi, titulo="Com pilar 2", descricao="Dois."
+        )
+        requisicao = _request("/", self.master)
+        with mock.patch("apps.core.views.render") as mock_render:
+            mock_render.return_value = HttpResponse()
+            pilar_view(requisicao, pk=self.pdi.pk)
+        destaques_qs = _contexto_de_render(mock_render)["destaques"]
+        with self.assertNumQueries(1):
+            destaques = list(destaques_qs)
+            for destaque in destaques:
+                _ = destaque.pilar.nome if destaque.pilar_id else None
+
 
 class DestaqueAdminPermissoesTestes(TestCase):
     def setUp(self):
@@ -174,3 +193,13 @@ class DestaqueAdminPermissoesTestes(TestCase):
                 self.assertFalse(self.model_admin.has_change_permission(req))
                 self.assertFalse(self.model_admin.has_delete_permission(req))
                 self.assertTrue(self.model_admin.has_view_permission(req))
+
+    def test_superuser_sem_grupo_pode_adicionar_alterar_excluir_e_ver(self):
+        superuser = User.objects.create_superuser(username="root", password="x", email="root@teste.com")
+        fabrica = RequestFactory()
+        requisicao = fabrica.get("/admin/")
+        requisicao.user = superuser
+        self.assertTrue(self.model_admin.has_add_permission(requisicao))
+        self.assertTrue(self.model_admin.has_change_permission(requisicao))
+        self.assertTrue(self.model_admin.has_delete_permission(requisicao))
+        self.assertTrue(self.model_admin.has_view_permission(requisicao))
