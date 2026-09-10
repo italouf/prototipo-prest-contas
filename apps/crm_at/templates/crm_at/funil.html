@@ -3,58 +3,101 @@
 {% block title %}Funil AT · Portal QuIIN{% endblock %}
 {% block breadcrumbs %}{% include "partials/breadcrumbs.html" with atual="Funil AT" %}{% endblock %}
 {% block content %}
-
-<h1>Funil AT</h1>
-
-{% if pode_editar_crm %}
-<div class="form-actions">
-  <a class="btn btn-primary" href="{% url 'crm_at:oportunidade_criar' %}">+ Nova oportunidade</a>
-</div>
-{% endif %}
-
-<div class="panel">
-  <p><strong>Pipeline em aberto:</strong> {{ pipeline_open|brl }}</p>
-  <p><strong>Renovações em andamento:</strong> {{ renovacoes_qtd }} ({{ renovacoes_total|brl }})</p>
-</div>
-
-{% for grupo in grupos %}
-<section class="panel">
-  <h2>{{ grupo.rotulo }} <span class="badge">{{ grupo.oportunidades|length }}</span></h2>
-  {% if grupo.oportunidades %}
-  <div class="table-wrap">
-    <table class="table">
-      <thead>
-        <tr>
-          <th>Empresa</th>
-          <th>Tipo</th>
-          <th>Valor previsto</th>
-          {% if pode_editar_crm %}<th>Ações</th>{% endif %}
-        </tr>
-      </thead>
-      <tbody>
-        {% for o in grupo.oportunidades %}
-        <tr>
-          <td>{{ o.empresa.nome }}</td>
-          <td>{{ o.get_tipo_display }}</td>
-          <td>{{ o.valor_previsto|brl }}</td>
-          {% if pode_editar_crm %}<td><a href="{% url 'crm_at:oportunidade_editar' o.pk %}">editar</a></td>{% endif %}
-        </tr>
-        {% endfor %}
-      </tbody>
-      <tfoot>
-        <tr>
-          <td colspan="2"><strong>Total</strong></td>
-          <td><strong>{{ grupo.total|brl }}</strong></td>
-          {% if pode_editar_crm %}<td></td>{% endif %}
-        </tr>
-      </tfoot>
-    </table>
+<div data-testid="page-funil">
+  <div class="flex flex-wrap items-end justify-between gap-3">
+    <div>
+      <h1 class="text-2xl font-bold">Funil AT</h1>
+      <p class="text-sm text-text-muted">Pipeline da Associação Tecnológica — novos CNPJs e renovações.</p>
+    </div>
+    {% if pode_editar_crm %}
+    <c-ui.button href="{% url 'crm_at:oportunidade_criar' %}">+ Nova oportunidade</c-ui.button>
+    {% endif %}
   </div>
-  {% else %}
-  <p class="muted">Nenhuma oportunidade nesta fase.</p>
+
+  <section class="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4" data-testid="funil-kpis" aria-label="Indicadores do funil">
+    <c-ui.card>
+      <p class="text-xs font-semibold uppercase tracking-wide text-text-muted">Pipeline em aberto</p>
+      <p class="numerico mt-1 text-2xl font-bold">{{ pipeline_open|escala_ptbr }}</p>
+      <p class="text-xs text-text-muted">{{ pipeline_open|moeda_ptbr }}</p>
+    </c-ui.card>
+    <c-ui.card>
+      <p class="text-xs font-semibold uppercase tracking-wide text-text-muted">Renovações em andamento</p>
+      <p class="numerico mt-1 text-2xl font-bold">{{ renovacoes_qtd }}</p>
+      <p class="text-xs text-text-muted">{{ renovacoes_total|moeda_ptbr }} · não contam para a meta de CNPJs novos (RN-007)</p>
+    </c-ui.card>
+    <c-ui.card>
+      <p class="text-xs font-semibold uppercase tracking-wide text-text-muted">Empresas</p>
+      <p class="numerico mt-1 text-2xl font-bold">{{ empresas_associadas }}</p>
+      <p class="text-xs text-text-muted">associadas · {{ prospects }} prospect(s)</p>
+    </c-ui.card>
+    <c-ui.card>
+      <p class="text-xs font-semibold uppercase tracking-wide text-text-muted">Meta CNPJs novos</p>
+      {% if meta_cnpjs %}
+      <p class="numerico mt-1 text-2xl font-bold">{{ meta_cnpjs.dados.realizado|numero_ptbr }}<span class="text-sm text-text-muted"> / {{ meta_cnpjs.dados.meta|numero_ptbr }}</span></p>
+      <p class="text-xs text-text-muted">{{ meta_cnpjs.dados.percentual|pct }} · {{ meta_cnpjs.periodo.rotulo }}</p>
+      {% else %}
+      <p class="mt-1 text-sm text-text-muted">Sem período/indicador configurado.</p>
+      {% endif %}
+    </c-ui.card>
+  </section>
+
+  <section class="mt-6" aria-label="Etapas do funil">
+    <h2 class="font-display text-lg font-semibold">Pipeline de CNPJs</h2>
+    <div class="mt-3 grid gap-3 lg:grid-cols-5">
+      {% for grupo in funil %}
+      <section class="rounded-xl border border-border bg-surface-2 p-3" data-testid="funil-coluna-{{ grupo.fase }}">
+        <header class="flex items-center justify-between px-1 pb-2">
+          <h3 class="text-sm font-semibold">{{ grupo.rotulo }}</h3>
+          <span class="rounded-full bg-quiin-mist/50 px-2 py-0.5 text-xs">{{ grupo.oportunidades|length }}</span>
+        </header>
+        <div class="space-y-2">
+          {% for o in grupo.oportunidades %}
+          <article class="rounded-lg border border-border bg-surface p-3" data-testid="oportunidade-{{ o.pk }}">
+            <p class="text-sm font-semibold">{{ o.empresa.nome }}</p>
+            <p class="text-xs text-text-muted">{{ o.empresa.cnpj }}</p>
+            <div class="mt-1 flex items-center justify-between gap-2">
+              <c-ui.badge tone="{% if o.tipo == 'RENOVACAO' %}info{% else %}neutral{% endif %}">{{ o.get_tipo_display }}</c-ui.badge>
+              <span class="numerico text-sm">{{ o.valor_previsto|brl }}</span>
+            </div>
+            {% if o.observacao %}<p class="mt-1 text-xs text-text-muted">{{ o.observacao }}</p>{% endif %}
+            {% if pode_editar_crm %}
+            <a class="mt-2 inline-block text-xs text-quiin-royal underline" href="{% url 'crm_at:oportunidade_editar' o.pk %}">editar</a>
+            {% endif %}
+          </article>
+          {% empty %}
+          <p class="px-1 text-xs text-text-muted">Nenhuma oportunidade.</p>
+          {% endfor %}
+        </div>
+      </section>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="mt-6" aria-label="Renovações em andamento">
+    <h2 class="font-display text-lg font-semibold">Renovações em andamento</h2>
+    <p class="text-xs text-text-muted">Contratos de renovação ficam separados e <strong>não</strong> contam para a meta de CNPJs novos (RN-007).</p>
+    <div class="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3" data-testid="kanban-renovacoes">
+      {% for o in renovacoes %}
+      <article class="rounded-lg border border-border bg-surface-2 p-3">
+        <p class="text-sm font-semibold">{{ o.empresa.nome }}</p>
+        <p class="text-xs text-text-muted">{{ o.get_fase_display }} · {{ o.valor_previsto|brl }}</p>
+        {% if o.observacao %}<p class="mt-1 text-xs text-text-muted">{{ o.observacao }}</p>{% endif %}
+      </article>
+      {% empty %}
+      <p class="text-sm text-text-muted">Nenhuma renovação em andamento.</p>
+      {% endfor %}
+    </div>
+  </section>
+
+  {% if perdidos %}
+  <details class="mt-6 rounded-xl border border-border bg-surface-2 p-4">
+    <summary class="cursor-pointer text-sm font-semibold">Oportunidades perdidas ({{ perdidos|length }})</summary>
+    <ul class="mt-2 space-y-1 text-sm text-text-muted">
+      {% for o in perdidos %}
+      <li>{{ o.empresa.nome }} · {{ o.valor_previsto|brl }}</li>
+      {% endfor %}
+    </ul>
+  </details>
   {% endif %}
-</section>
-{% empty %}
-<p class="muted">Nenhuma oportunidade cadastrada no funil.</p>
-{% endfor %}
+</div>
 {% endblock %}

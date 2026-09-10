@@ -2,78 +2,54 @@
 {% block title %}Organograma · Portal QuIIN{% endblock %}
 {% block breadcrumbs %}{% include "partials/breadcrumbs.html" with atual="Organograma" %}{% endblock %}
 {% block content %}
+<div x-data="{ busca: '' }" data-testid="page-talentos">
+  <div class="flex flex-wrap items-end justify-between gap-3">
+    <div>
+      <h1 class="text-2xl font-bold">Organograma</h1>
+      <p class="text-sm text-text-muted">Banco de talentos do programa — por pilar, competência e disponibilidade.</p>
+    </div>
+    {% if pode_editar_talentos %}
+    <c-ui.button href="{% url 'talentos:colaborador_criar' %}">+ Novo colaborador</c-ui.button>
+    {% endif %}
+  </div>
 
-<h1>Organograma</h1>
-
-{% if pode_editar_talentos %}
-<div class="form-actions">
-  <a class="btn btn-primary" href="{% url 'talentos:colaborador_criar' %}">+ Novo colaborador</a>
-</div>
-{% endif %}
-
-<div class="panel">
-  <form method="get">
-    <label for="filtro-pilar">Pilar</label>
-    <select id="filtro-pilar" name="pilar">
-      <option value="">Todos</option>
-      {% for p in pilares %}
-      <option value="{{ p.codigo }}"{% if p.codigo == pilar_selecionado %} selected{% endif %}>{{ p.nome }}</option>
-      {% endfor %}
-    </select>
-    <label for="filtro-competencia">Competência</label>
-    <select id="filtro-competencia" name="competencia">
-      <option value="">Todas</option>
-      {% for c in competencias %}
-      <option value="{{ c.pk }}"{% if c.pk|stringformat:'s' == competencia_selecionada %} selected{% endif %}>{{ c.nome }}</option>
-      {% endfor %}
-    </select>
-    <button class="btn" type="submit">Filtrar</button>
-    <a class="btn btn-ghost" href="{% url 'talentos:organograma' %}">Limpar</a>
+  <form method="get" action="{% url 'talentos:organograma' %}"
+        hx-get="{% url 'talentos:organograma' %}" hx-target="#talentos-lista" hx-select="#talentos-lista"
+        hx-swap="outerHTML" hx-push-url="true" hx-indicator="#progresso"
+        class="mt-4 grid gap-3 rounded-xl border border-border bg-surface-2 p-4 md:grid-cols-4">
+    <div>
+      <label for="filtro-pilar" class="mb-1 block text-sm font-semibold">Pilar</label>
+      <select id="filtro-pilar" name="pilar" onchange="this.form.requestSubmit()"
+              class="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm">
+        <option value="">Todos</option>
+        {% for p in pilares %}
+        <option value="{{ p.codigo }}"{% if p.codigo == pilar_selecionado %} selected{% endif %}>{{ p.nome }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label for="filtro-competencia" class="mb-1 block text-sm font-semibold">Competência</label>
+      <select id="filtro-competencia" name="competencia" onchange="this.form.requestSubmit()"
+              class="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm">
+        <option value="">Todas</option>
+        {% for c in competencias %}
+        <option value="{{ c.pk }}"{% if c.pk|stringformat:'s' == competencia_selecionada %} selected{% endif %}>{{ c.nome }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="md:col-span-2">
+      <label for="busca-talento" class="mb-1 block text-sm font-semibold">Buscar por skill</label>
+      <input id="busca-talento" type="search" x-model="busca" data-testid="busca-talento" placeholder="ex.: Python, Óptica Quântica…"
+             @keydown.enter.prevent
+             class="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm">
+    </div>
+    <div class="md:col-span-4">
+      <a class="text-xs text-quiin-royal underline" href="{% url 'talentos:organograma' %}">Limpar filtros</a>
+    </div>
   </form>
-</div>
 
-{% if colaboradores %}
-<div class="table-wrap">
-  <table class="table">
-    <thead>
-      <tr>
-        <th>Foto</th>
-        <th>Nome</th>
-        <th>Cargo</th>
-        <th>Pilar</th>
-        <th>Competências</th>
-        <th>Lattes</th>
-        <th>Alocações vigentes</th>
-        {% if pode_editar_talentos %}<th>Ações</th>{% endif %}
-      </tr>
-    </thead>
-    <tbody>
-      {% for c in colaboradores %}
-      <tr>
-        <td>{% if c.foto %}<img src="{{ c.foto.url }}" alt="Foto de {{ c.nome }}" width="48">{% endif %}</td>
-        <td>{{ c.nome }}</td>
-        <td>{{ c.cargo }}</td>
-        <td>{{ c.pilar_principal.nome|default:'—' }}</td>
-        <td>{% for comp in c.competencias.all %}<span class="badge">{{ comp.nome }}</span>{% empty %}—{% endfor %}</td>
-        <td>{% if c.lattes_url %}<a href="{{ c.lattes_url }}">Currículo Lattes</a>{% else %}—{% endif %}</td>
-        <td>
-          {% for a in c.alocacoes_vigentes %}
-          {{ a.projeto_ou_area }} ({{ a.horas_semanais }}h/sem){% if not forloop.last %}; {% endif %}
-          {% empty %}—{% endfor %}
-        </td>
-        {% if pode_editar_talentos %}
-        <td>
-          <a href="{% url 'talentos:colaborador_editar' c.pk %}">editar</a>
-          ·
-          <a href="{% url 'talentos:alocacao_criar' c.pk %}">+ Nova alocação</a>
-        </td>
-        {% endif %}
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <div id="talentos-lista" data-testid="talentos-lista" class="mt-4">
+    {% include "talentos/_lista.html" %}
+  </div>
 </div>
-{% else %}
-<p class="muted">Nenhum colaborador encontrado para os filtros selecionados.</p>
-{% endif %}
 {% endblock %}

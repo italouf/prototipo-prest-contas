@@ -1,11 +1,11 @@
 {% extends 'base.html' %}
-{% block title %}{{ titulo }} · Talentos · Portal QuIIN{% endblock %}
+{% block title %}{{ titulo }} Â· Talentos Â· Portal QuIIN{% endblock %}
 {% block breadcrumbs %}{% include "partials/breadcrumbs.html" with atual=titulo %}{% endblock %}
 {% block content %}
 
 <h1>{{ titulo }}</h1>
 
-<div class="panel">
+<div class="mt-4 rounded-xl border border-border bg-surface-2 p-5">
   <form method="post" enctype="multipart/form-data">
     {% csrf_token %}
     {% if form.non_field_errors %}
@@ -22,8 +22,8 @@
       </div>
     {% endfor %}
     <div class="form-actions">
-      <button class="btn btn-primary" type="submit">Salvar</button>
-      <a class="btn btn-ghost" href="{% url 'talentos:organograma' %}">Voltar ao organograma</a>
+      <c-ui.button type="submit">Salvar</c-ui.button>
+      <c-ui.button href="{% url 'talentos:organograma' %}" variant="ghost">Voltar ao organograma</c-ui.button>
     </div>
   </form>
 </div>

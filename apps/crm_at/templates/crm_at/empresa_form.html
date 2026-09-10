@@ -1,11 +1,11 @@
 {% extends 'base.html' %}
-{% block title %}{{ titulo }} · Funil AT · Portal QuIIN{% endblock %}
+{% block title %}{{ titulo }} Â· Funil AT Â· Portal QuIIN{% endblock %}
 {% block breadcrumbs %}{% include "partials/breadcrumbs.html" with atual=titulo %}{% endblock %}
 {% block content %}
 
 <h1>{{ titulo }}</h1>
 
-<div class="panel">
+<div class="mt-4 rounded-xl border border-border bg-surface-2 p-5">
   <form method="post">
     {% csrf_token %}
     {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
@@ -22,8 +22,8 @@
       </div>
     {% endfor %}
     <div class="form-actions">
-      <button class="btn btn-primary" type="submit">Salvar</button>
-      <a class="btn btn-ghost" href="{% url 'crm_at:funil' %}">Voltar ao funil</a>
+      <c-ui.button type="submit">Salvar</c-ui.button>
+      <c-ui.button href="{% url 'crm_at:funil' %}" variant="ghost">Voltar ao funil</c-ui.button>
     </div>
   </form>
 </div>
