@@ -51,6 +51,7 @@ class AssetsVendorizadosTestes(SimpleTestCase):
     def test_assets_presentes(self):
         for rel in (
             "static/js/vendor/htmx.min.js",
+            "static/js/vendor/head-support.js",
             "static/js/vendor/alpine.min.js",
             "static/js/vendor/chart.umd.js",
             "static/icons/sprite.svg",
