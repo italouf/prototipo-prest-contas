@@ -6,7 +6,7 @@ Planos: `docs/superpowers/plans/` · Evidências: `docs/retrofit/evidencias/`
 | Loop | Escopo | Status |
 |---|---|---|
 | R0 | Foundation: deps, tokens QuIIN, fontes, assets vendorizados, primitivos, dark mode, `/dev/design-system/` | ✅ Concluído (2026-09-10) |
-| R1 | Shell: base, sidebar colapsável, topbar, breadcrumbs, RBAC visual, navegação HTMX-boosted | ⏳ Pendente |
+| R1 | Shell: base, sidebar colapsável, topbar, breadcrumbs, RBAC visual, navegação HTMX-boosted | ✅ Concluído (2026-09-10) |
 | R2 | Dashboard executivo: 6 KPIs por pilar, gráficos, heatmap, destaques, avisos, drawer HTMX | ⏳ Pendente |
 | R3 | Operacional: lista/filtros, formulário com validação, kanban de status, timeline, modal de devolução, preview CSV | ⏳ Pendente |
 | R4 | CRM AT e Talentos: funil, pipeline, renovações, organograma, cards, busca por skill | ⏳ Pendente |
@@ -69,3 +69,44 @@ npx playwright test
   axe-core (R0) e será revisto no R6.
 - Panton trial: uso local não publicado (risco registrado); antes de publicar,
   adquirir licença ou trocar por fonte livre.
+
+## R1 — resultado
+
+**Decisões e entregas**
+
+- Backend aditivo: context processor `nav` agora expõe `periodos_nav`,
+  `pendencias_nav` (ENVIADO para gestores; DEVOLVIDO para focais) e
+  `total_pendencias`; nova rota `core:busca` (`/busca/?q=`) com partial HTMX e
+  página completa como fallback, respeitando pilares visíveis.
+- Shell em componentes cotton `layout/sidebar` e `layout/topbar`; sidebar
+  agrupada (Visão geral, Operação, Pilares com badges por pilar, Programa,
+  Gestão), colapsável no desktop (`localStorage`) e drawer no mobile.
+- Topbar com busca global (`hx-get` + dropdown), seletor de período global
+  (submete `?periodo=` no path atual), badge de papel com cores por perfil,
+  tema e logout.
+- Breadcrumbs (`partials/breadcrumbs.html` + `{% block breadcrumbs %}`) em
+  todas as páginas internas.
+- Navegação HTMX-boosted: `hx-boost` + `hx-target="#main"` +
+  `hx-select="#main"` na sidebar; extensão `head-support` (vendorizada) mantém
+  o `<title>` sincronizado; indicador de progresso no topo.
+- Login e 403 redesenhados; CSS legado permanece em `layer(legado)` até o R6.
+- Correções de infraestrutura: `vendor_assets.ps1` virou idempotente com
+  download atômico (`.tmp` + move) após um htmx truncado; `hx-select` necessário
+  para o boost não injetar a página inteira; contraste AA do `.nav-secao`.
+
+**Testes**
+
+- Django: **137 testes, OK**.
+- Playwright: **24 testes, 24 verdes** (6 novos em `shell.spec.ts`; E2E antigos
+  ajustados apenas em seletores afetados pelo seletor global de período e pelo
+  container de mensagens).
+
+**Evidências**
+
+- `docs/retrofit/evidencias/R1-depois/` (11 páginas com o shell novo).
+
+**Pendências conscientes**
+
+- Conteúdo das páginas internas ainda é o legado (redesign por loop R2–R5).
+- Busca global cobre indicadores, empresas e talentos; ampliar em loops futuros
+  se necessário.
