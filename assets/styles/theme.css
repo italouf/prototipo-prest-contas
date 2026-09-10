@@ -32,6 +32,12 @@
   --color-pillar-infra: #04047e;
   --color-pillar-outrasfontes: #2ebf7d;
 
+  /* Texto sobre tintas de 15% (contraste AA >= 4.5:1) */
+  --color-status-aprovado-texto: #116b45;
+  --color-status-pendente-texto: #92400e;
+  --color-pillar-startups-texto: #155d94;
+  --color-pillar-outrasfontes-texto: #0e7a4f;
+
   --font-display: "Panton", "Myriad Pro", system-ui, sans-serif;
   --font-sans: "Myriad Pro", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Code", monospace;
