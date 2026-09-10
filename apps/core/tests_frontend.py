@@ -52,3 +52,13 @@ class AssetsVendorizadosTestes(SimpleTestCase):
             caminho = settings.BASE_DIR / rel
             self.assertTrue(caminho.exists(), f"{rel} ausente")
             self.assertGreater(caminho.stat().st_size, 500, f"{rel} vazio")
+
+
+class TailwindBuildTestes(SimpleTestCase):
+    def test_css_build_inclui_tokens_quiin(self):
+        caminho = settings.BASE_DIR / "static" / "css" / "tailwind.css"
+        self.assertTrue(caminho.exists(), "rode manage.py tailwind build")
+        conteudo = caminho.read_text(encoding="utf-8").lower()
+        self.assertIn("--color-quiin-navy", conteudo)
+        self.assertIn("#04047e", conteudo)
+        self.assertIn("--font-display", conteudo)

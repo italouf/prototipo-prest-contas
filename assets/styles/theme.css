@@ -1,0 +1,50 @@
+/* assets/styles/theme.css — tokens da marca QuIIN (Tailwind v4 CSS-first) */
+@theme {
+  --color-quiin-navy: #04047e;
+  --color-quiin-deep-purple: #1b1641;
+  --color-quiin-royal: #0f3b94;
+  --color-quiin-blue: #144fad;
+  --color-quiin-sky: #1d72b9;
+  --color-quiin-quantum-green: #2ebf7d;
+  --color-quiin-violet: #3b249c;
+  --color-quiin-mist: #dedfe8;
+
+  --color-surface: #f7f8fb;
+  --color-surface-2: #ffffff;
+  --color-border: #dedfe8;
+  --color-text: #1b1641;
+  --color-text-muted: #5b5f7a;
+  --color-focus: #1d72b9;
+
+  --color-status-rascunho: #64748b;
+  --color-status-enviado: #144fad;
+  --color-status-aprovado: #1f9d67;
+  --color-status-devolvido: #b45309;
+  --color-status-pendente: #b45309;
+  --color-status-fechado: #1f9d67;
+  --color-status-aberto: #0f3b94;
+  --color-status-planejado: #64748b;
+
+  --color-pillar-pdi: #3b249c;
+  --color-pillar-formacao: #144fad;
+  --color-pillar-startups: #1d72b9;
+  --color-pillar-at: #0f3b94;
+  --color-pillar-infra: #04047e;
+  --color-pillar-outrasfontes: #2ebf7d;
+
+  --font-display: "Panton", "Myriad Pro", system-ui, sans-serif;
+  --font-sans: "Myriad Pro", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Code", monospace;
+}
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  .dark {
+    --color-surface: #0f0d22;
+    --color-surface-2: #1b1641;
+    --color-border: #2e2a52;
+    --color-text: #eef0f7;
+    --color-text-muted: #a7abc4;
+  }
+}

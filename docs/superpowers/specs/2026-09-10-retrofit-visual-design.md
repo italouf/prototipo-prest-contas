@@ -83,7 +83,9 @@ concatenação de strings (Tailwind só detecta classes literais).
   Panton/JetBrains para `static/fonts/`.
 - Pesos: Panton Light/Regular/SemiBold/Bold/Black; Myriad Pro Light/Regular/
   SemiBold/Bold; JetBrains Mono Regular/Medium/Bold.
-- `@font-face` com `font-display: swap` em `theme.css` (layer base).
+- `@font-face` com `font-display: swap` em `static/css/fonts.css` (arquivo
+  servido diretamente, não processado pelo Tailwind; URLs relativas
+  `../fonts/...` resolvem tanto em `static/` quanto em `staticfiles/`).
 - Deploy sem `font/` cai no fallback (`system-ui`); documentado em
   `docs/como-rodar.md`. Ver §5.2.
 

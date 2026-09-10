@@ -122,7 +122,7 @@ LOGIN_URL = "accounts:login"
 LOGIN_REDIRECT_URL = "core:dashboard"
 
 # ---------- Front-end (retrofit visual) ----------
-TAILWIND_CLI_VERSION = "latest"  # pinado na Task 3 após o primeiro download
+TAILWIND_CLI_VERSION = "4.3.3"  # versão pinada após `manage.py tailwind config`
 TAILWIND_CLI_SRC_CSS = "assets/styles/input.css"
 TAILWIND_CLI_DIST_CSS = "css/tailwind.css"
 

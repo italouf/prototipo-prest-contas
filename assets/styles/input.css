@@ -1,0 +1,56 @@
+/* assets/styles/input.css — entry do Tailwind (fora de static/) */
+@import "tailwindcss";
+@import "./theme.css";
+
+@source "../../templates";
+@source "../../apps";
+
+@layer base {
+  html {
+    color-scheme: light;
+  }
+  html.dark {
+    color-scheme: dark;
+  }
+  body {
+    background-color: var(--color-surface);
+    color: var(--color-text);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+  ::selection {
+    background: color-mix(in srgb, var(--color-quiin-sky) 30%, transparent);
+  }
+  [x-cloak] {
+    display: none !important;
+  }
+}
+
+@layer utilities {
+  .numerico {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@media print {
+  .no-print,
+  .topbar,
+  .footer {
+    display: none !important;
+  }
+  body {
+    background: #fff;
+  }
+}
