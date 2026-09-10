@@ -1,0 +1,10 @@
+<c-vars caption="" class="" />
+<div class="overflow-x-auto rounded-xl border border-border bg-surface-2">
+  <table class="w-full border-collapse text-sm {{ class }}" {{ attrs }}>
+    {% if caption %}<caption class="px-4 py-3 text-left text-sm text-text-muted">{{ caption }}</caption>{% endif %}
+    {% if head %}
+    <thead class="bg-quiin-deep-purple text-white [&_th]:px-4 [&_th]:py-2.5 [&_th]:text-left [&_th]:text-xs [&_th]:font-semibold [&_th]:uppercase [&_th]:tracking-wide">{{ head }}</thead>
+    {% endif %}
+    <tbody class="[&_td]:border-t [&_td]:border-border [&_td]:px-4 [&_td]:py-2.5 [&_td]:align-top">{{ body }}</tbody>
+  </table>
+</div>

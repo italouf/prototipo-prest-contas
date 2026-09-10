@@ -1,0 +1,7 @@
+<c-vars name size="20" label="" class="" />
+{% load static %}
+<svg class="inline-block shrink-0 {{ class }}" width="{{ size }}" height="{{ size }}" viewBox="0 0 24 24"
+     fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+     {% if label %}role="img" aria-label="{{ label }}"{% else %}aria-hidden="true"{% endif %} {{ attrs }}>
+  <use href="{% static 'icons/sprite.svg' %}#{{ name }}"></use>
+</svg>

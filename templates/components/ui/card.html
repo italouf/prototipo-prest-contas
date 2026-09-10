@@ -1,0 +1,6 @@
+<c-vars variant="panel" class="" />
+<section class="rounded-xl border border-border bg-surface-2 shadow-sm {{ class }}" {{ attrs }}>
+  {% if header %}<header class="border-b border-border px-5 py-3 font-display font-semibold">{{ header }}</header>{% endif %}
+  <div class="{% if variant == 'action' %}p-4{% else %}p-5{% endif %}">{{ slot }}</div>
+  {% if footer %}<footer class="border-t border-border px-5 py-3 text-sm text-text-muted">{{ footer }}</footer>{% endif %}
+</section>

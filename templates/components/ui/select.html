@@ -1,0 +1,16 @@
+<c-vars name="" id="" label="" help="" error="" required=False class="" />
+{% with campo_id=id|default:name %}
+<div class="{{ class }}">
+  {% if label %}<label for="{{ campo_id }}" class="mb-1 block text-sm font-semibold text-text">{{ label }}</label>{% endif %}
+  <select id="{{ campo_id }}" name="{{ name }}"
+          class="w-full rounded-md border bg-surface-2 px-3 py-2 text-sm text-text focus:outline-none focus-visible:ring-2 focus-visible:ring-focus/60 {% if error %}border-red-500{% else %}border-border{% endif %}"
+          {% if required %}required{% endif %}
+          {% if error %}aria-invalid="true" aria-describedby="{{ campo_id }}-erro"{% elif help %}aria-describedby="{{ campo_id }}-ajuda"{% endif %}
+          {{ attrs }}>{{ slot }}</select>
+  {% if error %}
+  <p id="{{ campo_id }}-erro" class="mt-1 text-xs font-medium text-red-600">{{ error }}</p>
+  {% elif help %}
+  <p id="{{ campo_id }}-ajuda" class="mt-1 text-xs text-text-muted">{{ help }}</p>
+  {% endif %}
+</div>
+{% endwith %}

@@ -1,0 +1,13 @@
+<c-vars tone="neutral" pillar="" class="" />
+<span class="inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-semibold
+{% if pillar == 'PDI' %}border-transparent bg-pillar-pdi/15 text-pillar-pdi
+{% elif pillar == 'FORMACAO' %}border-transparent bg-pillar-formacao/15 text-pillar-formacao
+{% elif pillar == 'STARTUPS' %}border-transparent bg-pillar-startups/15 text-pillar-startups
+{% elif pillar == 'AT' %}border-transparent bg-pillar-at/15 text-pillar-at
+{% elif pillar == 'INFRA' %}border-transparent bg-pillar-infra/15 text-pillar-infra
+{% elif pillar == 'OUTRASFONTES' %}border-transparent bg-pillar-outrasfontes/15 text-pillar-outrasfontes
+{% elif tone == 'success' %}border-transparent bg-quiin-quantum-green/15 text-status-aprovado
+{% elif tone == 'warn' %}border-transparent bg-amber-500/15 text-status-pendente
+{% elif tone == 'danger' %}border-transparent bg-red-600/10 text-red-700
+{% elif tone == 'info' %}border-transparent bg-quiin-royal/10 text-status-aberto
+{% else %}border-border bg-quiin-mist/30 text-text-muted{% endif %} {{ class }}" {{ attrs }}>{{ slot }}</span>

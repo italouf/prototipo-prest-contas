@@ -1,5 +1,7 @@
 /* assets/styles/input.css — entry do Tailwind (fora de static/) */
-@import "tailwindcss";
+/* source(none): sem varredura automática do projeto (evita capturar classes
+   em docs/planos); as fontes são apenas os @source explícitos abaixo. */
+@import "tailwindcss" source(none);
 @import "./theme.css";
 
 @source "../../templates";

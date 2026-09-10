@@ -1,0 +1,21 @@
+<c-vars variant="primary" size="md" type="button" href="" disabled=False loading=False class="" />
+{% if href %}
+<a href="{{ href }}"
+   class="inline-flex items-center justify-center gap-2 rounded-md border font-semibold transition-colors
+   {% if variant == 'primary' %}border-quiin-navy bg-quiin-navy text-white hover:bg-quiin-royal{% elif variant == 'secondary' %}border-transparent bg-quiin-blue text-white hover:bg-quiin-sky{% elif variant == 'ghost' %}border-border bg-transparent text-text hover:bg-quiin-mist/40 dark:hover:bg-white/5{% else %}border-transparent bg-red-600 text-white hover:bg-red-700{% endif %}
+   {% if size == 'sm' %}px-3 py-1.5 text-sm{% elif size == 'lg' %}px-5 py-3 text-base{% else %}px-4 py-2 text-sm{% endif %}
+   {% if disabled or loading %}pointer-events-none opacity-60{% endif %} {{ class }}" {{ attrs }}>
+  {% if loading %}<span class="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" aria-hidden="true"></span>{% endif %}
+  {{ icon }}{{ slot }}
+</a>
+{% else %}
+<button type="{{ type }}"
+        class="inline-flex items-center justify-center gap-2 rounded-md border font-semibold transition-colors
+        {% if variant == 'primary' %}border-quiin-navy bg-quiin-navy text-white hover:bg-quiin-royal{% elif variant == 'secondary' %}border-transparent bg-quiin-blue text-white hover:bg-quiin-sky{% elif variant == 'ghost' %}border-border bg-transparent text-text hover:bg-quiin-mist/40 dark:hover:bg-white/5{% else %}border-transparent bg-red-600 text-white hover:bg-red-700{% endif %}
+        {% if size == 'sm' %}px-3 py-1.5 text-sm{% elif size == 'lg' %}px-5 py-3 text-base{% else %}px-4 py-2 text-sm{% endif %}
+        {% if disabled or loading %}pointer-events-none opacity-60{% endif %} {{ class }}"
+        {% if disabled %}disabled{% endif %} {{ attrs }}>
+  {% if loading %}<span class="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" aria-hidden="true"></span>{% endif %}
+  {{ icon }}{{ slot }}
+</button>
+{% endif %}

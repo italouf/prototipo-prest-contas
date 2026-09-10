@@ -2,11 +2,17 @@
 from django.conf import settings
 from django.template import Context, Template
 from django.test import SimpleTestCase
+from django_cotton.compiler_regex import CottonCompiler
 
 
 class FrontendStackTestes(SimpleTestCase):
     def test_apps_de_frontend_instaladas(self):
-        for app in ("django_cotton", "django_tailwind_cli", "django_htmx", "template_partials"):
+        for app in (
+            "django_cotton.apps.SimpleAppConfig",
+            "django_tailwind_cli",
+            "django_htmx",
+            "template_partials.apps.SimpleAppConfig",
+        ):
             self.assertIn(app, settings.INSTALLED_APPS)
 
     def test_htmx_middleware_instalado(self):
@@ -62,3 +68,52 @@ class TailwindBuildTestes(SimpleTestCase):
         self.assertIn("--color-quiin-navy", conteudo)
         self.assertIn("#04047e", conteudo)
         self.assertIn("--font-display", conteudo)
+
+
+class ComponentesUITestes(SimpleTestCase):
+    def render(self, source, **contexto):
+        compilado = CottonCompiler().process(source)
+        return Template(compilado).render(Context(contexto))
+
+    def test_button_primary(self):
+        html = self.render('<c-ui.button variant="primary">Salvar</c-ui.button>')
+        self.assertIn("bg-quiin-navy", html)
+        self.assertIn("Salvar", html)
+        self.assertIn('type="button"', html)
+
+    def test_button_ghost_tamanho_sm(self):
+        html = self.render('<c-ui.button variant="ghost" size="sm">Voltar</c-ui.button>')
+        self.assertIn("bg-transparent", html)
+        self.assertIn("px-3", html)
+
+    def test_button_href_renderiza_link(self):
+        html = self.render('<c-ui.button href="/x/">Ir</c-ui.button>')
+        self.assertIn('<a href="/x/"', html)
+
+    def test_badge_pilar(self):
+        html = self.render('<c-ui.badge pillar="PDI">PDI</c-ui.badge>')
+        self.assertIn("text-pillar-pdi", html)
+
+    def test_input_com_erro_tem_aria(self):
+        html = self.render('<c-ui.input name="valor" label="Valor" error="Obrigatório" />')
+        self.assertIn('aria-invalid="true"', html)
+        self.assertIn("Obrigatório", html)
+
+    def test_card_com_slots(self):
+        html = self.render('<c-ui.card><c-slot name="header">Topo</c-slot>Corpo</c-ui.card>')
+        self.assertIn("Topo", html)
+        self.assertIn("Corpo", html)
+
+    def test_table_slots(self):
+        html = self.render(
+            '<c-ui.table><c-slot name="head"><tr><th>H</th></tr></c-slot>'
+            '<c-slot name="body"><tr><td>D</td></tr></c-slot></c-ui.table>'
+        )
+        self.assertIn("<th>H</th>", html)
+        self.assertIn("<td>D</td>", html)
+
+    def test_icon_usa_sprite(self):
+        html = self.render('<c-ui.icon name="check" />')
+        self.assertIn("icons/sprite", html)
+        self.assertIn("#check", html)
+        self.assertIn('aria-hidden="true"', html)

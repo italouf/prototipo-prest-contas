@@ -12,5 +12,10 @@ $assets = @(
 foreach ($asset in $assets) {
   $caminho = Join-Path $destino $asset.Arquivo
   Invoke-WebRequest -Uri $asset.Url -OutFile $caminho
+  # Remove sourceMappingURL (o .map não é vendorizado e quebra o
+  # pós-processamento do Whitenoise/ManifestStaticFilesStorage).
+  $texto = Get-Content $caminho -Raw
+  $texto = $texto -replace '(?m)^//# sourceMappingURL=.*\r?\n?', ''
+  [IO.File]::WriteAllText($caminho, $texto, [System.Text.UTF8Encoding]::new($false))
   Write-Output ("{0} ({1:N0} bytes)" -f $asset.Arquivo, (Get-Item $caminho).Length)
 }
