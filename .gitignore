@@ -14,3 +14,9 @@ playwright-report/
 *.ods
 # Scratch de workspace (briefs, reports e pacotes de review locais)
 .superpowers/
+# Fontes (fonte original e derivados licenciados)
+font/
+static/fonts/panton/
+static/fonts/myriad-pro/
+# Binário do Tailwind CLI (auto-gerenciado)
+.django_tailwind_cli/

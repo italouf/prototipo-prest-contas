@@ -27,3 +27,28 @@ class FrontendStackTestes(SimpleTestCase):
             "{% partial saudacao %}"
         ).render(Context())
         self.assertEqual(html, "ola")
+
+
+class FontesTestes(SimpleTestCase):
+    def test_fontes_geradas_para_uso_local(self):
+        if not (settings.BASE_DIR / "font").exists():
+            self.skipTest("font/ ausente (ambiente sem fontes locais)")
+        for rel in (
+            "static/fonts/panton/Panton-Regular.woff2",
+            "static/fonts/myriad-pro/MyriadPro-Regular.woff2",
+            "static/fonts/jetbrains-mono/JetBrainsMono-Regular.woff2",
+        ):
+            self.assertTrue((settings.BASE_DIR / rel).exists(), f"{rel} não gerado")
+
+
+class AssetsVendorizadosTestes(SimpleTestCase):
+    def test_assets_presentes(self):
+        for rel in (
+            "static/js/vendor/htmx.min.js",
+            "static/js/vendor/alpine.min.js",
+            "static/js/vendor/chart.umd.js",
+            "static/icons/sprite.svg",
+        ):
+            caminho = settings.BASE_DIR / rel
+            self.assertTrue(caminho.exists(), f"{rel} ausente")
+            self.assertGreater(caminho.stat().st_size, 500, f"{rel} vazio")
