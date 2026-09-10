@@ -32,9 +32,11 @@ test('dashboard executivo exibe gráficos e escala de valores', async ({ page })
   await expect(page.getByRole('heading', { name: /dashboard executivo/i })).toBeVisible();
   await expect(page.getByText('Evolução financeira mensal')).toBeVisible();
   await expect(page.getByText('Captação × execução por pilar')).toBeVisible();
-  await expect(page.locator('.kpi-strip .kpi')).toHaveCount(8);
+  await expect(page.locator('[data-kpi-card]')).toHaveCount(6);
   await expect(page.getByText(/R\$ .* mi|R\$ \d+ mil/).first()).toBeVisible();
-  await expect(page.locator('.segbar')).toBeVisible();
+  await expect(page.getByTestId('heatmap')).toBeVisible();
+  await expect(page.getByTestId('chart-mensal')).toBeVisible();
+  await expect(page.getByTestId('status-distribuicao')).toBeVisible();
 });
 
 test('dashboard executivo é responsivo no viewport móvel', async ({ page }) => {

@@ -45,6 +45,9 @@ class DashboardExecutivoTestes(TestCase):
         self.assertIn("chart_financeiro", contexto)
         self.assertIn("chart_mensal", contexto)
         self.assertIn("status_counts", contexto)
+        self.assertIn("kpis", contexto)
+        self.assertIn("heatmap", contexto)
+        self.assertIn("avisos", contexto)
         self.assertTrue(contexto["chart_financeiro"])
         self.assertEqual(contexto["status_counts"]["APROVADO"]["quantidade"], 1)
 
@@ -57,8 +60,9 @@ class DashboardExecutivoTestes(TestCase):
         resposta = self.client.get(reverse("core:dashboard"))
         self.assertContains(resposta, "Evolução financeira mensal")
         self.assertContains(resposta, "Captação × execução por pilar")
-        self.assertContains(resposta, "chart-columns")
-        self.assertContains(resposta, "segbar")
+        self.assertContains(resposta, 'data-testid="heatmap"')
+        self.assertContains(resposta, 'data-testid="chart-mensal"')
+        self.assertContains(resposta, 'data-testid="status-distribuicao"')
 
 
 def _contexto_dashboard(usuario):
@@ -269,3 +273,22 @@ class DestaquesFiltroTestes(TestCase):
         resposta = self.client.get(reverse("core:dashboard"), {"destaque_pilar": self.pdi.pk})
         titulos = {d.titulo for d in resposta.context["destaques"]}
         self.assertEqual(titulos, {"Geral", "Só PDI"})
+
+
+class PeriodoSelecionadoTestes(TestCase):
+    def setUp(self):
+        garantir_grupos()
+        self.erica = adicionar_grupo(User.objects.create_user(username="r2_periodo", password="x"), "Master")
+        self.junho = Periodo.objects.create(competencia=date(2026, 6, 1), status="ABERTO", aberto_por=self.erica)
+        self.julho = Periodo.objects.create(competencia=date(2026, 7, 1), status="PLANEJADO")
+        self.client.force_login(self.erica)
+
+    def test_default_prefere_periodo_aberto(self):
+        resposta = self.client.get(reverse("core:dashboard"))
+        self.assertEqual(resposta.context["periodo"].pk, self.junho.pk)
+
+    def test_default_usa_mais_recente_sem_periodo_aberto(self):
+        self.junho.status = "FECHADO"
+        self.junho.save(update_fields=["status"])
+        resposta = self.client.get(reverse("core:dashboard"))
+        self.assertEqual(resposta.context["periodo"].pk, self.julho.pk)

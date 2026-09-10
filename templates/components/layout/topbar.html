@@ -23,7 +23,7 @@
       <select id="periodo-global" name="periodo" data-testid="period-selector" onchange="this.form.submit()"
               class="w-[8.5rem] rounded-md border border-border bg-surface px-2 py-2 text-sm text-text focus:outline-none focus-visible:ring-2 focus-visible:ring-focus/60 sm:w-auto">
         {% for p in periodos_nav %}
-        <option value="{{ p.competencia|date:'Y-m-d' }}" {% if request.GET.periodo == p.competencia|date:'Y-m-d' %}selected{% elif not request.GET.periodo and forloop.first %}selected{% endif %}>
+        <option value="{{ p.competencia|date:'Y-m-d' }}" {% if request.GET.periodo == p.competencia|date:'Y-m-d' %}selected{% elif not request.GET.periodo and periodo_aberto_nav and p.pk == periodo_aberto_nav.pk %}selected{% elif not request.GET.periodo and not periodo_aberto_nav and p.pk == ultimo_periodo_nav.pk %}selected{% endif %}>
           {{ p.rotulo }} — {{ p.get_status_display }}
         </option>
         {% endfor %}
