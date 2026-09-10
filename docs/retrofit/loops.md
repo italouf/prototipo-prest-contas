@@ -8,7 +8,7 @@ Planos: `docs/superpowers/plans/` · Evidências: `docs/retrofit/evidencias/`
 | R0 | Foundation: deps, tokens QuIIN, fontes, assets vendorizados, primitivos, dark mode, `/dev/design-system/` | ✅ Concluído (2026-09-10) |
 | R1 | Shell: base, sidebar colapsável, topbar, breadcrumbs, RBAC visual, navegação HTMX-boosted | ✅ Concluído (2026-09-10) |
 | R2 | Dashboard executivo: 6 KPIs por pilar, gráficos, heatmap, destaques, avisos, drawer HTMX | ✅ Concluído (2026-09-10) |
-| R3 | Operacional: lista/filtros, formulário com validação, kanban de status, timeline, modal de devolução, preview CSV | ⏳ Pendente |
+| R3 | Operacional: lista/filtros, formulário com validação, kanban de status, timeline, modal de devolução, preview CSV | ✅ Concluído (2026-09-10) |
 | R4 | CRM AT e Talentos: funil, pipeline, renovações, organograma, cards, busca por skill | ⏳ Pendente |
 | R5 | Relatório A4 e Auditoria: capa, seções por pilar, impressão, timeline/paginação | ⏳ Pendente |
 | R6 | Polish: skeletons, tooltips, animações, view transitions, a11y, bundle, remoção do CSS legado | ⏳ Pendente |
@@ -151,3 +151,33 @@ npx playwright test
 - Lighthouse Performance ≥ 90 segue previsto para o R6; no R2 o gate é o
   orçamento de queries + tempo de resposta do servidor.
 - Gráficos usam cores fixas da marca (tema escuro dedicado no R6).
+
+## R3 — resultado
+
+**Decisões e entregas**
+
+- **Lançamentos** (`/lancamentos/<periodo>/<pilar>/`): filtros por tipo
+  (TODOS/QTD/MON/PER/TXT) com Alpine, validação em tempo real por campo
+  (numérico e percentual ≤ 100), estado de período fechado somente leitura.
+- **Aprovação** (`/aprovacao/<periodo>/`): kanban Rascunho → Enviado →
+  Aprovado → Devolvido com contadores, modal de devolução com justificativa
+  obrigatória e drawer de timeline (20 eventos de `AuditLog` por lançamento,
+  endpoint `entries:lancamento_drawer`, restrito a gestores).
+- **Importador financeiro**: preview client-side do CSV (cabeçalho, 6 colunas,
+  tipo de recurso, numéricos) com destaque de erros e bloqueio do envio quando
+  inválido; o backend atômico permanece inalterado.
+- **Toasts globais** no `base.html` (canto superior direito, auto-dismiss 6s,
+  `role="status"`), preservando `.messages .alert` para os testes existentes.
+- Correção estrutural: blocos `{% block scripts %}` passam a ser carregados
+  **antes** do Alpine, garantindo o registro de `Alpine.data` antes do start.
+
+**Testes**
+
+- Django: **155 testes, OK** (4 novos de entries R3, 1 de finance, 1 de toasts).
+- Playwright: **34 testes, 34 verdes** (5 novos em `entries_r3.spec.ts`:
+  fluxo rascunho→enviado→aprovado, devolução via modal, período fechado,
+  filtro por tipo, preview CSV válido/inválido).
+
+**Evidências**
+
+- `docs/retrofit/evidencias/R3-depois/` (11 páginas com o novo fluxo).
