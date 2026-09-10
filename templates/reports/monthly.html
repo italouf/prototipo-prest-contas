@@ -1,114 +1,143 @@
 {% extends 'base.html' %}
-{% load core_extras %}
+{% load static core_extras %}
 {% block title %}Relatório Mensal {{ periodo.rotulo }} · Portal QuIIN{% endblock %}
 {% block breadcrumbs %}{% include "partials/breadcrumbs.html" with atual="Relatório Mensal" %}{% endblock %}
 {% block content %}
+<div data-testid="page-relatorio">
+  <div class="no-print mb-4 flex flex-wrap gap-2">
+    <c-ui.button type="button" onclick="window.print()">Imprimir / Salvar PDF</c-ui.button>
+    <c-ui.button href="{% url 'core:dashboard' %}?periodo={{ periodo.competencia|date:'Y-m-d' }}" variant="ghost">Voltar</c-ui.button>
+  </div>
 
-<div class="report-actions no-print">
-  <button class="btn btn-primary" onclick="window.print()">Imprimir / Salvar PDF</button>
-  <a class="btn btn-ghost" href="{% url 'core:dashboard' %}?periodo={{ periodo.competencia|date:'Y-m-d' }}">Voltar</a>
+  <article class="report mx-auto max-w-[210mm] rounded-xl border border-border bg-white p-8 text-black shadow-sm" data-testid="report">
+    <header class="report-capa border-b-4 border-quiin-navy pb-6 text-center" data-testid="report-capa">
+      <div class="flex items-center justify-center gap-2">
+        <span class="brand-mark">Q</span>
+        <span class="font-display text-lg font-bold text-quiin-navy">Portal QuIIN</span>
+      </div>
+      <h1 class="mt-3 font-display text-2xl font-bold text-quiin-navy">Relatório Mensal de Gestão e Prestação de Contas</h1>
+      <p class="mt-1 text-sm">
+        Competência <strong>{{ periodo.rotulo }}</strong> · Status <strong>{{ periodo.get_status_display }}</strong>
+      </p>
+      <p class="mt-1 text-xs text-gray-600">
+        Gerado em {{ gerado_em|date:'d/m/Y H:i' }} por {{ gerado_por.nome_exibicao }} ({{ papel }})
+      </p>
+      <p class="mt-2 text-xs text-gray-600">
+        Assinatura de integridade: <span class="numerico" data-testid="report-assinatura">{{ assinatura }}</span>
+      </p>
+    </header>
+
+    <section class="report-secao mt-6">
+      <h2 class="font-display text-lg font-semibold text-quiin-navy">Resumo executivo</h2>
+      <div class="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
+        <div class="rounded-lg border border-gray-300 p-3">
+          <p class="text-xs uppercase tracking-wide text-gray-500">Total captado</p>
+          <p class="numerico text-lg font-bold">{{ total_captado|brl }}</p>
+        </div>
+        <div class="rounded-lg border border-gray-300 p-3">
+          <p class="text-xs uppercase tracking-wide text-gray-500">Total executado</p>
+          <p class="numerico text-lg font-bold">{{ total_executado|brl }}</p>
+        </div>
+        <div class="rounded-lg border border-gray-300 p-3">
+          <p class="text-xs uppercase tracking-wide text-gray-500">Lançamentos aprovados</p>
+          <p class="numerico text-lg font-bold">{{ total_aprovados|default:0 }}</p>
+        </div>
+        <div class="rounded-lg border border-gray-300 p-3">
+          <p class="text-xs uppercase tracking-wide text-gray-500">Pilares sem pendência</p>
+          <p class="numerico text-lg font-bold">{{ pilares_ok }}/{{ secoes|length }}</p>
+        </div>
+      </div>
+    </section>
+
+    {% for secao in secoes %}
+    <section class="report-secao mt-6" data-testid="report-secao-{{ secao.pilar.codigo }}">
+      <h2 class="font-display text-lg font-semibold text-quiin-navy">{{ secao.pilar.codigo }} — {{ secao.pilar.nome }}</h2>
+      <table class="table-report mt-2 w-full border-collapse text-sm">
+        <thead>
+          <tr class="border-b border-gray-400 text-left text-xs uppercase tracking-wide text-gray-600">
+            <th class="py-2 pr-2">Indicador</th><th class="py-2 pr-2">Un.</th><th class="py-2 pr-2">Meta</th>
+            <th class="py-2 pr-2">Realizado</th><th class="py-2 pr-2">% execução</th><th class="py-2">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in secao.itens %}
+          <tr class="border-b border-gray-200 {% if item.percentual is not None and item.percentual < 100 %}bg-amber-50/60{% endif %}">
+            <td class="py-2 pr-2">{{ item.indicador.nome }} <span class="text-xs text-gray-500">({{ item.indicador.codigo }})</span></td>
+            <td class="py-2 pr-2">{{ item.indicador.unidade }}</td>
+            <td class="py-2 pr-2 numerico">{% if item.meta is not None %}{{ item.meta|nbr }}{% else %}—{% endif %}</td>
+            <td class="py-2 pr-2 numerico">{{ item.realizado|nbr }}{% if item.ytd %} <span class="text-xs text-gray-500">(YTD)</span>{% endif %}</td>
+            <td class="py-2 pr-2 numerico">{% if item.percentual is not None %}{{ item.percentual|pct }}{% else %}—{% endif %}</td>
+            <td class="py-2">{{ item.lc.status|default:'Pendente'|status_lancamento }}</td>
+          </tr>
+          {% if item.lc and item.lc.comentario %}
+          <tr class="border-b border-gray-200">
+            <td colspan="6" class="py-1 text-xs text-gray-600"><strong>Comentário aprovado:</strong> {{ item.lc.comentario }}</td>
+          </tr>
+          {% endif %}
+          {% empty %}
+          <tr><td colspan="6" class="py-2 text-sm text-gray-500">Nenhum indicador ativo neste pilar.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+    {% endfor %}
+
+    <section class="report-secao mt-6" data-testid="report-financeiro">
+      <h2 class="font-display text-lg font-semibold text-quiin-navy">Financeiro consolidado — {{ periodo.rotulo }}</h2>
+      <table class="table-report mt-2 w-full border-collapse text-sm">
+        <thead>
+          <tr class="border-b border-gray-400 text-left text-xs uppercase tracking-wide text-gray-600">
+            <th class="py-2 pr-2">Pilar</th><th class="py-2 pr-2">Tipo de recurso</th>
+            <th class="py-2 pr-2">Valor captado</th><th class="py-2">Valor executado</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for f in financeiro %}
+          <tr class="border-b border-gray-200">
+            <td class="py-2 pr-2">{{ f.pilar.nome }}</td>
+            <td class="py-2 pr-2">{{ f.get_tipo_recurso_display }}</td>
+            <td class="py-2 pr-2 numerico">{{ f.valor_captado|brl }}</td>
+            <td class="py-2 numerico">{{ f.valor_executado|brl }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="4" class="py-2 text-sm text-gray-500">Sem dados financeiros consolidados neste período.</td></tr>
+          {% endfor %}
+        </tbody>
+        <tfoot>
+          <tr class="border-t-2 border-gray-400">
+            <td colspan="2" class="py-2"><strong>Totais</strong></td>
+            <td class="py-2 numerico"><strong>{{ total_captado|brl }}</strong></td>
+            <td class="py-2 numerico"><strong>{{ total_executado|brl }}</strong></td>
+          </tr>
+        </tfoot>
+      </table>
+    </section>
+
+    <section class="report-secao mt-6" data-testid="report-graficos">
+      <h2 class="font-display text-lg font-semibold text-quiin-navy">Gráficos</h2>
+      <div class="mt-3 grid gap-4 md:grid-cols-2">
+        <div>
+          <h3 class="text-sm font-semibold">Captação × execução por pilar (YTD)</h3>
+          <div class="mt-2 h-56"><canvas id="report-grafico-pilares" data-testid="report-grafico-captacao" aria-label="Gráfico de captação e execução por pilar" role="img"></canvas></div>
+        </div>
+        <div>
+          <h3 class="text-sm font-semibold">Evolução mensal ({{ periodo.competencia|date:'Y' }})</h3>
+          <div class="mt-2 h-56"><canvas id="report-grafico-mensal" data-testid="report-grafico-mensal" aria-label="Gráfico de evolução mensal" role="img"></canvas></div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="mt-8 border-t border-gray-300 pt-3 text-xs text-gray-600">
+      Documento gerado pelo Portal QuIIN (protótipo local). Dados fictícios para demonstração.
+      Para salvar em PDF, use "Imprimir &gt; Salvar como PDF" no navegador (RF-091).
+    </footer>
+  </article>
+
+  <script type="application/json" id="dados-relatorio-pilares">{{ chart_pilares_json|safe }}</script>
+  <script type="application/json" id="dados-relatorio-mensal">{{ chart_mensal_json|safe }}</script>
 </div>
-
-<div class="report">
-  <header class="report-header">
-    <div class="report-brand"><span class="brand-mark">Q</span> <strong>Portal QuIIN</strong></div>
-    <h1>Relatório Mensal de Gestão e Prestação de Contas</h1>
-    <p class="report-meta">
-      Competência: <strong>{{ periodo.rotulo }}</strong> ·
-      Status do período: <strong>{{ periodo.get_status_display }}</strong><br>
-      Gerado em {{ gerado_em|date:'d/m/Y H:i' }} por {{ gerado_por.nome_exibicao }} ({{ papel }})
-    </p>
-  </header>
-
-  <section class="report-section">
-    <h2>Resumo executivo</h2>
-    <table class="table table-report">
-      <tr>
-        <th>Total captado</th>
-        <th>Total executado</th>
-        <th>Lançamentos aprovados no mês</th>
-        <th>Pilares sem pendência</th>
-      </tr>
-      <tr>
-        <td>{{ total_captado|brl }}</td>
-        <td>{{ total_executado|brl }}</td>
-        <td>{{ total_aprovados|default:0 }}</td>
-        <td>{{ pilares_ok }}/{{ secoes|length }}</td>
-      </tr>
-    </table>
-  </section>
-
-  {% for secao in secoes %}
-  <section class="report-section">
-    <h2>{{ secao.pilar.codigo }} — {{ secao.pilar.nome }}</h2>
-    <table class="table table-report">
-      <thead>
-        <tr>
-          <th>Indicador</th>
-          <th>Un.</th>
-          <th>Meta</th>
-          <th>Realizado</th>
-          <th>% execução</th>
-          <th>Status</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for item in secao.itens %}
-        <tr class="{% if item.percentual is not None and item.percentual < 100 %}row-warn{% endif %}">
-          <td>{{ item.indicador.nome }} <span class="muted small">({{ item.indicador.codigo }})</span></td>
-          <td>{{ item.indicador.unidade }}</td>
-          <td>{% if item.meta is not None %}{{ item.meta|nbr }}{% else %}—{% endif %}</td>
-          <td>{{ item.realizado|nbr }}{% if item.ytd %} <span class="muted small">(YTD)</span>{% endif %}</td>
-          <td>{% if item.percentual is not None %}{{ item.percentual|pct }}{% else %}—{% endif %}</td>
-          <td><span class="badge badge-status status-{{ item.lc.status|lower|default:'pendente' }}">{{ item.lc.status|default:'Pendente'|status_lancamento }}</span></td>
-        </tr>
-        {% if item.lc and item.lc.comentario %}
-        <tr class="row-comment">
-          <td colspan="6" class="small"><strong>Comentário aprovado:</strong> {{ item.lc.comentario }}</td>
-        </tr>
-        {% endif %}
-        {% endfor %}
-      </tbody>
-    </table>
-  </section>
-  {% endfor %}
-
-  <section class="report-section">
-    <h2>Financeiro consolidado — {{ periodo.rotulo }}</h2>
-    <table class="table table-report">
-      <thead>
-        <tr>
-          <th>Pilar</th>
-          <th>Tipo de recurso</th>
-          <th>Valor captado</th>
-          <th>Valor executado</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for f in financeiro %}
-        <tr>
-          <td>{{ f.pilar.nome }}</td>
-          <td>{{ f.get_tipo_recurso_display }}</td>
-          <td>{{ f.valor_captado|brl }}</td>
-          <td>{{ f.valor_executado|brl }}</td>
-        </tr>
-        {% empty %}
-        <tr><td colspan="4" class="muted">Sem dados financeiros consolidados neste período.</td></tr>
-        {% endfor %}
-      </tbody>
-      <tfoot>
-        <tr>
-          <td colspan="2"><strong>Totais</strong></td>
-          <td><strong>{{ total_captado|brl }}</strong></td>
-          <td><strong>{{ total_executado|brl }}</strong></td>
-        </tr>
-      </tfoot>
-    </table>
-  </section>
-
-  <footer class="report-footer">
-    Documento gerado pelo Portal QuIIN (protótipo local). Dados fictícios para demonstração.
-    Para salvar em PDF, use "Imprimir &gt; Salvar como PDF" no navegador (RF-091).
-  </footer>
-</div>
+{% endblock %}
+{% block scripts %}
+<script src="{% static 'js/vendor/chart.umd.js' %}" defer></script>
+<script src="{% static 'js/charts/relatorio.js' %}" defer></script>
 {% endblock %}

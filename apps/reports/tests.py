@@ -36,3 +36,16 @@ class RelatorioTestes(TestCase):
         self.assertContains(resposta, "Projetos iniciados")
         self.assertContains(resposta, "50%")
         self.assertContains(resposta, "Dois projetos na fila.")
+
+
+class RelatorioR5Testes(RelatorioTestes):
+    def test_contexto_traz_graficos_e_assinatura(self):
+        self.client.force_login(self.erica)
+        resposta = self.client.get(reverse("reports:mensal", args=[self.periodo.pk]))
+        self.assertIn("chart_mensal_json", resposta.context)
+        self.assertIn("chart_pilares_json", resposta.context)
+        assinatura = resposta.context["assinatura"]
+        self.assertEqual(len(assinatura), 16)
+        self.assertContains(resposta, 'data-testid="report-capa"')
+        self.assertContains(resposta, 'data-testid="report-grafico-captacao"')
+        self.assertContains(resposta, assinatura)

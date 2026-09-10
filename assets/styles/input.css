@@ -66,14 +66,38 @@
   }
 }
 
+@page {
+  size: A4;
+  margin: 12mm;
+}
+
 @media print {
   .no-print,
   .topbar,
-  .footer {
+  .sidebar,
+  .footer,
+  [data-testid="topbar"],
+  [data-testid="sidebar"],
+  [data-testid="progresso"] {
     display: none !important;
   }
   body {
     background: #fff;
+  }
+  #main {
+    max-width: none !important;
+    padding: 0 !important;
+  }
+  .report {
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    max-width: none !important;
+    padding: 0 !important;
+  }
+  .report-secao,
+  .table-report tr {
+    break-inside: avoid;
   }
 }
 

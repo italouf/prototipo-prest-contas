@@ -3,110 +3,122 @@
 {% block title %}Auditoria · Portal QuIIN{% endblock %}
 {% block breadcrumbs %}{% include "partials/breadcrumbs.html" with atual="Auditoria" %}{% endblock %}
 {% block content %}
-
-<h1>Auditoria</h1>
-<p class="muted">Histórico de ações relevantes do portal — quem fez, quando e o que mudou.</p>
-
-<div class="panel">
-  <form method="get" class="filter-grid">
-    <div class="field">
-      <label for="usuario">Usuário</label>
-      <input type="text" id="usuario" name="usuario" value="{{ f_usuario }}" placeholder="ex.: erica">
+<div data-testid="page-auditoria">
+  <div class="flex flex-wrap items-end justify-between gap-3">
+    <div>
+      <h1 class="text-2xl font-bold">Auditoria</h1>
+      <p class="text-sm text-text-muted">Histórico de ações relevantes do portal — quem fez, quando e o que mudou.</p>
     </div>
-    <div class="field">
-      <label for="acao">Ação</label>
-      <select id="acao" name="acao">
-        <option value="">Todas</option>
-        {% for a in acoes %}
-          <option value="{{ a }}" {% if f_acao == a %}selected{% endif %}>{{ a|acao_amigavel }}</option>
+  </div>
+
+  <div class="panel mt-4 rounded-xl border border-border bg-surface-2 p-5">
+    <form method="get" class="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
+      <div>
+        <label for="usuario" class="mb-1 block text-sm font-semibold">Usuário</label>
+        <input type="text" id="usuario" name="usuario" value="{{ f_usuario }}" placeholder="ex.: erica"
+               class="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm">
+      </div>
+      <div>
+        <label for="acao" class="mb-1 block text-sm font-semibold">Ação</label>
+        <select id="acao" name="acao" class="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm">
+          <option value="">Todas</option>
+          {% for a in acoes %}
+            <option value="{{ a }}" {% if f_acao == a %}selected{% endif %}>{{ a|acao_amigavel }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label for="entidade" class="mb-1 block text-sm font-semibold">Entidade</label>
+        <select id="entidade" name="entidade" class="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm">
+          <option value="">Todas</option>
+          {% for e in entidades %}
+            <option value="{{ e }}" {% if f_entidade == e %}selected{% endif %}>{{ e }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label for="data_inicio" class="mb-1 block text-sm font-semibold">De</label>
+        <input type="date" id="data_inicio" name="data_inicio" value="{{ f_data_inicio }}"
+               class="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm">
+      </div>
+      <div>
+        <label for="data_fim" class="mb-1 block text-sm font-semibold">Até</label>
+        <input type="date" id="data_fim" name="data_fim" value="{{ f_data_fim }}"
+               class="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm">
+      </div>
+      <div class="flex items-end gap-2">
+        <c-ui.button type="submit">Filtrar</c-ui.button>
+        <c-ui.button href="{% url 'audit:lista' %}" variant="ghost">Limpar</c-ui.button>
+      </div>
+    </form>
+    <p class="muted small mt-3 text-sm text-text-muted"><strong>{{ total }}</strong> evento{{ total|pluralize }} encontrado{{ total|pluralize }}.</p>
+  </div>
+
+  {% if page_obj.object_list %}
+  <div class="mt-4 overflow-x-auto rounded-xl border border-border bg-surface-2" data-testid="timeline-auditoria">
+    <table class="w-full border-collapse text-sm">
+      <thead>
+        <tr class="border-b border-border text-left text-xs uppercase tracking-wide text-text-muted">
+          <th class="px-4 py-3"></th>
+          <th class="px-4 py-3">Data/hora</th>
+          <th class="px-4 py-3">Usuário</th>
+          <th class="px-4 py-3">Ação</th>
+          <th class="px-4 py-3">Entidade</th>
+          <th class="px-4 py-3">Alteração</th>
+          <th class="px-4 py-3"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for log in page_obj.object_list %}
+        <tr class="border-b border-border/60" data-testid="evento-auditoria">
+          <td class="px-4 py-3">
+            <span class="inline-block h-2.5 w-2.5 rounded-full {% if log.acao == 'APROVAR_LANCAMENTO' or log.acao == 'FECHAR_PERIODO' %}bg-quiin-quantum-green{% elif log.acao == 'DEVOLVER_LANCAMENTO' or log.acao == 'IMPORTAR_FINANCEIRO_ERRO' %}bg-amber-400{% elif log.acao == 'LOGIN' %}bg-quiin-sky{% else %}bg-quiin-mist{% endif %}" aria-hidden="true"></span>
+          </td>
+          <td class="px-4 py-3 numerico text-xs">{{ log.data_hora|date:'d/m/Y H:i:s' }}</td>
+          <td class="px-4 py-3">{{ log.usuario.nome_exibicao|default:'—' }}</td>
+          <td class="px-4 py-3"><span class="badge badge-action acao-{{ log.acao|acao_classe }}">{{ log.acao|acao_amigavel }}</span></td>
+          <td class="px-4 py-3">{{ log.entidade }}{% if log.registro_id %} <span class="text-xs text-text-muted">#{{ log.registro_id }}</span>{% endif %}</td>
+          <td class="px-4 py-3 text-xs">
+            {% if log.campo %}
+              {{ log.campo }}: <strong>{{ log.valor_novo|default:'—' }}</strong>
+            {% else %}
+              <span class="text-text-muted">—</span>
+            {% endif %}
+          </td>
+          <td class="px-4 py-3">
+            {% if log.valor_anterior or log.valor_novo and log.campo or log.justificativa %}
+            <details class="audit-detail">
+              <summary>Detalhes</summary>
+              <div class="audit-detail-body">
+                {% if log.valor_anterior %}<p><strong>Valor anterior:</strong> {{ log.valor_anterior }}</p>{% endif %}
+                {% if log.valor_novo and log.valor_anterior %}<p><strong>Valor novo:</strong> {{ log.valor_novo }}</p>{% endif %}
+                {% if log.justificativa %}<p><strong>Justificativa:</strong> {{ log.justificativa }}</p>{% endif %}
+              </div>
+            </details>
+            {% else %}
+              <span class="text-text-muted">—</span>
+            {% endif %}
+          </td>
+        </tr>
         {% endfor %}
-      </select>
-    </div>
-    <div class="field">
-      <label for="entidade">Entidade</label>
-      <select id="entidade" name="entidade">
-        <option value="">Todas</option>
-        {% for e in entidades %}
-          <option value="{{ e }}" {% if f_entidade == e %}selected{% endif %}>{{ e }}</option>
-        {% endfor %}
-      </select>
-    </div>
-    <div class="field">
-      <label for="data_inicio">De</label>
-      <input type="date" id="data_inicio" name="data_inicio" value="{{ f_data_inicio }}">
-    </div>
-    <div class="field">
-      <label for="data_fim">Até</label>
-      <input type="date" id="data_fim" name="data_fim" value="{{ f_data_fim }}">
-    </div>
-    <div class="field filter-actions">
-      <button class="btn btn-primary" type="submit">Filtrar</button>
-      <a class="btn btn-ghost" href="{% url 'audit:lista' %}">Limpar</a>
-    </div>
-  </form>
-  <p class="muted small"><strong>{{ total }}</strong> evento{{ total|pluralize }} encontrado{{ total|pluralize }}.</p>
-</div>
+      </tbody>
+    </table>
+  </div>
 
-{% if page_obj.object_list %}
-<div class="table-wrap">
-  <table class="table">
-    <thead>
-      <tr>
-        <th>Data/hora</th>
-        <th>Usuário</th>
-        <th>Ação</th>
-        <th>Entidade</th>
-        <th>Alteração</th>
-        <th></th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for log in page_obj.object_list %}
-      <tr>
-        <td>{{ log.data_hora|date:'d/m/Y H:i:s' }}</td>
-        <td>{{ log.usuario.nome_exibicao|default:'—' }}</td>
-        <td><span class="badge badge-action acao-{{ log.acao|acao_classe }}">{{ log.acao|acao_amigavel }}</span></td>
-        <td>{{ log.entidade }}{% if log.registro_id %} <span class="muted small">#{{ log.registro_id }}</span>{% endif %}</td>
-        <td class="small">
-          {% if log.campo %}
-            {{ log.campo }}: <strong>{{ log.valor_novo|default:'—' }}</strong>
-          {% else %}
-            <span class="muted">—</span>
-          {% endif %}
-        </td>
-        <td>
-          {% if log.valor_anterior or log.valor_novo and log.campo or log.justificativa %}
-          <details class="audit-detail">
-            <summary>Detalhes</summary>
-            <div class="audit-detail-body">
-              {% if log.valor_anterior %}<p><strong>Valor anterior:</strong> {{ log.valor_anterior }}</p>{% endif %}
-              {% if log.valor_novo and log.valor_anterior %}<p><strong>Valor novo:</strong> {{ log.valor_novo }}</p>{% endif %}
-              {% if log.justificativa %}<p><strong>Justificativa:</strong> {{ log.justificativa }}</p>{% endif %}
-            </div>
-          </details>
-          {% else %}
-            <span class="muted">—</span>
-          {% endif %}
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</div>
-
-<nav class="pagination" aria-label="Paginação da auditoria">
-  {% if page_obj.has_previous %}
-    <a class="btn btn-ghost btn-sm" href="?page={{ page_obj.previous_page_number }}&usuario={{ f_usuario }}&acao={{ f_acao }}&entidade={{ f_entidade }}&data_inicio={{ f_data_inicio }}&data_fim={{ f_data_fim }}">← Anterior</a>
+  <nav class="mt-4 flex items-center gap-3" data-testid="paginacao-auditoria" aria-label="Paginação da auditoria">
+    {% if page_obj.has_previous %}
+      <c-ui.button href="?page={{ page_obj.previous_page_number }}&usuario={{ f_usuario }}&acao={{ f_acao }}&entidade={{ f_entidade }}&data_inicio={{ f_data_inicio }}&data_fim={{ f_data_fim }}" variant="ghost" size="sm">← Anterior</c-ui.button>
+    {% endif %}
+    <span class="text-sm text-text-muted">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+      <c-ui.button href="?page={{ page_obj.next_page_number }}&usuario={{ f_usuario }}&acao={{ f_acao }}&entidade={{ f_entidade }}&data_inicio={{ f_data_inicio }}&data_fim={{ f_data_fim }}" variant="ghost" size="sm">Próxima →</c-ui.button>
+    {% endif %}
+  </nav>
+  {% else %}
+  <div class="mt-4 rounded-xl border border-border bg-surface-2 p-5">
+    <p class="text-sm text-text-muted">Nenhum registro de auditoria encontrado. Ajuste ou limpe os filtros.</p>
+    <div class="mt-3"><c-ui.button href="{% url 'audit:lista' %}" variant="ghost">Limpar filtros</c-ui.button></div>
+  </div>
   {% endif %}
-  <span class="muted">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
-  {% if page_obj.has_next %}
-    <a class="btn btn-ghost btn-sm" href="?page={{ page_obj.next_page_number }}&usuario={{ f_usuario }}&acao={{ f_acao }}&entidade={{ f_entidade }}&data_inicio={{ f_data_inicio }}&data_fim={{ f_data_fim }}">Próxima →</a>
-  {% endif %}
-</nav>
-{% else %}
-<div class="panel">
-  <p class="muted">Nenhum registro de auditoria encontrado. Ajuste ou limpe os filtros.</p>
-  <a class="btn btn-ghost" href="{% url 'audit:lista' %}">Limpar filtros</a>
 </div>
-{% endif %}
 {% endblock %}
