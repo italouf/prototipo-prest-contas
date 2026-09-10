@@ -1,60 +1,113 @@
 {% extends 'base.html' %}
+{% load static %}
 {% block title %}Importar Financeiro · Portal QuIIN{% endblock %}
 {% block breadcrumbs %}{% include "partials/breadcrumbs.html" with atual="Importar financeiro" %}{% endblock %}
 {% block content %}
+<div data-testid="page-importar">
+  <h1 class="text-2xl font-bold">Importação de financeiro consolidado</h1>
 
-<h1>Importação de financeiro consolidado</h1>
-
-<div class="panel">
-  <h2>Layout obrigatório do CSV (RF-081)</h2>
-  <pre>competencia,pilar,tipo_recurso,valor_captado,valor_executado,observacao</pre>
-  <p class="small muted">
-    Tipos de recurso: EMBRAPII, AT, OUTRAS_FONTES. A importação é atômica: qualquer erro rejeita o arquivo inteiro (RF-082).
-  </p>
-</div>
-
-<form method="post" enctype="multipart/form-data" class="panel">
-  {% csrf_token %}
-  <div class="field">
-    <label for="periodo">Período de competência</label>
-    <select id="periodo" name="periodo" required>
-      {% for p in periodos %}
-        <option value="{{ p.pk }}">{{ p.rotulo }} — {{ p.get_status_display }}</option>
-      {% endfor %}
-    </select>
+  <div class="mt-4 rounded-xl border border-border bg-surface-2 p-5">
+    <h2 class="font-display text-lg font-semibold">Layout obrigatório do CSV (RF-081)</h2>
+    <pre class="mt-2 overflow-x-auto rounded-lg bg-quiin-deep-purple p-3 text-xs text-white">competencia,pilar,tipo_recurso,valor_captado,valor_executado,observacao</pre>
+    <p class="mt-2 text-xs text-text-muted">
+      Tipos de recurso: EMBRAPII, AT, OUTRAS_FONTES. A importação é atômica: qualquer erro rejeita o arquivo inteiro (RF-082).
+    </p>
   </div>
-  <div class="field">
-    <label for="arquivo">Arquivo CSV</label>
-    <input type="file" id="arquivo" name="arquivo" accept=".csv" required>
-  </div>
-  <button class="btn btn-primary" type="submit">Importar</button>
-</form>
 
-<h2>Histórico de importações</h2>
-<div class="table-wrap">
-  <table class="table">
-    <thead>
-      <tr>
-        <th>Data/hora</th>
-        <th>Período</th>
-        <th>Arquivo</th>
-        <th>Status</th>
-        <th>Log</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for imp in importacoes %}
-      <tr>
-        <td>{{ imp.criado_em|date:'d/m/Y H:i' }}</td>
-        <td>{{ imp.periodo.rotulo }}</td>
-        <td>{{ imp.arquivo_nome }}</td>
-        <td><span class="badge badge-status status-{{ imp.status|lower }}">{{ imp.get_status_display }}</span></td>
-        <td class="small">{{ imp.log|default:'—' }}</td>
-      </tr>
-      {% empty %}
-      <tr><td colspan="5" class="muted">Nenhuma importação registrada.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <form method="post" enctype="multipart/form-data" class="mt-4 rounded-xl border border-border bg-surface-2 p-5" x-data="previewCsv">
+    {% csrf_token %}
+    <div class="grid gap-4 md:grid-cols-2">
+      <div>
+        <label for="periodo" class="mb-1 block text-sm font-semibold">Período de competência</label>
+        <select id="periodo" name="periodo" required
+                class="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm">
+          {% for p in periodos %}
+            <option value="{{ p.pk }}">{{ p.rotulo }} — {{ p.get_status_display }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label for="arquivo" class="mb-1 block text-sm font-semibold">Arquivo CSV</label>
+        <input type="file" id="arquivo" name="arquivo" accept=".csv" required @change="ler($event)"
+               class="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm">
+      </div>
+    </div>
+
+    <div x-show="nomeArquivo" x-cloak class="mt-4" data-testid="preview-csv">
+      <div class="flex flex-wrap items-center gap-3">
+        <h2 class="font-display text-lg font-semibold">Preview</h2>
+        <span class="text-sm" x-show="valido" data-testid="preview-valido">
+          <c-ui.badge tone="success" x-show="valido"><span x-text="linhas.length"></span> linha(s) válida(s)</c-ui.badge>
+        </span>
+        <span class="text-sm" x-show="!valido" data-testid="preview-invalido">
+          <c-ui.badge tone="warn" x-show="!valido"><span x-text="errosTotais"></span> erro(s) encontrado(s)</c-ui.badge>
+        </span>
+      </div>
+      <p class="mt-1 text-xs text-red-600" x-show="erroCabecalho" x-text="erroCabecalho" role="alert"></p>
+      <div class="mt-3 overflow-x-auto">
+        <table class="w-full border-collapse text-sm">
+          <thead>
+            <tr class="border-b border-border text-left text-xs uppercase tracking-wide text-text-muted">
+              <th class="px-2 py-2">#</th><th class="px-2 py-2">Competência</th><th class="px-2 py-2">Pilar</th>
+              <th class="px-2 py-2">Tipo</th><th class="px-2 py-2">Captado</th><th class="px-2 py-2">Executado</th>
+              <th class="px-2 py-2">Validação</th>
+            </tr>
+          </thead>
+          <tbody>
+            <template x-for="linha in linhas" :key="linha.numero">
+              <tr class="border-b border-border/60" :class="linha.valida ? '' : 'bg-amber-50/60'">
+                <td class="px-2 py-2" x-text="linha.numero"></td>
+                <td class="px-2 py-2" x-text="linha.colunas[0]"></td>
+                <td class="px-2 py-2" x-text="linha.colunas[1]"></td>
+                <td class="px-2 py-2" x-text="linha.colunas[2]"></td>
+                <td class="px-2 py-2 numerico" x-text="linha.colunas[3]"></td>
+                <td class="px-2 py-2 numerico" x-text="linha.colunas[4]"></td>
+                <td class="px-2 py-2 text-xs">
+                  <span x-show="linha.valida" class="text-status-aprovado-texto">OK</span>
+                  <span x-show="!linha.valida" class="text-red-600" x-text="linha.erros.join(' ')"></span>
+                </td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="mt-4">
+      <c-ui.button type="submit" x-bind:disabled="nomeArquivo && !valido">Importar</c-ui.button>
+    </div>
+  </form>
+
+  <section class="mt-6">
+    <h2 class="font-display text-lg font-semibold">Histórico de importações</h2>
+    <div class="mt-3 overflow-x-auto rounded-xl border border-border bg-surface-2">
+      <table class="w-full border-collapse text-sm">
+        <thead>
+          <tr class="border-b border-border text-left text-xs uppercase tracking-wide text-text-muted">
+            <th class="px-4 py-3">Data/hora</th><th class="px-4 py-3">Período</th><th class="px-4 py-3">Arquivo</th>
+            <th class="px-4 py-3">Status</th><th class="px-4 py-3">Log</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for imp in importacoes %}
+          <tr class="border-b border-border/60">
+            <td class="px-4 py-3">{{ imp.criado_em|date:'d/m/Y H:i' }}</td>
+            <td class="px-4 py-3">{{ imp.periodo.rotulo }}</td>
+            <td class="px-4 py-3">{{ imp.arquivo_nome }}</td>
+            <td class="px-4 py-3">
+              <c-ui.badge tone="{% if imp.status == 'SUCESSO' %}success{% else %}warn{% endif %}">{{ imp.get_status_display }}</c-ui.badge>
+            </td>
+            <td class="px-4 py-3 text-xs">{{ imp.log|default:'—' }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="5" class="px-4 py-3 text-sm text-text-muted">Nenhuma importação registrada.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
 </div>
+{% endblock %}
+{% block scripts %}
+<script src="{% static 'js/finance/importar.js' %}" defer></script>
 {% endblock %}

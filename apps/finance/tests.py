@@ -6,6 +6,7 @@ from decimal import Decimal
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
+from django.urls import reverse
 
 from apps.accounts.models import User
 from apps.core.permissions import adicionar_grupo, garantir_grupos
@@ -97,3 +98,13 @@ class ImportacaoFinanceiraTestes(TestCase):
         status, _ = importar_csv(_arquivo(csv_misturado.getvalue()), self.periodo, self.erica)
         self.assertEqual(status, "ERRO")
         self.assertEqual(FinanceiroConsolidado.objects.count(), 0)
+
+
+class ImportarPreviewR3Testes(TestCase):
+    def test_pagina_importar_tem_componente_de_preview(self):
+        garantir_grupos()
+        erica = adicionar_grupo(User.objects.create_user(username="r3_fin", password="x"), "Master")
+        self.client.force_login(erica)
+        resposta = self.client.get(reverse("finance:importar"))
+        self.assertContains(resposta, 'x-data="previewCsv"')
+        self.assertContains(resposta, 'data-testid="preview-csv"')
