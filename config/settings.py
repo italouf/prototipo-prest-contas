@@ -25,10 +25,10 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "django_cotton",
+    "django_cotton.apps.SimpleAppConfig",
     "django_tailwind_cli",
     "django_htmx",
-    "template_partials",
+    "template_partials.apps.SimpleAppConfig",
     "apps.accounts",
     "apps.core",
     "apps.pillars",
@@ -63,8 +63,27 @@ TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
         "DIRS": [BASE_DIR / "templates"],
-        "APP_DIRS": True,
+        # Loaders explícitos: cotton e template-partials não são composáveis via
+        # auto-configuração (ambos reescrevem OPTIONS["loaders"] em ready()).
+        # Cadeia: partials → cached → cotton → filesystem/app_directories.
+        "APP_DIRS": False,
         "OPTIONS": {
+            "loaders": [
+                (
+                    "template_partials.loader.Loader",
+                    [
+                        (
+                            "django.template.loaders.cached.Loader",
+                            [
+                                "django_cotton.cotton_loader.Loader",
+                                "django.template.loaders.filesystem.Loader",
+                                "django.template.loaders.app_directories.Loader",
+                            ],
+                        )
+                    ],
+                )
+            ],
+            "builtins": ["django_cotton.templatetags.cotton"],
             "context_processors": [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
