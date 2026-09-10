@@ -53,7 +53,10 @@ test('breadcrumbs refletem a hierarquia', async ({ page }) => {
 
 test('busca global encontra indicador visivel', async ({ page }) => {
   await login(page);
-  await page.getByTestId('busca-global').fill('artigos');
+  await Promise.all([
+    page.waitForResponse((r) => r.url().includes('/busca/') && r.url().includes('q=artigos')),
+    page.getByTestId('busca-global').fill('artigos'),
+  ]);
   await expect(page.getByTestId('busca-lista')).toBeVisible();
   await expect(page.getByTestId('busca-lista')).toContainText('Artigos publicados');
 });

@@ -9,7 +9,7 @@ Planos: `docs/superpowers/plans/` · Evidências: `docs/retrofit/evidencias/`
 | R1 | Shell: base, sidebar colapsável, topbar, breadcrumbs, RBAC visual, navegação HTMX-boosted | ✅ Concluído (2026-09-10) |
 | R2 | Dashboard executivo: 6 KPIs por pilar, gráficos, heatmap, destaques, avisos, drawer HTMX | ✅ Concluído (2026-09-10) |
 | R3 | Operacional: lista/filtros, formulário com validação, kanban de status, timeline, modal de devolução, preview CSV | ✅ Concluído (2026-09-10) |
-| R4 | CRM AT e Talentos: funil, pipeline, renovações, organograma, cards, busca por skill | ⏳ Pendente |
+| R4 | CRM AT e Talentos: funil, pipeline, renovações, organograma, cards, busca por skill | ✅ Concluído (2026-09-10) |
 | R5 | Relatório A4 e Auditoria: capa, seções por pilar, impressão, timeline/paginação | ⏳ Pendente |
 | R6 | Polish: skeletons, tooltips, animações, view transitions, a11y, bundle, remoção do CSS legado | ⏳ Pendente |
 
@@ -181,3 +181,31 @@ npx playwright test
 **Evidências**
 
 - `docs/retrofit/evidencias/R3-depois/` (11 páginas com o novo fluxo).
+
+## R4 — resultado
+
+**Decisões e entregas**
+
+- **Funil AT**: KPIs (pipeline aberto, renovações, empresas associadas/prospects
+  e meta de CNPJs novos vinda do indicador `AT-CNPJ-NOVOS` com meta × realizado
+  × %), funil em 5 colunas, seção separada de renovações com nota RN-007 e
+  perdidos colapsáveis; cards de oportunidade com empresa/CNPJ/valor e atalho
+  de edição.
+- **Organograma/Talentos**: cards com iniciais (ou foto), cargo, badge do pilar,
+  competências, Lattes, horas alocadas/disponíveis por semana e barra de
+  ocupação; filtros por pilar/competência via HTMX sem reload; busca por skill
+  em Alpine (`data-busca`).
+- **Formulários** de CRM e Talentos alinhados ao design system (cards e botões),
+  com widgets e validações inalterados.
+- Limitação registrada: o modelo não possui hierarquia de chefia — o
+  "organograma" é organizado por pilar, sem inventar dados.
+
+**Testes**
+
+- Django: **162 testes, OK** (7 novos de CRM/Talentos).
+- Playwright: **37 testes** (3 novos em `crm_talentos_r4.spec.ts`); a busca
+  global do R1 foi endurecida com `waitForResponse` após flake sob carga.
+
+**Evidências**
+
+- `docs/retrofit/evidencias/R4-depois/` (11 páginas).
