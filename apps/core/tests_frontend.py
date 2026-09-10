@@ -131,3 +131,33 @@ class DevDesignSystemTestes(TestCase):
     def test_pagina_indisponivel_fora_de_debug(self):
         resposta = self.client.get("/dev/design-system/")
         self.assertEqual(resposta.status_code, 404)
+
+
+class ShellTestes(TestCase):
+    def setUp(self):
+        from django.contrib.auth.models import Group
+
+        from apps.accounts.models import User
+
+        grupo, _ = Group.objects.get_or_create(name="Master")
+        self.erica = User.objects.create_user(username="erica_shell_ui", password="x")
+        self.erica.groups.add(grupo)
+
+    def test_shell_autenticado_tem_sidebar_e_topbar(self):
+        self.client.force_login(self.erica)
+        resposta = self.client.get("/")
+        self.assertContains(resposta, 'data-testid="sidebar"')
+        self.assertContains(resposta, 'data-testid="topbar"')
+        self.assertContains(resposta, 'data-testid="dark-toggle"')
+        self.assertNotContains(resposta, 'data-testid="login-shell"')
+
+    def test_pagina_publica_nao_tem_sidebar(self):
+        resposta = self.client.get("/accounts/login/")
+        self.assertContains(resposta, 'data-testid="login-shell"')
+        self.assertNotContains(resposta, 'data-testid="sidebar"')
+
+    def test_breadcrumbs_em_paginas_internas(self):
+        self.client.force_login(self.erica)
+        resposta = self.client.get("/auditoria/")
+        self.assertContains(resposta, 'data-testid="breadcrumbs"')
+        self.assertContains(resposta, "Auditoria")

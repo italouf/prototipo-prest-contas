@@ -65,13 +65,13 @@ test('relatório mensal é gerado com dados por pilar', async ({ page }) => {
   const resposta = await page.goto('/relatorio/mensal/2/');
   expect(resposta?.status()).toBe(200);
   await expect(page.getByRole('heading', { name: /relatório mensal/i })).toBeVisible();
-  await expect(page.getByText(/competência/i)).toBeVisible();
+  await expect(page.locator('.report').getByText(/competência/i)).toBeVisible();
 });
 
 test('importação CSV financeira é validada na tela', async ({ page }) => {
   await login(page, 'erica', 'erica123');
   await page.goto('/financeiro/importar/');
-  await page.locator('select[name="periodo"]').selectOption({ label: '2026-06 — Aberto' });
+  await page.locator('main select[name="periodo"]').selectOption({ label: '2026-06 — Aberto' });
   await page.locator('input[type="file"]').setInputFiles('data/seed/financeiro_demo.csv');
   await page.getByRole('button', { name: /importar/i }).click();
   const textos = await page.locator('.messages .alert').allTextContents();

@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 {% load core_extras %}
 {% block title %}{{ pilar.nome }} · Portal QuIIN{% endblock %}
+{% block breadcrumbs %}{% include "partials/breadcrumbs.html" with atual=pilar.nome %}{% endblock %}
 {% block content %}
 
 <h1>{{ pilar.nome }}</h1>

@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 {% load core_extras %}
 {% block title %}Aprovação · {{ periodo.rotulo }} · Portal QuIIN{% endblock %}
+{% block breadcrumbs %}{% include "partials/breadcrumbs.html" with atual="Aprovação" %}{% endblock %}
 {% block content %}
 
 <h1>Painel de aprovação</h1>

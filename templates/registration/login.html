@@ -2,24 +2,28 @@
 {% load core_extras %}
 {% block title %}Entrar · Portal QuIIN{% endblock %}
 {% block content %}
-<div class="auth-card">
-  <h1>Entrar no Portal QuIIN</h1>
-  <p class="muted">Acesse com suas credenciais locais para gerenciar indicadores e a prestação de contas mensal.</p>
-  {% if form.errors %}
-    <div class="alert alert-error">Usuário e senha não conferem. Verifique os dados e tente novamente.</div>
-  {% endif %}
-  <form method="post" novalidate>
-    {% csrf_token %}
-    <div class="field">
-      <label for="id_username">Usuário</label>
-      <input type="text" name="username" id="id_username" autofocus autocomplete="username" required>
+<div class="flex min-h-screen items-center justify-center bg-quiin-deep-purple px-4">
+  <div class="w-full max-w-md">
+    <div class="mb-6 flex items-center justify-center gap-2 text-white">
+      <span class="brand-mark">Q</span>
+      <span class="font-display text-lg font-bold">Portal QuIIN</span>
     </div>
-    <div class="field">
-      <label for="id_password">Senha</label>
-      <input type="password" name="password" id="id_password" autocomplete="current-password" required>
-    </div>
-    <button class="btn btn-primary btn-block" type="submit">Entrar</button>
-  </form>
-  <p class="muted small">Usuários demo: erica/erica123 · clarissa/clarissa123 · focal_pdi/focal123 · lideranca/lider123 · auditor/auditor123</p>
+    <c-ui.card class="shadow-lg">
+      <h1 class="font-display text-xl font-bold">Entrar no Portal QuIIN</h1>
+      <p class="mt-1 text-sm text-text-muted">Acesse com suas credenciais locais para gerenciar indicadores e a prestação de contas mensal.</p>
+      {% if form.errors %}
+        <div class="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
+          Usuário e senha não conferem. Verifique os dados e tente novamente.
+        </div>
+      {% endif %}
+      <form method="post" novalidate class="mt-4 space-y-4">
+        {% csrf_token %}
+        <c-ui.input name="username" id="id_username" label="Usuário" type="text" autofocus autocomplete="username" required />
+        <c-ui.input name="password" id="id_password" label="Senha" type="password" autocomplete="current-password" required />
+        <c-ui.button type="submit" class="w-full">Entrar</c-ui.button>
+      </form>
+      <p class="mt-4 text-xs text-text-muted">Usuários demo: erica/erica123 · clarissa/clarissa123 · focal_pdi/focal123 · lideranca/lider123 · auditor/auditor123</p>
+    </c-ui.card>
+  </div>
 </div>
 {% endblock %}

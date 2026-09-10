@@ -19,79 +19,56 @@
   })();
 </script>
 </head>
-<body hx-headers='{"x-csrftoken": "{{ csrf_token }}"}'>
-<a href="#conteudo" class="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded-md focus:bg-surface-2 focus:px-3 focus:py-2">Pular para o conteúdo</a>
-<header class="topbar">
-  <div class="topbar-inner">
-    <a class="brand" href="{% url 'core:dashboard' %}">
-      <span class="brand-mark">Q</span>
-      <span class="brand-name">Portal QuIIN</span>
-    </a>
+<body hx-headers='{"x-csrftoken": "{{ csrf_token }}"}' hx-ext="head-support">
+<a href="#main" class="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded-md focus:bg-surface-2 focus:px-3 focus:py-2">Pular para o conteúdo</a>
+
+<div x-data="{ aberto: false, recolhida: localStorage.getItem('quiin-sidebar') === 'recolhida' }"
+     :data-aberto="aberto" :data-recolhida="recolhida"
+     class="min-h-screen {% if user.is_authenticated %}lg:flex{% endif %}">
+  {% if user.is_authenticated %}
+  <div x-show="aberto" x-cloak @click="aberto = false" class="fixed inset-0 z-30 bg-black/50 lg:hidden"></div>
+  <c-layout.sidebar />
+  {% endif %}
+  <div class="{% if user.is_authenticated %}min-w-0 flex-1{% endif %}">
     {% if user.is_authenticated %}
-    <nav class="nav" aria-label="Navegação principal">
-      <a href="{% url 'core:dashboard' %}">Início</a>
-      {% if pode_lancar and periodo_aberto_nav and pilares_nav %}
-        <a href="{% url 'entries:formulario' periodo_aberto_nav.pk pilares_nav.0.pk %}">Lançamentos</a>
+    <c-layout.topbar />
+    <div id="progresso" class="htmx-indicator fixed inset-x-0 top-0 z-50 h-0.5 bg-quiin-sky"></div>
+    {% endif %}
+    <main id="main" {% if not user.is_authenticated %}data-testid="login-shell"{% endif %}
+          class="{% if user.is_authenticated %}mx-auto w-full max-w-[1440px] px-4 py-6 lg:px-8{% endif %}">
+      {% if user.is_authenticated %}
+      {% block breadcrumbs %}{% endblock %}
+      {% if messages %}
+        <div class="messages mb-4 space-y-2" role="status">
+          {% for message in messages %}
+            <div class="alert alert-{{ message.tags|default:'info' }}">{{ message }}</div>
+          {% endfor %}
+        </div>
       {% endif %}
-      {% if pode_aprovar and periodo_aberto_nav %}
-        <a href="{% url 'entries:aprovacao' periodo_aberto_nav.pk %}">Aprovação</a>
       {% endif %}
-      {% if pode_importar_financeiro %}
-        <a href="{% url 'finance:consolidado' %}">Financeiro</a>
-      {% endif %}
-      {% if pode_aprovar or pode_lancar %}
-        <a href="{% url 'crm_at:funil' %}">Funil AT</a>
-      {% endif %}
-      {% if pode_aprovar or pode_lancar %}<a href="{% url 'talentos:organograma' %}">Talentos</a>{% endif %}
-      {% if ultimo_periodo_nav %}
-        <a href="{% url 'reports:mensal' ultimo_periodo_nav.pk %}">Relatório Mensal</a>
-      {% endif %}
-      {% if pode_ver_auditoria %}
-        <a href="{% url 'audit:lista' %}">Auditoria</a>
-      {% endif %}
-      {% if papel == 'Master' or papel == 'Admin' %}
-        <a href="/admin/">Admin</a>
-      {% endif %}
-    </nav>
-    <div class="topbar-user">
-      <span class="user-name">{{ user.nome_exibicao }}</span>
-      <span class="badge badge-papel">{{ papel }}</span>
-      <button type="button" data-testid="dark-toggle" aria-label="Alternar tema"
-              class="inline-flex h-9 w-9 items-center justify-center rounded-md border border-border bg-surface-2 text-text"
-              x-data="{ escuro: document.documentElement.classList.contains('dark') }"
-              @click="escuro = !escuro; document.documentElement.classList.toggle('dark', escuro); localStorage.setItem('quiin-theme', escuro ? 'dark' : 'light')"
-              :aria-pressed="escuro">
-        <span x-show="!escuro"><c-ui.icon name="sun" size="18" /></span>
-        <span x-show="escuro" x-cloak><c-ui.icon name="moon" size="18" /></span>
-      </button>
-      <form method="post" action="{% url 'accounts:logout' %}">
-        {% csrf_token %}
-        <button class="btn btn-ghost" type="submit">Sair</button>
-      </form>
-    </div>
-    {% else %}
-    <nav class="nav">
-      <a href="{% url 'accounts:login' %}">Entrar</a>
-    </nav>
+      {% block content %}{% endblock %}
+    </main>
+    {% if user.is_authenticated %}
+    <footer class="mx-auto w-full max-w-[1440px] px-4 pb-8 text-xs text-text-muted lg:px-8">
+      Portal QuIIN — protótipo local de gestão e prestação de contas. Dados fictícios para demonstração.
+    </footer>
     {% endif %}
   </div>
-</header>
+</div>
 
-<main id="conteudo" class="container">
-  {% if messages %}
-    <div class="messages" role="status">
-      {% for message in messages %}
-        <div class="alert alert-{{ message.tags|default:'info' }}">{{ message }}</div>
-      {% endfor %}
-    </div>
-  {% endif %}
-  {% block content %}{% endblock %}
-</main>
-
-<footer class="footer">
-  <p>Portal QuIIN — protótipo local de gestão e prestação de contas. Dados fictícios para demonstração.</p>
-</footer>
 <script src="{% static 'js/vendor/htmx.min.js' %}" defer></script>
+<script src="{% static 'js/vendor/head-support.js' %}" defer></script>
 <script src="{% static 'js/vendor/alpine.min.js' %}" defer></script>
+<script>
+  function quiinAtivarNav() {
+    document.querySelectorAll('[data-nav-link]').forEach(function (link) {
+      var ativo = link.getAttribute('href') === window.location.pathname;
+      link.classList.toggle('nav-item-ativo', ativo);
+      if (ativo) { link.setAttribute('aria-current', 'page'); } else { link.removeAttribute('aria-current'); }
+    });
+  }
+  document.addEventListener('DOMContentLoaded', quiinAtivarNav);
+  document.addEventListener('htmx:afterSwap', quiinAtivarNav);
+</script>
 </body>
 </html>

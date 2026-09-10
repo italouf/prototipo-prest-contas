@@ -1,4 +1,4 @@
-<c-vars tone="neutral" pillar="" class="" />
+<c-vars tone="neutral" pillar="" papel="" class="" />
 <span class="inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-semibold
 {% if pillar == 'PDI' %}border-transparent bg-pillar-pdi/15 text-pillar-pdi
 {% elif pillar == 'FORMACAO' %}border-transparent bg-pillar-formacao/15 text-pillar-formacao
@@ -7,6 +7,11 @@
 {% elif pillar == 'INFRA' %}border-transparent bg-pillar-infra/15 text-pillar-infra
 {% elif pillar == 'OUTRASFONTES' %}border-transparent bg-pillar-outrasfontes/15 text-pillar-outrasfontes-texto
 {% elif tone == 'success' %}border-transparent bg-quiin-quantum-green/15 text-status-aprovado-texto
+{% elif papel == 'Master' %}border-transparent bg-quiin-violet/15 text-pillar-pdi
+{% elif papel == 'Admin' %}border-transparent bg-quiin-royal/15 text-status-aberto
+{% elif papel == 'PontoFocal' %}border-transparent bg-quiin-sky/15 text-pillar-startups-texto
+{% elif papel == 'Lideranca' %}border-transparent bg-quiin-blue/15 text-status-enviado
+{% elif papel == 'Auditor' %}border-transparent bg-quiin-mist/40 text-text-muted
 {% elif tone == 'warn' %}border-transparent bg-amber-500/15 text-status-pendente-texto
 {% elif tone == 'danger' %}border-transparent bg-red-600/10 text-red-700
 {% elif tone == 'info' %}border-transparent bg-quiin-royal/10 text-status-aberto

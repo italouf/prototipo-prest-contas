@@ -1,0 +1,53 @@
+<header data-testid="topbar" class="sticky top-0 z-20 border-b border-border bg-surface-2/95 backdrop-blur">
+  <div class="flex items-center gap-3 px-4 py-2.5 lg:px-8">
+    <button type="button" data-testid="sidebar-toggle" aria-label="Abrir menu"
+            class="rounded-md border border-border p-2 text-text lg:hidden" @click="aberto = true">
+      <c-ui.icon name="menu" size="18" />
+    </button>
+    <span class="hidden font-display text-sm font-bold sm:inline lg:hidden">Portal QuIIN</span>
+
+    <form method="get" action="{% url 'core:busca' %}"
+          hx-get="{% url 'core:busca' %}" hx-target="#busca-resultados" hx-trigger="input changed delay:300ms, submit"
+          class="relative ml-auto hidden w-full max-w-sm md:block"
+          x-data="{ focado: false }" @focusin="focado = true" @focusout="setTimeout(() => focado = false, 200)">
+      <label for="busca-global" class="sr-only">Busca global</label>
+      <input id="busca-global" type="search" name="q" data-testid="busca-global" placeholder="Buscar indicador, empresa, talento…"
+             class="w-full rounded-md border border-border bg-surface px-3 py-2 pl-9 text-sm text-text placeholder:text-text-muted/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus/60">
+      <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-muted"><c-ui.icon name="search" size="16" /></span>
+      <div id="busca-resultados" x-show="focado" x-cloak
+           class="absolute left-0 right-0 top-full z-40 mt-1 max-h-80 overflow-y-auto rounded-lg border border-border bg-surface-2 shadow-lg"></div>
+    </form>
+
+    <form method="get" action="{{ request.path }}" class="ml-auto flex items-center gap-2 md:ml-0">
+      <label for="periodo-global" class="sr-only">Período de competência</label>
+      <select id="periodo-global" name="periodo" data-testid="period-selector" onchange="this.form.submit()"
+              class="w-[8.5rem] rounded-md border border-border bg-surface px-2 py-2 text-sm text-text focus:outline-none focus-visible:ring-2 focus-visible:ring-focus/60 sm:w-auto">
+        {% for p in periodos_nav %}
+        <option value="{{ p.competencia|date:'Y-m-d' }}" {% if request.GET.periodo == p.competencia|date:'Y-m-d' %}selected{% elif not request.GET.periodo and forloop.first %}selected{% endif %}>
+          {{ p.rotulo }} — {{ p.get_status_display }}
+        </option>
+        {% endfor %}
+      </select>
+    </form>
+
+    <div class="flex items-center gap-2">
+      <c-ui.badge papel="{{ papel }}" class="hidden sm:inline-flex" data-testid="papel-badge">{{ papel }}</c-ui.badge>
+      <span class="hidden text-sm font-medium xl:inline">{{ user.nome_exibicao }}</span>
+      <button type="button" data-testid="dark-toggle" aria-label="Alternar tema"
+              class="inline-flex h-9 w-9 items-center justify-center rounded-md border border-border bg-surface-2 text-text"
+              x-data="{ escuro: document.documentElement.classList.contains('dark') }"
+              @click="escuro = !escuro; document.documentElement.classList.toggle('dark', escuro); localStorage.setItem('quiin-theme', escuro ? 'dark' : 'light')"
+              :aria-pressed="escuro">
+        <span x-show="!escuro"><c-ui.icon name="sun" size="18" /></span>
+        <span x-show="escuro" x-cloak><c-ui.icon name="moon" size="18" /></span>
+      </button>
+      <form method="post" action="{% url 'accounts:logout' %}">
+        {% csrf_token %}
+        <button type="submit" aria-label="Sair" title="Sair"
+                class="inline-flex h-9 w-9 items-center justify-center rounded-md border border-border bg-surface-2 text-text hover:bg-quiin-mist/40 dark:hover:bg-white/5">
+          <c-ui.icon name="log-out" size="18" />
+        </button>
+      </form>
+    </div>
+  </div>
+</header>

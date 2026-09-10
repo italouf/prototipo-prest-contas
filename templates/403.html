@@ -1,9 +1,9 @@
 {% extends 'base.html' %}
 {% block title %}Sem permissão · Portal QuIIN{% endblock %}
 {% block content %}
-<div class="panel">
-  <h1>403 — Sem permissão</h1>
-  <p>Seu perfil não permite acessar esta área. Caso precise, fale com a coordenação (Master).</p>
-  <a class="btn btn-primary" href="{% url 'core:dashboard' %}">Voltar ao início</a>
-</div>
+<c-ui.card class="max-w-xl">
+  <h1 class="font-display text-xl font-bold">403 — Sem permissão</h1>
+  <p class="mt-2 text-sm text-text-muted">Seu perfil não permite acessar esta área. Caso precise, fale com a coordenação (Master).</p>
+  <div class="mt-4"><c-ui.button href="{% url 'core:dashboard' %}">Voltar ao início</c-ui.button></div>
+</c-ui.card>
 {% endblock %}

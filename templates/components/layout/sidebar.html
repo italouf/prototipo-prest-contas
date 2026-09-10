@@ -1,0 +1,82 @@
+<aside data-testid="sidebar"
+       class="sidebar fixed inset-y-0 left-0 z-40 flex w-64 shrink-0 flex-col overflow-y-auto bg-quiin-deep-purple pb-6 text-white lg:static lg:h-screen">
+  <div class="flex items-center gap-2 px-4 py-4">
+    <a href="{% url 'core:dashboard' %}" class="flex items-center gap-2 text-white">
+      <span class="brand-mark">Q</span>
+      <span class="sidebar-marca-texto font-display text-base font-bold">Portal QuIIN</span>
+    </a>
+    <button type="button" data-testid="sidebar-collapse" aria-label="Recolher menu"
+            class="ml-auto hidden rounded-md p-1.5 text-white/70 hover:bg-white/10 hover:text-white lg:inline-flex"
+            @click="recolhida = !recolhida; localStorage.setItem('quiin-sidebar', recolhida ? 'recolhida' : 'aberta')">
+      <c-ui.icon name="chevron-right" size="18" />
+    </button>
+    <button type="button" aria-label="Fechar menu"
+            class="ml-auto rounded-md p-1.5 text-white/70 hover:bg-white/10 hover:text-white lg:hidden" @click="aberto = false">
+      <c-ui.icon name="x" size="18" />
+    </button>
+  </div>
+
+  <nav class="flex-1 px-3" @click="aberto = false" hx-boost="true" hx-target="#main" hx-select="#main" hx-swap="innerHTML show:top" hx-push-url="true" hx-indicator="#progresso">
+    <p class="nav-secao">Visão geral</p>
+    <a href="{% url 'core:dashboard' %}" data-nav-link class="nav-item {% if request.path == '/' %}nav-item-ativo{% endif %}">
+      <c-ui.icon name="home" size="18" class="nav-item-icone" /><span class="nav-rotulo">Dashboard</span>
+    </a>
+
+    {% if pode_lancar or pode_aprovar or pode_importar_financeiro %}
+    <p class="nav-secao">Operação</p>
+    {% if pode_lancar and periodo_aberto_nav and pilares_nav %}
+    <a href="{% url 'entries:formulario' periodo_aberto_nav.pk pilares_nav.0.pk %}" data-nav-link class="nav-item {% if '/lancamentos/' in request.path %}nav-item-ativo{% endif %}">
+      <c-ui.icon name="pencil" size="18" class="nav-item-icone" /><span class="nav-rotulo">Lançamentos</span>
+    </a>
+    {% endif %}
+    {% if pode_aprovar and periodo_aberto_nav %}
+    <a href="{% url 'entries:aprovacao' periodo_aberto_nav.pk %}" data-nav-link class="nav-item {% if '/aprovacao/' in request.path %}nav-item-ativo{% endif %}">
+      <c-ui.icon name="check-circle" size="18" class="nav-item-icone" /><span class="nav-rotulo">Aprovação</span>
+      {% if total_pendencias %}<span class="sidebar-badge ml-auto rounded-full bg-quiin-quantum-green px-2 py-0.5 text-xs font-semibold text-quiin-deep-purple">{{ total_pendencias }}</span>{% endif %}
+    </a>
+    {% endif %}
+    {% if pode_importar_financeiro %}
+    <a href="{% url 'finance:consolidado' %}" data-nav-link class="nav-item {% if '/financeiro/' in request.path %}nav-item-ativo{% endif %}">
+      <c-ui.icon name="dollar" size="18" class="nav-item-icone" /><span class="nav-rotulo">Financeiro</span>
+    </a>
+    {% endif %}
+    {% endif %}
+
+    {% if pilares_nav %}
+    <p class="nav-secao">Pilares</p>
+    {% for pilar in pilares_nav %}
+    <a href="{% url 'core:pilar' pilar.pk %}" data-nav-link class="nav-item {% if request.resolver_match.url_name == 'pilar' and request.resolver_match.kwargs.pk == pilar.pk %}nav-item-ativo{% endif %}">
+      <c-ui.icon name="building" size="18" class="nav-item-icone" /><span class="nav-rotulo">{{ pilar.nome }}</span>
+      {% if pendencias_nav %}{% for pid, qtd in pendencias_nav.items %}{% if pid == pilar.pk %}<span class="sidebar-badge ml-auto rounded-full bg-quiin-sky px-2 py-0.5 text-xs font-semibold text-white">{{ qtd }}</span>{% endif %}{% endfor %}{% endif %}
+    </a>
+    {% endfor %}
+    {% endif %}
+
+    {% if pode_lancar or pode_aprovar %}
+    <p class="nav-secao">Programa</p>
+    <a href="{% url 'crm_at:funil' %}" data-nav-link class="nav-item {% if '/crm-at/' in request.path %}nav-item-ativo{% endif %}">
+      <c-ui.icon name="funnel" size="18" class="nav-item-icone" /><span class="nav-rotulo">Funil AT</span>
+    </a>
+    <a href="{% url 'talentos:organograma' %}" data-nav-link class="nav-item {% if '/talentos/' in request.path %}nav-item-ativo{% endif %}">
+      <c-ui.icon name="users" size="18" class="nav-item-icone" /><span class="nav-rotulo">Talentos</span>
+    </a>
+    {% endif %}
+
+    <p class="nav-secao">Gestão</p>
+    {% if ultimo_periodo_nav %}
+    <a href="{% url 'reports:mensal' ultimo_periodo_nav.pk %}" data-nav-link class="nav-item {% if '/relatorio/' in request.path %}nav-item-ativo{% endif %}">
+      <c-ui.icon name="file-text" size="18" class="nav-item-icone" /><span class="nav-rotulo">Relatório Mensal</span>
+    </a>
+    {% endif %}
+    {% if pode_ver_auditoria %}
+    <a href="{% url 'audit:lista' %}" data-nav-link class="nav-item {% if '/auditoria/' in request.path %}nav-item-ativo{% endif %}">
+      <c-ui.icon name="shield" size="18" class="nav-item-icone" /><span class="nav-rotulo">Auditoria</span>
+    </a>
+    {% endif %}
+    {% if papel == 'Master' or papel == 'Admin' %}
+    <a href="/admin/" data-nav-link class="nav-item {% if '/admin/' in request.path %}nav-item-ativo{% endif %}">
+      <c-ui.icon name="settings" size="18" class="nav-item-icone" /><span class="nav-rotulo">Admin</span>
+    </a>
+    {% endif %}
+  </nav>
+</aside>

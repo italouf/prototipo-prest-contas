@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 {% load core_extras %}
 {% block title %}Relatório Mensal {{ periodo.rotulo }} · Portal QuIIN{% endblock %}
+{% block breadcrumbs %}{% include "partials/breadcrumbs.html" with atual="Relatório Mensal" %}{% endblock %}
 {% block content %}
 
 <div class="report-actions no-print">
