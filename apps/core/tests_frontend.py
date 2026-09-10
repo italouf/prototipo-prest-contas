@@ -161,3 +161,15 @@ class ShellTestes(TestCase):
         resposta = self.client.get("/auditoria/")
         self.assertContains(resposta, 'data-testid="breadcrumbs"')
         self.assertContains(resposta, "Auditoria")
+
+
+class ChartsDashboardTestes(SimpleTestCase):
+    def test_wrapper_e_chartjs_presentes(self):
+        for rel in (
+            "static/js/charts/dashboard.js",
+            "static/js/vendor/chart.umd.js",
+        ):
+            self.assertTrue((settings.BASE_DIR / rel).exists(), f"{rel} ausente")
+        fonte = (settings.BASE_DIR / "static/js/charts/dashboard.js").read_text(encoding="utf-8")
+        self.assertIn("htmx:afterSwap", fonte)
+        self.assertIn("quiinDashboardCharts", fonte)
