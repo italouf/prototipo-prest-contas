@@ -11,6 +11,7 @@ from apps.core.permissions import adicionar_grupo, garantir_grupos
 from apps.indicators.models import Indicador, Meta
 from apps.periods.models import Periodo
 from apps.pillars.models import Pilar, UsuarioPilar
+from .models import Lancamento
 from .services import aprovar, salvar_ou_enviar
 
 
@@ -80,3 +81,50 @@ class LancamentoTestes(TestCase):
         self.client.force_login(self.master)
         resposta = self.client.get(reverse("core:dashboard"))
         self.assertContains(resposta, "50%")
+
+
+class AprovacaoR3Testes(TestCase):
+    def setUp(self):
+        from apps.core.permissions import adicionar_grupo, garantir_grupos
+
+        garantir_grupos()
+        self.erica = adicionar_grupo(User.objects.create_user(username="r3_master", password="x"), "Master")
+        self.pilar = Pilar.objects.create(codigo="PDI", nome="PDI / FCCT", ordem=1)
+        self.ind = Indicador.objects.create(pilar=self.pilar, codigo="PDI-PROJ-INI", nome="Projetos iniciados", tipo="QTD")
+        Meta.objects.create(
+            indicador=self.ind, competencia_inicio=date(2026, 1, 1),
+            competencia_fim=date(2026, 12, 31), periodicidade="MENSAL", valor=2,
+        )
+        self.periodo = Periodo.objects.create(competencia=date(2026, 6, 1), status="ABERTO", aberto_por=self.erica)
+        salvar_ou_enviar(self.periodo, self.pilar, self.erica, {str(self.ind.pk): {"valor": "1"}}, enviar=True)
+        self.lc = Lancamento.objects.get(periodo=self.periodo)
+        self.client.force_login(self.erica)
+
+    def test_aprovacao_expoe_kanban_por_status(self):
+        kanban = self.client.get(reverse("entries:aprovacao", args=[self.periodo.pk])).context["kanban"]
+        self.assertEqual(list(kanban.keys()), ["RASCUNHO", "ENVIADO", "APROVADO", "DEVOLVIDO"])
+        self.assertEqual(len(kanban["ENVIADO"]), 1)
+
+    def test_timeline_do_lancamento_mostra_auditoria(self):
+        self.client.post(
+            reverse("entries:aprovacao", args=[self.periodo.pk]),
+            {"lancamento_id": self.lc.pk, "aprovar": "1"},
+        )
+        resposta = self.client.get(reverse("entries:lancamento_drawer", args=[self.lc.pk]))
+        self.assertEqual(resposta.status_code, 200)
+        self.assertContains(resposta, "Lançamento aprovado")
+        self.assertNotContains(resposta, "Painel de aprovação")
+
+    def test_timeline_requer_gestor(self):
+        from apps.core.permissions import adicionar_grupo
+
+        auditor = adicionar_grupo(User.objects.create_user(username="r3_auditor", password="x"), "Auditor")
+        self.client.force_login(auditor)
+        resposta = self.client.get(reverse("entries:lancamento_drawer", args=[self.lc.pk]))
+        self.assertEqual(resposta.status_code, 403)
+
+    def test_formulario_tem_filtros_e_campos_de_validacao(self):
+        resposta = self.client.get(reverse("entries:formulario", args=[self.periodo.pk, self.pilar.pk]))
+        self.assertContains(resposta, 'data-testid="filtro-tipo-TODOS"')
+        self.assertContains(resposta, 'data-testid="filtro-tipo-QTD"')
+        self.assertContains(resposta, 'x-data="campoValor(')

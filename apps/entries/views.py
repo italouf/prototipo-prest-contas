@@ -2,8 +2,10 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
+from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 
+from apps.audit.models import AuditLog
 from apps.core.permissions import pode_aprovar, pode_lancar, sem_permissao, usuario_pode_pilar
 from apps.indicators.models import Indicador
 from apps.periods.models import Periodo
@@ -48,6 +50,7 @@ def formulario(request, periodo_pk, pilar_pk):
             "indicadores": indicadores,
             "existentes": existentes,
             "bloqueado": not periodo.permite_edicao,
+            "tipos": Indicador.TIPOS,
         },
     )
 
@@ -71,5 +74,42 @@ def aprovacao(request, periodo_pk):
             messages.error(request, "; ".join(exc.messages))
         return redirect("entries:aprovacao", periodo_pk=periodo.pk)
 
-    enviados = periodo.lancamentos.filter(status="ENVIADO").select_related("indicador", "indicador__pilar", "usuario_criacao")
-    return render(request, "entries/aprovacao.html", {"periodo": periodo, "enviados": enviados})
+    enviados = periodo.lancamentos.filter(status="ENVIADO").select_related(
+        "indicador", "indicador__pilar", "usuario_criacao", "usuario_aprovacao"
+    )
+    todos = list(
+        periodo.lancamentos.select_related(
+            "indicador", "indicador__pilar", "usuario_criacao", "usuario_aprovacao"
+        ).order_by("indicador__pilar__ordem", "indicador__codigo")
+    )
+    kanban = {status: [] for status in ("RASCUNHO", "ENVIADO", "APROVADO", "DEVOLVIDO")}
+    for lc in todos:
+        kanban.setdefault(lc.status, []).append(lc)
+    return render(
+        request,
+        "entries/aprovacao.html",
+        {"periodo": periodo, "enviados": enviados, "kanban": kanban},
+    )
+
+
+@login_required
+def lancamento_drawer(request, pk):
+    """Timeline de auditoria de um lançamento (drawer HTMX)."""
+    if not pode_aprovar(request.user):
+        return HttpResponseForbidden("Sem permissão para revisar este lançamento.")
+    lc = get_object_or_404(
+        Lancamento.objects.select_related(
+            "indicador", "indicador__pilar", "usuario_criacao", "usuario_aprovacao"
+        ),
+        pk=pk,
+    )
+    eventos = (
+        AuditLog.objects.filter(entidade="Lancamento", registro_id=str(lc.pk))
+        .select_related("usuario")
+        .order_by("-data_hora")[:20]
+    )
+    return render(
+        request,
+        "partials/entries/drawer_lancamento.html",
+        {"lc": lc, "eventos": eventos},
+    )
