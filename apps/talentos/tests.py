@@ -11,7 +11,7 @@ from django.urls import reverse
 
 from apps.accounts.models import User
 from apps.core.permissions import adicionar_grupo, garantir_grupos
-from apps.pillars.models import Pilar
+from apps.pillars.models import Pilar, UsuarioPilar
 
 GIF_1PX = (
     b"\x47\x49\x46\x38\x39\x61\x01\x00\x01\x00\x80\x00\x00\x00\x00\x00"
@@ -206,6 +206,7 @@ class CadastroTalentosTestes(TestCase):
         self.focal = adicionar_grupo(
             User.objects.create_user(username="focal_tal", password="x"), "PontoFocal"
         )
+        UsuarioPilar.objects.create(usuario=self.focal, pilar=self.pilar_at)
         self.lideranca = adicionar_grupo(
             User.objects.create_user(username="lider_tal", password="x"), "Lideranca"
         )
@@ -395,3 +396,111 @@ class CadastroTalentosTestes(TestCase):
             mock_render.return_value = HttpResponse()
             OrganogramaView.as_view()(requisicao)
         return _contexto_de_render(mock_render)
+
+
+class ColaboradorPilarRestritoTestes(TestCase):
+    """PontoFocal só cadastra colaborador no seu pilar."""
+
+    def setUp(self):
+        garantir_grupos()
+        self.pilar_at = Pilar.objects.create(codigo="AT", nome="Associação Tecnológica", ordem=1)
+        self.pilar_pdi = Pilar.objects.create(codigo="PDI", nome="PDI / FCCT", ordem=2)
+        self.focal_pdi = adicionar_grupo(
+            User.objects.create_user(username="focal_pdi", password="x"), "PontoFocal"
+        )
+        UsuarioPilar.objects.create(usuario=self.focal_pdi, pilar=self.pilar_pdi)
+
+    def test_focal_pdi_cria_com_pdi_ok(self):
+        from apps.talentos.models import Colaborador
+        from apps.talentos.views import colaborador_criar
+
+        dados = {
+            "nome": "Diana PDI",
+            "cargo": "Pesquisadora",
+            "pilar_principal": str(self.pilar_pdi.pk),
+            "lattes_url": "",
+            "competencias": [],
+            "novas_competencias": "",
+        }
+        requisicao = _post_request("/talentos/colaboradores/novo/", self.focal_pdi, dados)
+        resposta = colaborador_criar(requisicao)
+        self.assertEqual(resposta.status_code, 302)
+        self.assertTrue(
+            Colaborador.objects.filter(nome="Diana PDI", pilar_principal=self.pilar_pdi).exists()
+        )
+
+    def test_focal_pdi_post_com_pilar_at_rejeitado(self):
+        from apps.talentos.models import Colaborador
+        from apps.talentos.views import colaborador_criar
+
+        dados = {
+            "nome": "Invasor AT",
+            "cargo": "Analista",
+            "pilar_principal": str(self.pilar_at.pk),
+            "lattes_url": "",
+            "competencias": [],
+            "novas_competencias": "",
+        }
+        requisicao = _post_request("/talentos/colaboradores/novo/", self.focal_pdi, dados)
+        with mock.patch("apps.talentos.views.render") as mock_render:
+            mock_render.return_value = HttpResponse()
+            resposta = colaborador_criar(requisicao)
+        self.assertEqual(resposta.status_code, 200)
+        self.assertFalse(Colaborador.objects.filter(nome="Invasor AT").exists())
+        contexto = _contexto_de_render(mock_render)
+        self.assertFalse(contexto["form"].is_valid())
+        self.assertIn("pilar_principal", contexto["form"].errors)
+
+
+class NovasCompetenciasTestes(TestCase):
+    """Competências livres sem duplicar (campo novas_competencias)."""
+
+    def setUp(self):
+        garantir_grupos()
+        self.pilar_at = Pilar.objects.create(codigo="AT", nome="Associação Tecnológica", ordem=1)
+
+    def _dados(self, novas):
+        return {
+            "nome": "Eva Livre",
+            "cargo": "Analista",
+            "pilar_principal": str(self.pilar_at.pk),
+            "lattes_url": "",
+            "competencias": [],
+            "novas_competencias": novas,
+        }
+
+    def test_nome_existente_reutiliza_sem_duplicar(self):
+        from apps.talentos.forms import ColaboradorForm
+        from apps.talentos.models import Competencia
+
+        Competencia.objects.create(nome="Python")
+        total_antes = Competencia.objects.count()
+        form = ColaboradorForm(self._dados("python"))
+        self.assertTrue(form.is_valid(), form.errors)
+        colaborador = form.save()
+        self.assertEqual(Competencia.objects.count(), total_antes)
+        self.assertEqual([c.nome for c in colaborador.competencias.all()], ["Python"])
+
+    def test_nome_novo_cria_e_vincula(self):
+        from apps.talentos.forms import ColaboradorForm
+        from apps.talentos.models import Competencia
+
+        form = ColaboradorForm(self._dados("Quantum ML"))
+        self.assertTrue(form.is_valid(), form.errors)
+        colaborador = form.save()
+        self.assertTrue(Competencia.objects.filter(nome="Quantum ML").exists())
+        self.assertEqual([c.nome for c in colaborador.competencias.all()], ["Quantum ML"])
+
+    def test_string_vazia_nao_cria_nada(self):
+        from apps.talentos.forms import ColaboradorForm
+        from apps.talentos.models import Colaborador, Competencia
+
+        for texto in ("", ", ,"):
+            with self.subTest(texto=texto):
+                total_antes = Competencia.objects.count()
+                form = ColaboradorForm(self._dados(texto))
+                self.assertTrue(form.is_valid(), form.errors)
+                colaborador = form.save()
+                self.assertEqual(Competencia.objects.count(), total_antes)
+                self.assertEqual(list(colaborador.competencias.all()), [])
+                Colaborador.objects.all().delete()

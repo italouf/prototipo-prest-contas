@@ -41,17 +41,25 @@ def dashboard(request):
     fin_ytd = FinanceiroConsolidado.objects.filter(
         periodo__competencia__year=ano,
         periodo__competencia__lte=periodo.competencia,
+        pilar__in=pilares,
     )
-    contexto["cards"] = {
+    pilares_ids = set(pilares.values_list("pk", flat=True))
+    cards = {
         "execucao": fin_ytd.aggregate(t=Sum("valor_executado"))["t"] or Decimal("0"),
         "captacao_at": fin_ytd.filter(tipo_recurso="AT").aggregate(t=Sum("valor_captado"))["t"] or Decimal("0"),
         "outras_fontes": fin_ytd.filter(tipo_recurso="OUTRAS_FONTES").aggregate(t=Sum("valor_captado"))["t"] or Decimal("0"),
-        "artigos": _card("PDI-ARTIGOS", periodo),
-        "pi": _card("PDI-PI", periodo),
-        "formados": _card("FORM-FORMADOS", periodo),
-        "cnpjs": _card("AT-CNPJ-NOVOS", periodo),
-        "startups": _card("STA-ATRAIDAS", periodo),
     }
+    for chave, codigo in (
+        ("artigos", "PDI-ARTIGOS"),
+        ("pi", "PDI-PI"),
+        ("formados", "FORM-FORMADOS"),
+        ("cnpjs", "AT-CNPJ-NOVOS"),
+        ("startups", "STA-ATRAIDAS"),
+    ):
+        card = _card_pilar(codigo, periodo, pilares_ids)
+        if card is not None:
+            cards[chave] = card
+    contexto["cards"] = cards
 
     linhas, pendencias = [], []
     for pilar in pilares:
@@ -68,7 +76,7 @@ def dashboard(request):
             "chart_financeiro": _chart_financeiro(fin_ytd),
             "chart_mensal": _chart_mensal(fin_ytd, ano),
             "status_counts": _status_counts(periodo, pilares),
-            "destaques": DestaqueMensal.objects.filter(periodo=periodo).select_related("pilar").order_by("-criado_em")[:3],
+            "destaques": DestaqueMensal.objects.filter(periodo=periodo).filter(Q(pilar__isnull=True) | Q(pilar__in=pilares)).select_related("pilar").order_by("-criado_em")[:3],
         }
     )
     return render(request, "home.html", contexto)
@@ -96,6 +104,16 @@ def pilar(request, pk):
 def _card(codigo, periodo):
     ind = Indicador.objects.filter(codigo=codigo).first()
     if not ind:
+        return None
+    return {"nome": ind.nome, "dados": meta_realizado_percentual(ind, periodo)}
+
+
+def _card_pilar(codigo, periodo, pilares_ids):
+    """Card de indicador só se o pilar for visível ao usuário."""
+    ind = Indicador.objects.filter(codigo=codigo).first()
+    if not ind:
+        return None
+    if ind.pilar_id not in pilares_ids:
         return None
     return {"nome": ind.nome, "dados": meta_realizado_percentual(ind, periodo)}
 

@@ -58,7 +58,7 @@ def colaborador_criar(request):
     if not pode_lancar(request.user):
         return sem_permissao(request)
     if request.method == "POST":
-        form = ColaboradorForm(request.POST, request.FILES)
+        form = ColaboradorForm(request.POST, request.FILES, user=request.user)
         if form.is_valid():
             colaborador = form.save()
             registrar_auditoria(
@@ -72,7 +72,7 @@ def colaborador_criar(request):
             messages.success(request, "Colaborador criado com sucesso.")
             return redirect("talentos:organograma")
     else:
-        form = ColaboradorForm()
+        form = ColaboradorForm(user=request.user)
     return render(
         request,
         "talentos/colaborador_form.html",
@@ -87,7 +87,7 @@ def colaborador_editar(request, pk):
     colaborador = get_object_or_404(Colaborador, pk=pk)
     if request.method == "POST":
         nome_anterior = colaborador.nome
-        form = ColaboradorForm(request.POST, request.FILES, instance=colaborador)
+        form = ColaboradorForm(request.POST, request.FILES, instance=colaborador, user=request.user)
         if form.is_valid():
             colaborador = form.save()
             registrar_auditoria(
@@ -102,7 +102,7 @@ def colaborador_editar(request, pk):
             messages.success(request, "Colaborador atualizado com sucesso.")
             return redirect("talentos:organograma")
     else:
-        form = ColaboradorForm(instance=colaborador)
+        form = ColaboradorForm(instance=colaborador, user=request.user)
     return render(
         request,
         "talentos/colaborador_form.html",

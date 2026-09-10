@@ -16,6 +16,7 @@
       <div class="field">
         <label for="{{ campo.id_for_label }}">{{ campo.label }}</label>
         {{ campo }}
+        {% if campo.help_text %}<p class="muted small">{{ campo.help_text }}</p>{% endif %}
         {% for erro in campo.errors %}<p class="alert alert-error">{{ erro }}</p>{% endfor %}
       </div>
     {% endfor %}
