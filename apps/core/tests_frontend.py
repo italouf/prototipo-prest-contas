@@ -200,3 +200,28 @@ class ToastsTestes(TestCase):
             follow=True,
         )
         self.assertContains(resposta, "messages pointer-events-none fixed")
+
+
+class BundleTestes(SimpleTestCase):
+    """Orçamento de bundle do R6 (gzip)."""
+
+    def _gzip_kb(self, rel):
+        import gzip
+
+        caminho = settings.BASE_DIR / rel
+        return len(gzip.compress(caminho.read_bytes())) / 1024
+
+    def test_css_dentro_do_orcamento(self):
+        self.assertLess(self._gzip_kb("static/css/tailwind.css"), 150)
+
+    def test_js_por_pagina_dentro_do_orcamento(self):
+        total = sum(
+            self._gzip_kb(rel)
+            for rel in (
+                "static/js/vendor/htmx.min.js",
+                "static/js/vendor/head-support.js",
+                "static/js/vendor/alpine.min.js",
+                "static/js/vendor/chart.umd.js",
+            )
+        )
+        self.assertLess(total, 200)

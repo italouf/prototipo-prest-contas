@@ -33,7 +33,7 @@
     <div class="flex items-center gap-2">
       <c-ui.badge papel="{{ papel }}" class="hidden sm:inline-flex" data-testid="papel-badge">{{ papel }}</c-ui.badge>
       <span class="hidden text-sm font-medium xl:inline">{{ user.nome_exibicao }}</span>
-      <button type="button" data-testid="dark-toggle" aria-label="Alternar tema"
+      <button type="button" data-testid="dark-toggle" aria-label="Alternar tema" title="Alternar tema"
               class="inline-flex h-9 w-9 items-center justify-center rounded-md border border-border bg-surface-2 text-text"
               x-data="{ escuro: document.documentElement.classList.contains('dark') }"
               @click="escuro = !escuro; document.documentElement.classList.toggle('dark', escuro); localStorage.setItem('quiin-theme', escuro ? 'dark' : 'light')"

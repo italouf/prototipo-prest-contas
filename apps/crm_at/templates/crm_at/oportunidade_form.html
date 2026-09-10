@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}{{ titulo }} Â· Funil AT Â· Portal QuIIN{% endblock %}
+{% block title %}{{ titulo }} · Funil AT · Portal QuIIN{% endblock %}
 {% block breadcrumbs %}{% include "partials/breadcrumbs.html" with atual=titulo %}{% endblock %}
 {% block content %}
 
@@ -25,6 +25,6 @@
       <c-ui.button href="{% url 'crm_at:funil' %}" variant="ghost">Voltar ao funil</c-ui.button>
     </div>
   </form>
-  <p class="muted small">NÃ£o encontrou a empresa? <a href="{% url 'crm_at:empresa_criar' %}?next={{ request.path|urlencode }}">Cadastrar nova empresa</a>.</p>
+  <p class="mt-1 text-xs text-text-muted">Não encontrou a empresa? <a href="{% url 'crm_at:empresa_criar' %}?next={{ request.path|urlencode }}">Cadastrar nova empresa</a>.</p>
 </div>
 {% endblock %}

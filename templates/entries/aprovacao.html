@@ -20,7 +20,7 @@
       </header>
       <div class="space-y-2">
         {% for lc in cartoes %}
-        <article class="rounded-lg border border-border bg-surface p-3" data-testid="kanban-card-{{ lc.pk }}">
+        <article class="anim-entrada rounded-lg border border-border bg-surface p-3" data-testid="kanban-card-{{ lc.pk }}">
           <p class="text-sm font-semibold">{{ lc.indicador.nome }}</p>
           <p class="text-xs text-text-muted">{{ lc.indicador.codigo }} · {{ lc.indicador.pilar.codigo }}</p>
           <p class="numerico mt-1 text-sm">{{ lc.valor_numerico|numero_ptbr }}{{ lc.valor_texto }}</p>
@@ -42,7 +42,7 @@
           </div>
           {% endif %}
           <button type="button" class="mt-2 text-xs text-quiin-royal underline"
-                  hx-get="{% url 'entries:lancamento_drawer' lc.pk %}" hx-target="#drawer-conteudo" hx-swap="innerHTML"
+                  hx-get="{% url 'entries:lancamento_drawer' lc.pk %}" hx-target="#drawer-conteudo" hx-swap="innerHTML" hx-indicator="#skeleton-global"
                   @click="abrirTimeline()" data-testid="timeline-{{ lc.pk }}">Ver timeline</button>
         </article>
         {% empty %}
@@ -76,7 +76,7 @@
     <aside class="absolute right-0 top-0 h-full w-full max-w-md overflow-y-auto bg-surface-2 p-5 shadow-2xl">
       <div class="flex items-center justify-between">
         <h2 class="font-display text-lg font-semibold">Timeline</h2>
-        <button type="button" @click="drawerAberto = false" aria-label="Fechar timeline"
+        <button type="button" @click="drawerAberto = false" aria-label="Fechar timeline" title="Fechar"
                 class="rounded-md border border-border p-1.5 text-text-muted hover:text-text" data-testid="drawer-timeline-fechar">
           <c-ui.icon name="x" size="16" />
         </button>

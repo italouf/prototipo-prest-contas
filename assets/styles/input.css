@@ -39,6 +39,7 @@
   }
   .htmx-indicator {
     opacity: 0;
+    pointer-events: none;
     transition: opacity 0.2s ease-out;
   }
   .htmx-request .htmx-indicator,
@@ -57,12 +58,91 @@
   .nav-secao {
     @apply px-3 pb-1 pt-4 text-[0.65rem] font-semibold uppercase tracking-widest text-white/70;
   }
+  .alert {
+    @apply rounded-lg border px-3 py-2 text-sm;
+  }
+  .alert-info {
+    @apply border-quiin-sky/30 bg-quiin-sky/10 text-status-aberto;
+  }
+  .alert-success {
+    @apply border-quiin-quantum-green/40 bg-quiin-quantum-green/10 text-status-aprovado-texto;
+  }
+  .alert-error,
+  .alert-danger {
+    @apply border-red-300 bg-red-50 text-red-700;
+  }
+  .alert-warn,
+  .alert-warning {
+    @apply border-amber-300 bg-amber-50 text-status-pendente-texto;
+  }
+  .field label {
+    @apply mb-1 block text-sm font-semibold;
+  }
+  .field input,
+  .field select,
+  .field textarea {
+    @apply w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-text;
+  }
+  .field input:focus-visible,
+  .field select:focus-visible,
+  .field textarea:focus-visible {
+    @apply outline-none ring-2 ring-focus/60;
+  }
+  .form-actions {
+    @apply mt-4 flex flex-wrap gap-2;
+  }
+  .report-secao {
+    break-inside: avoid;
+  }
+  .table-report th,
+  .table-report td {
+    vertical-align: top;
+  }
+  .audit-detail summary {
+    @apply cursor-pointer text-xs text-quiin-royal;
+  }
+  .audit-detail-body {
+    @apply mt-1 rounded-md border border-border bg-surface p-2 text-xs;
+  }
 }
 
 @layer utilities {
   .numerico {
     font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
+  }
+  .skeleton {
+    @apply animate-pulse rounded bg-quiin-mist/60;
+  }
+  .anim-entrada {
+    animation: quiin-entrada 0.35s ease-out both;
+  }
+}
+
+@keyframes quiin-entrada {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 0.18s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .anim-entrada {
+    animation: none;
+  }
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
   }
 }
 

@@ -21,7 +21,7 @@
     <div class="flex flex-wrap items-center gap-3">
       <form method="get" action="{% url 'core:dashboard' %}"
             hx-get="{% url 'core:dashboard' %}" hx-target="#dashboard-conteudo" hx-select="#dashboard-conteudo"
-            hx-swap="outerHTML" hx-push-url="true" hx-indicator="#progresso">
+            hx-swap="outerHTML" hx-push-url="true" hx-indicator="#progresso, #skeleton-global">
         <label for="periodo-dash" class="sr-only">Período de competência</label>
         <select id="periodo-dash" name="periodo" data-testid="period-selector-dashboard" onchange="this.form.requestSubmit()"
                 class="rounded-md border border-border bg-surface-2 px-3 py-2 text-sm">
@@ -73,8 +73,8 @@
       {% for k in kpis %}
       <a href="{% url 'core:pilar' k.pilar.pk %}" data-testid="kpi-{{ k.pilar.codigo|lower }}" data-kpi-card
          hx-get="{% url 'core:pilar_drawer' k.pilar.pk %}?periodo={{ periodo.competencia|date:'Y-m-d' }}"
-         hx-target="#drawer-conteudo" hx-swap="innerHTML" @click="drawerAberto = true"
-         class="block rounded-xl border border-border bg-surface-2 p-5 shadow-sm transition-shadow hover:shadow-md">
+         hx-target="#drawer-conteudo" hx-swap="innerHTML" hx-indicator="#skeleton-global" @click="drawerAberto = true"
+         class="anim-entrada block rounded-xl border border-border bg-surface-2 p-5 shadow-sm transition-shadow hover:shadow-md">
         <div class="flex items-center justify-between gap-2">
           <span class="text-xs font-semibold uppercase tracking-wide text-text-muted">{{ k.pilar.nome }}</span>
           <c-ui.badge pillar="{{ k.pilar.codigo }}">{{ k.pilar.codigo }}</c-ui.badge>
@@ -121,7 +121,7 @@
               {% for celula in grupo.celulas %}
               <a href="{% url 'core:pilar' grupo.pilar.pk %}" title="{{ celula.titulo }}" aria-label="{{ celula.titulo }}"
                  hx-get="{% url 'core:pilar_drawer' grupo.pilar.pk %}?periodo={{ periodo.competencia|date:'Y-m-d' }}"
-                 hx-target="#drawer-conteudo" hx-swap="innerHTML" @click="drawerAberto = true"
+         hx-target="#drawer-conteudo" hx-swap="innerHTML" hx-indicator="#skeleton-global" @click="drawerAberto = true"
                  class="h-6 w-6 rounded {% if celula.nivel == 'ok' %}bg-quiin-quantum-green{% elif celula.nivel == 'atencao' %}bg-amber-400{% elif celula.nivel == 'critico' %}bg-red-500{% else %}bg-quiin-mist{% endif %}"></a>
               {% endfor %}
             </div>
@@ -239,7 +239,7 @@
   <aside class="absolute right-0 top-0 h-full w-full max-w-md overflow-y-auto bg-surface-2 p-5 shadow-2xl">
     <div class="flex items-center justify-between">
       <h2 class="font-display text-lg font-semibold">Detalhe do pilar</h2>
-      <button type="button" @click="drawerAberto = false" aria-label="Fechar detalhe"
+      <button type="button" @click="drawerAberto = false" aria-label="Fechar detalhe" title="Fechar"
               class="rounded-md border border-border p-1.5 text-text-muted hover:text-text" data-testid="drawer-fechar">
         <c-ui.icon name="x" size="16" />
       </button>

@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
+<meta name="htmx-config" content='{"globalViewTransitions": true}'>
 <title>{% block title %}Portal QuIIN{% endblock %}</title>
 <link rel="stylesheet" href="{% static 'css/fonts.css' %}">
-<link rel="stylesheet" href="{% static 'css/legado.css' %}">
 {% tailwind_css %}
 <script>
   (function () {
@@ -33,6 +33,14 @@
     {% if user.is_authenticated %}
     <c-layout.topbar />
     <div id="progresso" class="htmx-indicator fixed inset-x-0 top-0 z-50 h-0.5 bg-quiin-sky"></div>
+    <div id="skeleton-global" class="htmx-indicator fixed inset-x-0 top-14 bottom-0 z-30 bg-surface/95 p-6" aria-hidden="true">
+      <div class="mx-auto grid w-full max-w-[1440px] gap-4 sm:grid-cols-3">
+        <div class="skeleton h-24"></div>
+        <div class="skeleton h-24"></div>
+        <div class="skeleton h-24"></div>
+        <div class="skeleton h-48 sm:col-span-3"></div>
+      </div>
+    </div>
     {% endif %}
     <main id="main" {% if not user.is_authenticated %}data-testid="login-shell"{% endif %}
           class="{% if user.is_authenticated %}mx-auto w-full max-w-[1440px] px-4 py-6 lg:px-8{% endif %}">

@@ -52,8 +52,8 @@ test('auditoria filtra por ação e pagina resultados', async ({ page }) => {
   await expect(page.getByRole('heading', { name: /auditoria/i })).toBeVisible();
   await page.locator('select[name="acao"]').selectOption('LOGIN');
   await page.getByRole('button', { name: /filtrar/i }).click();
-  await expect(page.locator('table tbody .badge-action').filter({ hasText: /login realizado/i }).first()).toBeVisible();
-  const total = await page.locator('.panel p.muted.small strong').first().textContent();
+  await expect(page.locator('table tbody [data-testid="badge-acao"]').filter({ hasText: /login realizado/i }).first()).toBeVisible();
+  const total = await page.locator('[data-testid="auditoria-total"] strong').first().textContent();
   expect(Number(total)).toBeGreaterThan(0);
 });
 

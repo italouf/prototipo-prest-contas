@@ -1,10 +1,10 @@
 {% extends 'base.html' %}
-{% block title %}{{ titulo }} Â· Talentos Â· Portal QuIIN{% endblock %}
+{% block title %}{{ titulo }} · Talentos · Portal QuIIN{% endblock %}
 {% block breadcrumbs %}{% include "partials/breadcrumbs.html" with atual=titulo %}{% endblock %}
 {% block content %}
 
 <h1>{{ titulo }}</h1>
-{% if colaborador %}<p class="muted">Colaborador: <strong>{{ colaborador.nome }}</strong></p>{% endif %}
+{% if colaborador %}<p class="text-sm text-text-muted">Colaborador: <strong>{{ colaborador.nome }}</strong></p>{% endif %}
 
 <div class="mt-4 rounded-xl border border-border bg-surface-2 p-5">
   <form method="post">

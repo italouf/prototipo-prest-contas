@@ -3,69 +3,80 @@
 {% block title %}{{ pilar.nome }} · Portal QuIIN{% endblock %}
 {% block breadcrumbs %}{% include "partials/breadcrumbs.html" with atual=pilar.nome %}{% endblock %}
 {% block content %}
-
-<h1>{{ pilar.nome }}</h1>
-<p class="muted">{{ pilar.descricao }}</p>
-
-{% if not periodo %}
-  <div class="panel"><p>Nenhum período cadastrado.</p></div>
-{% else %}
-<form method="get" class="form-inline">
-  <label for="periodo">Período</label>
-  <select id="periodo" name="periodo" onchange="this.form.submit()">
-    {% for p in periodos %}
-      <option value="{{ p.competencia|date:'Y-m-d' }}" {% if p.pk == periodo.pk %}selected{% endif %}>{{ p.rotulo }} — {{ p.get_status_display }}</option>
-    {% endfor %}
-  </select>
-</form>
-
-{% if destaques %}
-<section class="panel"><h2>Destaques do período</h2>
-  {% for d in destaques %}
-  <div class="kpi">
-    <span class="kpi-label">{{ d.titulo }}</span>
-    <span class="badge">{{ d.get_tipo_display }}</span>
-    <span class="kpi-detail">{% if d.pilar %}{{ d.pilar.nome }}{% else %}Geral{% endif %}</span>
-    <p>{{ d.descricao }}</p>
+<div data-testid="page-pilar">
+  <div class="flex flex-wrap items-end justify-between gap-3">
+    <div>
+      <h1 class="text-2xl font-bold">{{ pilar.nome }}</h1>
+      {% if pilar.descricao %}<p class="text-sm text-text-muted">{{ pilar.descricao }}</p>{% endif %}
+    </div>
+    <c-ui.badge pillar="{{ pilar.codigo }}">{{ pilar.codigo }}</c-ui.badge>
   </div>
-  {% endfor %}
-</section>
-{% endif %}
 
-<div class="table-wrap">
-  <table class="table">
-    <thead>
-      <tr>
-        <th>Indicador</th>
-        <th>Un.</th>
-        <th>Tipo</th>
-        <th>Meta</th>
-        <th>Realizado</th>
-        <th>% execução</th>
-        <th>Status</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for item in itens %}
-      <tr class="{% if item.percentual is not None and item.percentual < 100 %}row-warn{% endif %}">
-        <td><strong>{{ item.indicador.nome }}</strong><br><span class="muted small">{{ item.indicador.codigo }}</span></td>
-        <td>{{ item.indicador.unidade }}</td>
-        <td>{{ item.indicador.get_tipo_display }}</td>
-        <td>{% if item.meta is not None %}{{ item.meta|nbr }}{% else %}—{% endif %}</td>
-        <td>{{ item.realizado|nbr }}{% if item.ytd %} <span class="muted small">(YTD)</span>{% endif %}</td>
-        <td>{% if item.percentual is not None %}{{ item.percentual|pct }}{% else %}—{% endif %}</td>
-        <td><span class="badge badge-status status-{{ item.lc.status|lower|default:'pendente' }}">{{ item.lc.status|default:'Pendente'|status_lancamento }}</span></td>
-      </tr>
-      {% if item.lc and item.lc.comentario %}
-      <tr class="row-comment">
-        <td colspan="7" class="small"><strong>Comentário:</strong> {{ item.lc.comentario }}</td>
-      </tr>
-      {% endif %}
-      {% empty %}
-      <tr><td colspan="7" class="muted">Nenhum indicador ativo.</td></tr>
+  {% if not periodo %}
+  <c-ui.card class="mt-4"><p class="text-sm text-text-muted">Nenhum período cadastrado.</p></c-ui.card>
+  {% else %}
+  <form method="get" class="mt-4 flex flex-wrap items-center gap-2">
+    <label for="periodo" class="text-sm font-semibold">Período</label>
+    <select id="periodo" name="periodo" onchange="this.form.submit()"
+            class="rounded-md border border-border bg-surface-2 px-3 py-2 text-sm">
+      {% for p in periodos %}
+      <option value="{{ p.competencia|date:'Y-m-d' }}" {% if p.pk == periodo.pk %}selected{% endif %}>{{ p.rotulo }} — {{ p.get_status_display }}</option>
       {% endfor %}
-    </tbody>
-  </table>
+    </select>
+  </form>
+
+  {% if destaques %}
+  <section class="mt-4" aria-label="Destaques do período">
+    <h2 class="font-display text-lg font-semibold">Destaques do período</h2>
+    <div class="mt-3 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      {% for d in destaques %}
+      <c-ui.card class="anim-entrada">
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="text-sm font-semibold">{{ d.titulo }}</span>
+          <c-ui.badge tone="info">{{ d.get_tipo_display }}</c-ui.badge>
+          {% if d.pilar %}<c-ui.badge pillar="{{ d.pilar.codigo }}">{{ d.pilar.codigo }}</c-ui.badge>{% endif %}
+        </div>
+        <p class="mt-1 text-sm text-text-muted">{{ d.descricao }}</p>
+      </c-ui.card>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  <section class="mt-4 overflow-x-auto rounded-xl border border-border bg-surface-2" aria-label="Indicadores do pilar">
+    <table class="w-full border-collapse text-sm">
+      <thead>
+        <tr class="border-b border-border text-left text-xs uppercase tracking-wide text-text-muted">
+          <th class="px-4 py-3">Indicador</th><th class="px-4 py-3">Un.</th><th class="px-4 py-3">Tipo</th>
+          <th class="px-4 py-3">Meta</th><th class="px-4 py-3">Realizado</th><th class="px-4 py-3">% execução</th><th class="px-4 py-3">Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in itens %}
+        <tr class="border-b border-border/60 {% if item.percentual is not None and item.percentual < 100 %}bg-amber-50/60{% endif %}">
+          <td class="px-4 py-3"><strong>{{ item.indicador.nome }}</strong><br><span class="text-xs text-text-muted">{{ item.indicador.codigo }}</span></td>
+          <td class="px-4 py-3">{{ item.indicador.unidade }}</td>
+          <td class="px-4 py-3">{{ item.indicador.get_tipo_display }}</td>
+          <td class="px-4 py-3 numerico">{% if item.meta is not None %}{{ item.meta|nbr }}{% else %}—{% endif %}</td>
+          <td class="px-4 py-3 numerico">{{ item.realizado|nbr }}{% if item.ytd %} <span class="text-xs text-text-muted">(YTD)</span>{% endif %}</td>
+          <td class="px-4 py-3 numerico">{% if item.percentual is not None %}{{ item.percentual|pct }}{% else %}—{% endif %}</td>
+          <td class="px-4 py-3">
+            <c-ui.badge tone="{% if item.lc.status == 'APROVADO' %}success{% elif item.lc.status == 'ENVIADO' %}info{% elif item.lc.status == 'DEVOLVIDO' %}warn{% else %}neutral{% endif %}">
+              {{ item.lc.status|default:'Pendente'|status_lancamento }}
+            </c-ui.badge>
+          </td>
+        </tr>
+        {% if item.lc and item.lc.comentario %}
+        <tr class="border-b border-border/60 bg-quiin-mist/20">
+          <td colspan="7" class="px-4 py-2 text-xs"><strong>Comentário:</strong> {{ item.lc.comentario }}</td>
+        </tr>
+        {% endif %}
+        {% empty %}
+        <tr><td colspan="7" class="px-4 py-3 text-sm text-text-muted">Nenhum indicador ativo.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+  {% endif %}
 </div>
-{% endif %}
 {% endblock %}

@@ -11,7 +11,7 @@
     </div>
   </div>
 
-  <div class="panel mt-4 rounded-xl border border-border bg-surface-2 p-5">
+  <div class="mt-4 rounded-xl border border-border bg-surface-2 p-5">
     <form method="get" class="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
       <div>
         <label for="usuario" class="mb-1 block text-sm font-semibold">Usuário</label>
@@ -51,7 +51,7 @@
         <c-ui.button href="{% url 'audit:lista' %}" variant="ghost">Limpar</c-ui.button>
       </div>
     </form>
-    <p class="muted small mt-3 text-sm text-text-muted"><strong>{{ total }}</strong> evento{{ total|pluralize }} encontrado{{ total|pluralize }}.</p>
+    <p class="mt-3 text-sm text-text-muted" data-testid="auditoria-total"><strong>{{ total }}</strong> evento{{ total|pluralize }} encontrado{{ total|pluralize }}.</p>
   </div>
 
   {% if page_obj.object_list %}
@@ -76,7 +76,7 @@
           </td>
           <td class="px-4 py-3 numerico text-xs">{{ log.data_hora|date:'d/m/Y H:i:s' }}</td>
           <td class="px-4 py-3">{{ log.usuario.nome_exibicao|default:'—' }}</td>
-          <td class="px-4 py-3"><span class="badge badge-action acao-{{ log.acao|acao_classe }}">{{ log.acao|acao_amigavel }}</span></td>
+          <td class="px-4 py-3"><c-ui.badge tone="{% if log.acao == 'APROVAR_LANCAMENTO' or log.acao == 'FECHAR_PERIODO' %}success{% elif log.acao == 'DEVOLVER_LANCAMENTO' or log.acao == 'IMPORTAR_FINANCEIRO_ERRO' %}warn{% elif log.acao == 'LOGIN' or log.acao == 'ABRIR_PERIODO' or log.acao == 'REABRIR_PERIODO' or log.acao == 'ENVIAR_LANCAMENTO' %}info{% else %}neutral{% endif %}" data-testid="badge-acao">{{ log.acao|acao_amigavel }}</c-ui.badge></td>
           <td class="px-4 py-3">{{ log.entidade }}{% if log.registro_id %} <span class="text-xs text-text-muted">#{{ log.registro_id }}</span>{% endif %}</td>
           <td class="px-4 py-3 text-xs">
             {% if log.campo %}

@@ -10,8 +10,8 @@ Planos: `docs/superpowers/plans/` · Evidências: `docs/retrofit/evidencias/`
 | R2 | Dashboard executivo: 6 KPIs por pilar, gráficos, heatmap, destaques, avisos, drawer HTMX | ✅ Concluído (2026-09-10) |
 | R3 | Operacional: lista/filtros, formulário com validação, kanban de status, timeline, modal de devolução, preview CSV | ✅ Concluído (2026-09-10) |
 | R4 | CRM AT e Talentos: funil, pipeline, renovações, organograma, cards, busca por skill | ✅ Concluído (2026-09-10) |
-| R5 | Relatório A4 e Auditoria: capa, seções por pilar, impressão, timeline/paginação | ⏳ Pendente |
-| R6 | Polish: skeletons, tooltips, animações, view transitions, a11y, bundle, remoção do CSS legado | ⏳ Pendente |
+| R5 | Relatório A4 e Auditoria: capa, seções por pilar, impressão, timeline/paginação | ✅ Concluído (2026-09-10) |
+| R6 | Polish: skeletons, tooltips, animações, view transitions, a11y, bundle, remoção do CSS legado | ✅ Concluído (2026-09-10) |
 
 ## R0 — resultado
 
@@ -209,3 +209,51 @@ npx playwright test
 **Evidências**
 
 - `docs/retrofit/evidencias/R4-depois/` (11 páginas).
+
+## R5 — resultado (resumo)
+
+- Relatório A4 com capa, assinatura de integridade (hash de 16 chars), seções
+  por pilar, financeiro consolidado e dois gráficos Chart.js (`animation:false`),
+  com `@page A4` e `@media print` ocultando shell.
+- Auditoria com filtros, timeline (marcadores coloridos + badges por ação),
+  detalhes expansíveis e paginação.
+- Django: 164 testes OK · Playwright: 39 verdes (2 novos).
+- Evidências: `docs/retrofit/evidencias/R5-depois/`.
+
+## R6 — resultado
+
+**Decisões e entregas**
+
+- **CSS legado removido**: `static/css/local.css` e `legado.css` excluídos;
+  `dashboard/pilar.html` e `finance/consolidado.html` redesenhados; formulários
+  de CRM/Talentos e auditoria migrados para Tailwind/cotton; componentes
+  remanescentes (`.alert`, `.field`, `.form-actions`, `.report-secao`,
+  `.table-report`, `.audit-detail`) definidos em `assets/styles/input.css`.
+- **Polish**: skeleton global durante requisições HTMX, `title` em botões de
+  ícone, animação de entrada (`prefers-reduced-motion` respeitado), view
+  transitions do htmx habilitadas com duração curta.
+- **A11y**: `axe-core` em 12 páginas autenticadas — 0 violações
+  `critical`/`serious`; navegação por teclado com skip link validada.
+- **Lighthouse** (design system, preset desktop, Chromium do Playwright):
+  **Performance 100 · A11y 95 · Best Practices 96** (FCP 472ms, LCP 595ms,
+  CLS ~0,0003). Na página de login, A11y 100.
+- **Bundles (gzip)**: CSS 7,76 KB · JS base por página 37,27 KB · Chart.js
+  68,97 KB (sob demanda) — muito dentro dos orçamentos (150/200 KB).
+
+**Testes**
+
+- Django: **166 testes, OK** (BundleTestes com orçamento de CSS/JS).
+- Playwright: **54 testes, 54 verdes** (12 de a11y + 3 de polish novos).
+
+**Incidente registrado**
+
+- Substituições em massa via PowerShell (`Get-Content -Raw` + `WriteAllText`)
+  leram UTF-8 como cp1252 e corromperam acentos em 9 arquivos, causando
+  flakiness/timeouts no E2E. Correção: arquivos restaurados do git e reeditados
+  apenas com ferramentas UTF-8 nativas; varredura automática garantiu 0 arquivos
+  corrompidos. **Regra do projeto: não usar round-trips de texto via PowerShell
+  para editar fontes com acentos.**
+
+**Evidências**
+
+- `docs/retrofit/evidencias/R6-depois/` (11 páginas).

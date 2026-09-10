@@ -91,3 +91,20 @@
   de 15%); gate automatizado com `@axe-core/playwright` (0 violações sérias).
 - Loops do retrofit documentados em `docs/retrofit/loops.md` (R0–R6), sem
   colidir com os LOOP 0–6 do back-end em `docs/loops.md`.
+
+## Retrofit visual (R6 — 2026-09-10)
+
+- CSS legado eliminado por completo: `static/css/local.css` e `legado.css`
+  removidos; telas finais migradas (pilar, financeiro consolidado, formulários,
+  auditoria) e componentes remanescentes definidos em `assets/styles/input.css`.
+- Polish: skeleton global em requisições HTMX, tooltips em botões de ícone,
+  animações de entrada com `prefers-reduced-motion`, view transitions do htmx.
+- A11y: `axe-core` em 12 páginas (0 critical/serious); Lighthouse no design
+  system com Performance 100 / A11y 95 / Best Practices 96.
+- Bundles gzip: CSS 7,76 KB; JS base 37,27 KB/página; Chart.js 68,97 KB
+  sob demanda.
+- Incidente e regra: edições em massa com PowerShell corromperam UTF-8 de 9
+  arquivos (cp1252 no round-trip) e causaram flakiness no E2E. Correção aplicada
+  e regra adotada: **nunca usar `Get-Content`/`Set-Content` para editar fontes
+  com acentos; usar as ferramentas de edição nativas**; varredura automática de
+  mojibake (`Ã`/`Â`) passou a fazer parte da verificação final.

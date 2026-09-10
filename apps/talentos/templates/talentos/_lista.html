@@ -2,7 +2,7 @@
 <div id="talentos-lista" data-testid="talentos-lista" class="mt-4">
 <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3" data-testid="talentos-lista-conteudo">
   {% for c in colaboradores %}
-  <article class="rounded-xl border border-border bg-surface-2 p-4" data-testid="talento-card"
+  <article class="anim-entrada rounded-xl border border-border bg-surface-2 p-4" data-testid="talento-card"
            data-busca="{{ c.nome|lower }} {% for comp in c.competencias.all %}{{ comp.nome|lower }} {% endfor %}"
            x-show="!busca || $el.dataset.busca.includes(busca.toLowerCase())">
     <div class="flex items-start gap-3">
