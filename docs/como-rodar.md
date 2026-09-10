@@ -64,6 +64,7 @@ Acesse: http://127.0.0.1:8000/
 ## 7. Testes
 
 ```text
+python manage.py collectstatic --no-input --clear   # manifest do Whitenoise (necessário)
 python manage.py test
 ```
 
@@ -78,6 +79,23 @@ python manage.py test
 7. Relatório Mensal: gerar e usar Imprimir → Salvar como PDF.
 8. Auditoria: consultar histórico com o usuário auditor.
 
+## 8.1 Front-end (retrofit visual)
+
+```text
+pip install -r requirements.txt
+pip install -r requirements-dev.txt         # fonttools/brotli (conversão de fontes)
+python scripts/convert_fonts.py             # gera static/fonts/*.woff2 a partir de font/
+powershell -File scripts/vendor_assets.ps1  # baixa htmx/alpine/chart.js pinados (uma vez)
+python manage.py tailwind build             # gera static/css/tailwind.css
+python manage.py tailwind watch             # dev: rebuild automático
+python manage.py tailwind runserver         # dev: runserver + watcher
+```
+
+- `font/` (origem) e `static/fonts/{panton,myriad-pro}` (derivados licenciados) não
+  são versionados; sem eles, a UI cai no fallback de sistema.
+- Catálogo do design system (somente DEBUG): http://127.0.0.1:8000/dev/design-system/
+- Em Windows, se o console falhar com emojis do CLI do Tailwind, use `PYTHONUTF8=1`.
+
 ## 9. Testes E2E (Playwright, opcional)
 
 Requer Node.js já presente (o projeto contém `playwright.config.ts`).
@@ -85,6 +103,7 @@ Requer Node.js já presente (o projeto contém `playwright.config.ts`).
 ```text
 npx playwright install chromium
 python manage.py migrate && python manage.py seed_demo
+python manage.py tailwind build
 python manage.py runserver
 npx playwright test
 ```

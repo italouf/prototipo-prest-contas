@@ -54,8 +54,16 @@ consolidada e segregada por pilar, rodando apenas localmente.
 
 ## Brand Commitments
 
-Sem compromissos de marca além do nome "Portal QuIIN" — identidade visual aberta
-(confirmado com o usuário); `relatorio.html` não é referência visual.
+- Identidade visual QuIIN definida: paleta oficial (navy `#04047E`, deep-purple
+  `#1B1641`, royal `#0F3B94`, blue `#144FAD`, sky `#1D72B9`, quantum-green
+  `#2EBF7D`, violet `#3B249C`, mist `#DEDFE8`), com tokens semânticos por
+  status e por pilar.
+- Tipografia: Panton (headlines; arquivos trial para uso interno/local —
+  substituir por licença comercial antes de publicar), Myriad Pro (corpo),
+  JetBrains Mono (dados numéricos).
+- Design system interno em `templates/components/` com catálogo em
+  `/dev/design-system/` (somente DEBUG).
+- `relatorio.html` continua sem valor de referência visual.
 
 ## Evidence on Hand
 

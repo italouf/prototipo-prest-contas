@@ -79,8 +79,10 @@ Ver `docs/requisitos.md` (RF-001 a RF-106, RNF-001 a RNF-010, RN-001 a RN-015, U
 - Meta ANUAL/ACUMULADA usa somatório YTD (jan/ano → período).
 - Erro de digitação `EMBRAPPI` é normalizado para `EMBRAPII` na importação.
 - `relatorio.html` é somente contexto de engenharia; não é template nem referência visual obrigatória.
-- A skill `impeccable` não estava disponível na sessão de implementação; o frontend
-  seguiu o fallback do plano (CSS local simples, acessível, responsivo, sem CDN).
+- Front-end: Tailwind CSS v4 (build via django-tailwind-cli, sem Node em
+  runtime), componentes django-cotton, fragmentos django-template-partials,
+  HTMX + Alpine.js vendorizados e Chart.js sob demanda. Retrofit visual em
+  `docs/retrofit/loops.md` (R0–R6).
 
 ## 10. Rastreabilidade
 

@@ -63,3 +63,31 @@
   `.opencode/prompts/*.md` (agora presentes no projeto).
 - Os agentes MCP não estavam expostos nesta sessão; a validação E2E foi
   executada via CLI Playwright em `tests/e2e/` (8 testes verdes em Chromium).
+
+## Retrofit visual (R0 — 2026-09-10)
+
+- Stack: Tailwind CSS v4 via `django-tailwind-cli` 4.8.0 (binário standalone
+  pinado em 4.3.3, sem Node em runtime), `django-cotton` 2.7.2 (componentes),
+  `django-template-partials` 25.3 (fragmentos HTMX) e `django-htmx` 1.29.0;
+  HTMX 2.0.10, Alpine 3.17.2 e Chart.js 4.5.1 vendorizados em
+  `static/js/vendor/` (sem CDN).
+- `django_cotton` e `template_partials` usam `SimpleAppConfig` com **loaders
+  explícitos** em `TEMPLATES` (partials → cached → cotton → filesystem/app_dirs):
+  as auto-configurações dos dois pacotes não são composáveis entre si.
+- Tailwind com `source(none)`: sem varredura automática do projeto (evitava
+  capturar classes em `docs/`), apenas `@source` para `templates/` e `apps/`.
+- Source CSS em `assets/styles/` (fora de `static/`) para evitar o check
+  `django_tailwind_cli.W001`; `@font-face` em `static/css/fonts.css` servido
+  diretamente e resolvido tanto em `static/` quanto em `staticfiles/`.
+- Fontes: Panton **trial** aceita explicitamente para protótipo local não
+  publicado (risco registrado); Myriad Pro convertida OTF→woff2 por script;
+  JetBrains Mono (OFL) versionada. `font/` e `static/fonts/{panton,myriad-pro}`
+  ficam fora do git.
+- CSS legado isolado em `static/css/legado.css` via `@import ... layer(legado)`
+  enquanto as telas antigas não migram (remoção prevista no R6).
+- Testes Django passam a exigir `collectstatic` antes (manifest do Whitenoise),
+  documentado em `docs/como-rodar.md`.
+- Contraste AA corrigido nos badges (tokens `*-texto` escurecidos para tintas
+  de 15%); gate automatizado com `@axe-core/playwright` (0 violações sérias).
+- Loops do retrofit documentados em `docs/retrofit/loops.md` (R0–R6), sem
+  colidir com os LOOP 0–6 do back-end em `docs/loops.md`.
