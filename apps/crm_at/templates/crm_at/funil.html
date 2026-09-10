@@ -5,6 +5,12 @@
 
 <h1>Funil AT</h1>
 
+{% if pode_editar_crm %}
+<div class="form-actions">
+  <a class="btn btn-primary" href="{% url 'crm_at:oportunidade_criar' %}">+ Nova oportunidade</a>
+</div>
+{% endif %}
+
 <div class="panel">
   <p><strong>Pipeline em aberto:</strong> {{ pipeline_open|brl }}</p>
   <p><strong>Renovações em andamento:</strong> {{ renovacoes_qtd }} ({{ renovacoes_total|brl }})</p>
@@ -21,6 +27,7 @@
           <th>Empresa</th>
           <th>Tipo</th>
           <th>Valor previsto</th>
+          {% if pode_editar_crm %}<th>Ações</th>{% endif %}
         </tr>
       </thead>
       <tbody>
@@ -29,6 +36,7 @@
           <td>{{ o.empresa.nome }}</td>
           <td>{{ o.get_tipo_display }}</td>
           <td>{{ o.valor_previsto|brl }}</td>
+          {% if pode_editar_crm %}<td><a href="{% url 'crm_at:oportunidade_editar' o.pk %}">editar</a></td>{% endif %}
         </tr>
         {% endfor %}
       </tbody>
@@ -36,6 +44,7 @@
         <tr>
           <td colspan="2"><strong>Total</strong></td>
           <td><strong>{{ grupo.total|brl }}</strong></td>
+          {% if pode_editar_crm %}<td></td>{% endif %}
         </tr>
       </tfoot>
     </table>

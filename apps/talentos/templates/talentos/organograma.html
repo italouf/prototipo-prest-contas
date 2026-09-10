@@ -4,6 +4,12 @@
 
 <h1>Organograma</h1>
 
+{% if pode_editar_talentos %}
+<div class="form-actions">
+  <a class="btn btn-primary" href="{% url 'talentos:colaborador_criar' %}">+ Novo colaborador</a>
+</div>
+{% endif %}
+
 <div class="panel">
   <form method="get">
     <label for="filtro-pilar">Pilar</label>
@@ -37,6 +43,7 @@
         <th>Competências</th>
         <th>Lattes</th>
         <th>Alocações vigentes</th>
+        {% if pode_editar_talentos %}<th>Ações</th>{% endif %}
       </tr>
     </thead>
     <tbody>
@@ -53,6 +60,13 @@
           {{ a.projeto_ou_area }} ({{ a.horas_semanais }}h/sem){% if not forloop.last %}; {% endif %}
           {% empty %}—{% endfor %}
         </td>
+        {% if pode_editar_talentos %}
+        <td>
+          <a href="{% url 'talentos:colaborador_editar' c.pk %}">editar</a>
+          ·
+          <a href="{% url 'talentos:alocacao_criar' c.pk %}">+ Nova alocação</a>
+        </td>
+        {% endif %}
       </tr>
       {% endfor %}
     </tbody>

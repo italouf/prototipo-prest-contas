@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% block title %}{{ titulo }} · Talentos · Portal QuIIN{% endblock %}
+{% block content %}
+
+<h1>{{ titulo }}</h1>
+{% if colaborador %}<p class="muted">Colaborador: <strong>{{ colaborador.nome }}</strong></p>{% endif %}
+
+<div class="panel">
+  <form method="post">
+    {% csrf_token %}
+    {% if form.non_field_errors %}
+      <div class="alert alert-error" role="alert">
+        {% for erro in form.non_field_errors %}<p>{{ erro }}</p>{% endfor %}
+      </div>
+    {% endif %}
+    {% for campo in form %}
+      <div class="field">
+        <label for="{{ campo.id_for_label }}">{{ campo.label }}</label>
+        {{ campo }}
+        {% for erro in campo.errors %}<p class="alert alert-error">{{ erro }}</p>{% endfor %}
+      </div>
+    {% endfor %}
+    <div class="form-actions">
+      <button class="btn btn-primary" type="submit">Salvar</button>
+      <a class="btn btn-ghost" href="{% url 'talentos:organograma' %}">Voltar ao organograma</a>
+    </div>
+  </form>
+</div>
+{% endblock %}
