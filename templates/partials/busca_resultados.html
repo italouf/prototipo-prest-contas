@@ -1,0 +1,32 @@
+{% if termo|length < 2 %}
+<p class="px-3 py-2 text-sm text-text-muted">Digite ao menos 2 caracteres.</p>
+{% elif not indicadores and not empresas and not colaboradores %}
+<p class="px-3 py-2 text-sm text-text-muted" data-testid="busca-vazia">Nenhum resultado para “{{ termo }}”.</p>
+{% else %}
+<ul class="divide-y divide-border" data-testid="busca-lista">
+  {% for ind in indicadores %}
+  <li>
+    <a href="{% url 'core:pilar' ind.pilar.pk %}" class="block px-3 py-2 hover:bg-quiin-mist/30 dark:hover:bg-white/5">
+      <span class="block text-sm font-medium">{{ ind.nome }}</span>
+      <span class="block text-xs text-text-muted">{{ ind.codigo }} · {{ ind.pilar.nome }}</span>
+    </a>
+  </li>
+  {% endfor %}
+  {% for empresa in empresas %}
+  <li>
+    <a href="{% url 'crm_at:funil' %}" class="block px-3 py-2 hover:bg-quiin-mist/30 dark:hover:bg-white/5">
+      <span class="block text-sm font-medium">{{ empresa.nome }}</span>
+      <span class="block text-xs text-text-muted">Empresa · {{ empresa.cnpj }}</span>
+    </a>
+  </li>
+  {% endfor %}
+  {% for pessoa in colaboradores %}
+  <li>
+    <a href="{% url 'talentos:organograma' %}" class="block px-3 py-2 hover:bg-quiin-mist/30 dark:hover:bg-white/5">
+      <span class="block text-sm font-medium">{{ pessoa.nome }}</span>
+      <span class="block text-xs text-text-muted">Talento · {{ pessoa.cargo }}</span>
+    </a>
+  </li>
+  {% endfor %}
+</ul>
+{% endif %}

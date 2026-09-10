@@ -1,4 +1,7 @@
-"""Contexto de navegação para o layout base."""
+"""Contexto de navegação para o layout base (R1)."""
+from django.db.models import Count
+
+from apps.entries.models import Lancamento
 from apps.periods.models import Periodo
 
 
@@ -16,8 +19,31 @@ def nav(request):
     )
 
     pilares = pilares_visiveis(request.user)
-    periodo_aberto = Periodo.objects.filter(status__in=["ABERTO", "REABERTO"]).order_by("-competencia").first()
+    periodo_aberto = (
+        Periodo.objects.filter(status__in=["ABERTO", "REABERTO"]).order_by("-competencia").first()
+    )
     ultimo_periodo = Periodo.objects.order_by("-competencia").first()
+
+    pendencias_nav = {}
+    total_pendencias = 0
+    if periodo_aberto is not None:
+        if pode_aprovar(request.user):
+            status_alvo = "ENVIADO"
+        elif pode_lancar(request.user):
+            status_alvo = "DEVOLVIDO"
+        else:
+            status_alvo = None
+        if status_alvo:
+            linhas = (
+                Lancamento.objects.filter(
+                    periodo=periodo_aberto, status=status_alvo, indicador__pilar__in=pilares
+                )
+                .values("indicador__pilar")
+                .annotate(total=Count("pk"))
+            )
+            pendencias_nav = {item["indicador__pilar"]: item["total"] for item in linhas}
+            total_pendencias = sum(pendencias_nav.values())
+
     return {
         "papel": papel_do_usuario(request.user),
         "pode_lancar": pode_lancar(request.user),
@@ -28,4 +54,7 @@ def nav(request):
         "pilares_nav": pilares,
         "periodo_aberto_nav": periodo_aberto,
         "ultimo_periodo_nav": ultimo_periodo,
+        "periodos_nav": Periodo.objects.order_by("-competencia"),
+        "pendencias_nav": pendencias_nav,
+        "total_pendencias": total_pendencias,
     }

@@ -1,0 +1,13 @@
+<nav aria-label="Trilha de navegação" data-testid="breadcrumbs" class="mb-4">
+  <ol class="flex flex-wrap items-center gap-1.5 text-xs text-text-muted">
+    <li>
+      <a href="{% url 'core:dashboard' %}" class="inline-flex items-center gap-1 hover:text-text">
+        <c-ui.icon name="home" size="14" /> Início
+      </a>
+    </li>
+    {% if atual %}
+    <li aria-hidden="true">/</li>
+    <li aria-current="page" class="font-medium text-text">{{ atual }}</li>
+    {% endif %}
+  </ol>
+</nav>

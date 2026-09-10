@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+{% block title %}Busca · Portal QuIIN{% endblock %}
+{% block breadcrumbs %}{% include "partials/breadcrumbs.html" with atual="Busca" %}{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-bold">Busca</h1>
+<p class="mt-1 text-sm text-text-muted">Resultados para “{{ termo }}”.</p>
+<div class="mt-4 rounded-xl border border-border bg-surface-2" data-testid="busca-pagina">
+  {% include "partials/busca_resultados.html" %}
+</div>
+{% endblock %}
