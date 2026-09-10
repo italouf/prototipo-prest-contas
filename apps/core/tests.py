@@ -256,6 +256,15 @@ class DashboardR2ViewTestes(TestCase):
         self.assertEqual(resposta.status_code, 403)
         self.assertNotContains(resposta, "AT-CNPJ", status_code=403)
 
+    def test_dashboard_dentro_do_orcamento_de_queries(self):
+        """Dashboard executivo deve manter o render enxuto (R2)."""
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
+
+        with CaptureQueriesContext(connection) as capturadas:
+            self.client.get(reverse("core:dashboard"))
+        self.assertLessEqual(len(capturadas.captured_queries), 30)
+
 
 class DestaquesFiltroTestes(TestCase):
     def setUp(self):

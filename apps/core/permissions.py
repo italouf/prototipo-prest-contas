@@ -25,10 +25,16 @@ def adicionar_grupo(usuario, nome):
 def papel_do_usuario(usuario):
     if not usuario or not usuario.is_authenticated:
         return None
-    for nome in GRUPOS:
-        if usuario.groups.filter(name=nome).exists():
-            return nome
-    return None
+    cache = getattr(usuario, "_quiin_papel", None)
+    if cache is None:
+        nomes = {grupo.name for grupo in usuario.groups.all()}
+        cache = ""
+        for nome in GRUPOS:
+            if nome in nomes:
+                cache = nome
+                break
+        usuario._quiin_papel = cache
+    return cache or None
 
 
 def eh_master(usuario):

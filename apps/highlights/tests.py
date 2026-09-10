@@ -47,12 +47,12 @@ class DashboardDestaquesTestes(TestCase):
         self.formacao = Pilar.objects.create(codigo="FORMACAO", nome="Formação", ordem=2)
         self.periodo = Periodo.objects.create(competencia=date(2026, 6, 1), status="ABERTO")
 
-    def test_home_traz_destaque_geral_e_do_pilar_limitado_a_3(self):
+    def test_home_traz_destaque_geral_e_do_pilar_limitado_a_6(self):
         from apps.core.views import dashboard
 
         base = timezone.now()
         criados = []
-        for i in range(4):
+        for i in range(7):
             d = DestaqueMensal.objects.create(
                 periodo=self.periodo,
                 pilar=self.pdi if i % 2 == 0 else None,
@@ -71,11 +71,12 @@ class DashboardDestaquesTestes(TestCase):
         contexto = _contexto_de_render(mock_render)
         self.assertIn("destaques", contexto)
         destaques = list(contexto["destaques"])
-        self.assertEqual(len(destaques), 3)
-        # Últimos 3, mais recente primeiro.
-        self.assertEqual([d.titulo for d in destaques], ["Destaque 3", "Destaque 2", "Destaque 1"])
-        titulos = {d.titulo for d in destaques}
-        self.assertIn("Destaque 3", titulos)
+        self.assertEqual(len(destaques), 6)
+        # Últimos 6, mais recente primeiro.
+        self.assertEqual(
+            [d.titulo for d in destaques],
+            ["Destaque 6", "Destaque 5", "Destaque 4", "Destaque 3", "Destaque 2", "Destaque 1"],
+        )
 
     def test_home_com_destaque_geral_e_de_pilar_aparecem_no_contexto(self):
         from apps.core.views import dashboard

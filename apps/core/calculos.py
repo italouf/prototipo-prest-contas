@@ -80,3 +80,88 @@ def meta_realizado_percentual(indicador, periodo):
         "meta_obj": meta,
         "lc": lc,
     }
+
+
+def itens_do_periodo(indicadores, periodo):
+    """Versão em lote de `meta_realizado_percentual` (3 queries, sem N+1).
+
+    Usada em telas com muitos indicadores (dashboard, pilar, drawer).
+    """
+    from apps.entries.models import Lancamento
+    from apps.indicators.models import Meta
+
+    indicadores = list(indicadores)
+    if not indicadores or periodo is None:
+        return []
+    ids = [i.pk for i in indicadores]
+
+    metas = {}
+    metas_qs = (
+        Meta.objects.filter(
+            indicador_id__in=ids,
+            ativo=True,
+            competencia_inicio__lte=periodo.competencia,
+            competencia_fim__gte=periodo.competencia,
+        )
+        .order_by("indicador_id", "-versao", "-competencia_inicio")
+    )
+    for meta in metas_qs:
+        metas.setdefault(meta.indicador_id, meta)
+
+    lancamentos = {
+        lc.indicador_id: lc
+        for lc in Lancamento.objects.filter(indicador_id__in=ids, periodo=periodo, status="APROVADO")
+    }
+
+    inicio = periodo.competencia.replace(month=1, day=1)
+    from django.db.models import Sum
+
+    ytd_somas = {
+        item["indicador_id"]: item["total"] or ZERO
+        for item in Lancamento.objects.filter(
+            indicador_id__in=ids,
+            status="APROVADO",
+            periodo__competencia__gte=inicio,
+            periodo__competencia__lte=periodo.competencia,
+        )
+        .values("indicador_id")
+        .annotate(total=Sum("valor_numerico"))
+    }
+
+    itens = []
+    for ind in indicadores:
+        meta = metas.get(ind.pk)
+        lc = lancamentos.get(ind.pk)
+        if ind.tipo == "TXT":
+            itens.append(
+                {
+                    "indicador": ind,
+                    "meta": None,
+                    "realizado": lc.valor_texto if lc else None,
+                    "percentual": None,
+                    "ytd": False,
+                    "meta_obj": meta,
+                    "lc": lc,
+                }
+            )
+            continue
+        ytd = bool(ind.acumulado) or (meta is not None and meta.periodicidade in ("ANUAL", "ACUMULADA"))
+        if ytd:
+            realizado = ytd_somas.get(ind.pk, ZERO)
+        else:
+            realizado = lc.valor_numerico if lc else None
+        percentual = None
+        if meta is not None and meta.valor and realizado is not None:
+            percentual = (realizado / meta.valor) * 100
+        itens.append(
+            {
+                "indicador": ind,
+                "meta": meta.valor if meta else None,
+                "realizado": realizado,
+                "percentual": percentual,
+                "ytd": ytd,
+                "meta_obj": meta,
+                "lc": lc,
+            }
+        )
+    return itens

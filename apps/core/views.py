@@ -2,7 +2,7 @@
 from decimal import Decimal
 
 from django.contrib.auth.decorators import login_required
-from django.db.models import Q, Sum
+from django.db.models import Count, Q
 from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, render
 
@@ -12,7 +12,7 @@ from apps.highlights.models import DestaqueMensal
 from apps.indicators.models import Indicador
 from apps.pillars.models import Pilar
 
-from .calculos import meta_realizado_percentual
+from .calculos import itens_do_periodo
 from .dashboard import avisos_do_dashboard, graficos_dados, heatmap_por_pilar, kpi_por_pilar
 from .permissions import eh_gestor, pilares_visiveis, sem_permissao, usuario_pode_pilar
 from .utils import periodo_selecionado
@@ -44,35 +44,49 @@ def dashboard(request):
     if periodo is None:
         return render(request, "home.html", contexto)
 
-    pilares = pilares_visiveis(request.user)
+    pilares = list(pilares_visiveis(request.user))
     ano = periodo.competencia.year
-    fin_ytd = FinanceiroConsolidado.objects.filter(
-        periodo__competencia__year=ano,
-        periodo__competencia__lte=periodo.competencia,
-        pilar__in=pilares,
+    fin_ytd = list(
+        FinanceiroConsolidado.objects.filter(
+            periodo__competencia__year=ano,
+            periodo__competencia__lte=periodo.competencia,
+            pilar__in=pilares,
+        ).select_related("pilar", "periodo")
     )
-    pilares_ids = set(pilares.values_list("pk", flat=True))
     cards = {
-        "execucao": fin_ytd.aggregate(t=Sum("valor_executado"))["t"] or Decimal("0"),
-        "captacao_at": fin_ytd.filter(tipo_recurso="AT").aggregate(t=Sum("valor_captado"))["t"] or Decimal("0"),
-        "outras_fontes": fin_ytd.filter(tipo_recurso="OUTRAS_FONTES").aggregate(t=Sum("valor_captado"))["t"] or Decimal("0"),
+        "execucao": sum((f.valor_executado or Decimal("0") for f in fin_ytd), Decimal("0")),
+        "captacao_at": sum(
+            (f.valor_captado or Decimal("0") for f in fin_ytd if f.tipo_recurso == "AT"), Decimal("0")
+        ),
+        "outras_fontes": sum(
+            (f.valor_captado or Decimal("0") for f in fin_ytd if f.tipo_recurso == "OUTRAS_FONTES"),
+            Decimal("0"),
+        ),
     }
-    for chave, codigo in (
-        ("artigos", "PDI-ARTIGOS"),
-        ("pi", "PDI-PI"),
-        ("formados", "FORM-FORMADOS"),
-        ("cnpjs", "AT-CNPJ-NOVOS"),
-        ("startups", "STA-ATRAIDAS"),
-    ):
-        card = _card_pilar(codigo, periodo, pilares_ids)
-        if card is not None:
-            cards[chave] = card
+    codigos_cards = {
+        "PDI-ARTIGOS": "artigos",
+        "PDI-PI": "pi",
+        "FORM-FORMADOS": "formados",
+        "AT-CNPJ-NOVOS": "cnpjs",
+        "STA-ATRAIDAS": "startups",
+    }
+    indicadores = list(
+        Indicador.objects.filter(pilar__in=pilares, ativo=True)
+        .select_related("pilar")
+        .order_by("pilar__ordem", "codigo")
+    )
+    itens_todos = itens_do_periodo(indicadores, periodo)
+    itens_por_pilar = {}
+    for item in itens_todos:
+        itens_por_pilar.setdefault(item["indicador"].pilar_id, []).append(item)
+        chave = codigos_cards.get(item["indicador"].codigo)
+        if chave:
+            cards[chave] = {"nome": item["indicador"].nome, "dados": item}
     contexto["cards"] = cards
 
     linhas, pendencias = [], []
     for pilar in pilares:
-        indicadores = Indicador.objects.filter(pilar=pilar, ativo=True)
-        itens = [{"indicador": ind, **meta_realizado_percentual(ind, periodo)} for ind in indicadores]
+        itens = itens_por_pilar.get(pilar.pk, [])
         linhas.append({"pilar": pilar, "itens": itens})
         faltantes = [i["indicador"] for i in itens if i["indicador"].tipo != "TXT" and i["realizado"] is None]
         pendencias.append({"pilar": pilar, "faltantes": faltantes})
@@ -122,7 +136,7 @@ def pilar(request, pk):
     destaques = []
     if periodo is not None:
         indicadores = Indicador.objects.filter(pilar=pilar_obj, ativo=True)
-        itens = [{"indicador": ind, **meta_realizado_percentual(ind, periodo)} for ind in indicadores]
+        itens = itens_do_periodo(indicadores, periodo)
         destaques = DestaqueMensal.objects.filter(periodo=periodo).filter(Q(pilar=pilar_obj) | Q(pilar__isnull=True)).select_related("pilar").order_by("-criado_em")
     return render(
         request,
@@ -141,7 +155,7 @@ def pilar_drawer(request, pk):
     itens = []
     if periodo is not None:
         indicadores = Indicador.objects.filter(pilar=pilar_obj, ativo=True)
-        itens = [{"indicador": ind, **meta_realizado_percentual(ind, periodo)} for ind in indicadores]
+        itens = itens_do_periodo(indicadores, periodo)
     return render(
         request,
         "partials/dashboard/drawer_pilar.html",
@@ -149,31 +163,14 @@ def pilar_drawer(request, pk):
     )
 
 
-def _card(codigo, periodo):
-    ind = Indicador.objects.filter(codigo=codigo).first()
-    if not ind:
-        return None
-    return {"nome": ind.nome, "dados": meta_realizado_percentual(ind, periodo)}
-
-
-def _card_pilar(codigo, periodo, pilares_ids):
-    """Card de indicador só se o pilar for visível ao usuário."""
-    ind = Indicador.objects.filter(codigo=codigo).first()
-    if not ind:
-        return None
-    if ind.pilar_id not in pilares_ids:
-        return None
-    return {"nome": ind.nome, "dados": meta_realizado_percentual(ind, periodo)}
-
-
 def _chart_financeiro(fin_ytd):
     """Captação × execução por pilar (barras horizontais)."""
     linhas = []
     por_pilar = {}
-    for f in fin_ytd.select_related("pilar"):
+    for f in fin_ytd:
         dados = por_pilar.setdefault(f.pilar_id, {"nome": f.pilar.nome, "codigo": f.pilar.codigo, "captado": Decimal("0"), "executado": Decimal("0")})
-        dados["captado"] += f.valor_captado
-        dados["executado"] += f.valor_executado
+        dados["captado"] += f.valor_captado or Decimal("0")
+        dados["executado"] += f.valor_executado or Decimal("0")
     maior = max((max(d["captado"], d["executado"]) for d in por_pilar.values()), default=Decimal("0"))
     for d in por_pilar.values():
         d["pct_captado"] = _pct(d["captado"], maior)
@@ -183,22 +180,21 @@ def _chart_financeiro(fin_ytd):
 
 
 def _chart_mensal(fin_ytd, ano):
-    """Evolução mensal de captado × executado (colunas)."""
-    agregado = (
-        fin_ytd.values("periodo__competencia")
-        .annotate(captado=Sum("valor_captado"), executado=Sum("valor_executado"))
-        .order_by("periodo__competencia")
-    )
-    pontos = []
-    for item in agregado:
-        competencia = item["periodo__competencia"]
-        pontos.append(
-            {
-                "rotulo": MESES_ABREV[competencia.month],
-                "captado": item["captado"] or Decimal("0"),
-                "executado": item["executado"] or Decimal("0"),
-            }
-        )
+    """Evolução mensal de captado × executado (agregado em memória)."""
+    por_mes = {}
+    for f in fin_ytd:
+        chave = f.periodo.competencia
+        dados = por_mes.setdefault(chave, {"captado": Decimal("0"), "executado": Decimal("0")})
+        dados["captado"] += f.valor_captado or Decimal("0")
+        dados["executado"] += f.valor_executado or Decimal("0")
+    pontos = [
+        {
+            "rotulo": MESES_ABREV[competencia.month],
+            "captado": dados["captado"],
+            "executado": dados["executado"],
+        }
+        for competencia, dados in sorted(por_mes.items())
+    ]
     maior = max((max(p["captado"], p["executado"]) for p in pontos), default=Decimal("0"))
     for p in pontos:
         p["pct_captado"] = _pct(p["captado"], maior)
@@ -207,16 +203,24 @@ def _chart_mensal(fin_ytd, ano):
 
 
 def _status_counts(periodo, pilares):
-    """Distribuição de lançamentos por status no período (pilares visíveis)."""
-    qs = Lancamento.objects.filter(periodo=periodo, indicador__pilar__in=pilares)
-    total = qs.count()
+    """Distribuição de lançamentos por status no período (1 query agregada)."""
+    agregado = Lancamento.objects.filter(periodo=periodo, indicador__pilar__in=pilares).aggregate(
+        total=Count("pk"),
+        aprovado=Count("pk", filter=Q(status="APROVADO")),
+        enviado=Count("pk", filter=Q(status="ENVIADO")),
+        rascunho=Count("pk", filter=Q(status="RASCUNHO")),
+        devolvido=Count("pk", filter=Q(status="DEVOLVIDO")),
+    )
+    total = agregado["total"] or 0
     counts = {}
-    for status in ("APROVADO", "ENVIADO", "RASCUNHO", "DEVOLVIDO"):
-        n = qs.filter(status=status).count()
-        counts[status] = {
-            "quantidade": n,
-            "pct": round((n / total * 100), 1) if total else 0,
-        }
+    for status, chave in (
+        ("APROVADO", "aprovado"),
+        ("ENVIADO", "enviado"),
+        ("RASCUNHO", "rascunho"),
+        ("DEVOLVIDO", "devolvido"),
+    ):
+        n = agregado[chave] or 0
+        counts[status] = {"quantidade": n, "pct": round((n / total * 100), 1) if total else 0}
     counts["total"] = total
     return counts
 
