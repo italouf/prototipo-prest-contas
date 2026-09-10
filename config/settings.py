@@ -25,6 +25,10 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django_cotton",
+    "django_tailwind_cli",
+    "django_htmx",
+    "template_partials",
     "apps.accounts",
     "apps.core",
     "apps.pillars",
@@ -48,6 +52,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django_htmx.middleware.HtmxMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -115,3 +120,11 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 LOGIN_URL = "accounts:login"
 LOGIN_REDIRECT_URL = "core:dashboard"
+
+# ---------- Front-end (retrofit visual) ----------
+TAILWIND_CLI_VERSION = "latest"  # pinado na Task 3 após o primeiro download
+TAILWIND_CLI_SRC_CSS = "assets/styles/input.css"
+TAILWIND_CLI_DIST_CSS = "css/tailwind.css"
+
+COTTON_DIR = "components"
+COTTON_SNAKE_CASED_NAMES = False

@@ -1,0 +1,3 @@
+# Ferramentas de desenvolvimento do retrofit visual (não usadas em runtime).
+fonttools>=4.59,<5
+brotli>=1.1,<2
