@@ -1,7 +1,7 @@
 """Testes da stack de front-end do retrofit (R0)."""
 from django.conf import settings
 from django.template import Context, Template
-from django.test import SimpleTestCase
+from django.test import SimpleTestCase, TestCase, override_settings
 from django_cotton.compiler_regex import CottonCompiler
 
 
@@ -117,3 +117,16 @@ class ComponentesUITestes(SimpleTestCase):
         self.assertIn("icons/sprite", html)
         self.assertIn("#check", html)
         self.assertIn('aria-hidden="true"', html)
+
+
+class DevDesignSystemTestes(TestCase):
+    @override_settings(DEBUG=True)
+    def test_pagina_disponivel_em_debug(self):
+        resposta = self.client.get("/dev/design-system/")
+        self.assertEqual(resposta.status_code, 200)
+        self.assertContains(resposta, 'data-testid="page-design-system"')
+
+    @override_settings(DEBUG=False)
+    def test_pagina_indisponivel_fora_de_debug(self):
+        resposta = self.client.get("/dev/design-system/")
+        self.assertEqual(resposta.status_code, 404)

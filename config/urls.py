@@ -17,5 +17,9 @@ urlpatterns = [
     path("auditoria/", include("apps.audit.urls", namespace="audit")),
 ]
 
+from apps.core import dev_views
+
+urlpatterns += [path("dev/design-system/", dev_views.design_system, name="dev_design_system")]
+
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

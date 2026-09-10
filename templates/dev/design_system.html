@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+{% block title %}Design System · Portal QuIIN{% endblock %}
+{% block content %}
+<div data-testid="page-design-system">
+  <h1 class="font-display text-2xl font-bold">Design System QuIIN</h1>
+  <p class="mt-1 text-sm text-text-muted">Catálogo interno (somente DEBUG) dos primitivos do retrofit visual.</p>
+
+  <section class="mt-8" aria-labelledby="cores">
+    <h2 id="cores" class="font-display text-lg font-semibold">Cores</h2>
+    <div class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">
+      <div class="rounded-lg border border-border bg-surface-2 p-3"><div class="h-10 rounded bg-quiin-navy"></div><p class="mt-2 text-xs">navy</p></div>
+      <div class="rounded-lg border border-border bg-surface-2 p-3"><div class="h-10 rounded bg-quiin-deep-purple"></div><p class="mt-2 text-xs">deep-purple</p></div>
+      <div class="rounded-lg border border-border bg-surface-2 p-3"><div class="h-10 rounded bg-quiin-royal"></div><p class="mt-2 text-xs">royal</p></div>
+      <div class="rounded-lg border border-border bg-surface-2 p-3"><div class="h-10 rounded bg-quiin-blue"></div><p class="mt-2 text-xs">blue</p></div>
+      <div class="rounded-lg border border-border bg-surface-2 p-3"><div class="h-10 rounded bg-quiin-sky"></div><p class="mt-2 text-xs">sky</p></div>
+      <div class="rounded-lg border border-border bg-surface-2 p-3"><div class="h-10 rounded bg-quiin-quantum-green"></div><p class="mt-2 text-xs">quantum-green</p></div>
+      <div class="rounded-lg border border-border bg-surface-2 p-3"><div class="h-10 rounded bg-quiin-violet"></div><p class="mt-2 text-xs">violet</p></div>
+      <div class="rounded-lg border border-border bg-surface-2 p-3"><div class="h-10 rounded bg-quiin-mist"></div><p class="mt-2 text-xs">mist</p></div>
+    </div>
+  </section>
+
+  <section class="mt-8" aria-labelledby="tipografia">
+    <h2 id="tipografia" class="font-display text-lg font-semibold">Tipografia</h2>
+    <div class="mt-3 space-y-2 rounded-xl border border-border bg-surface-2 p-5">
+      <p class="font-display text-3xl font-bold">Panton — headline executiva</p>
+      <p class="text-base">Myriad Pro — corpo de texto e UI.</p>
+      <p class="numerico text-sm">R$ 60.000.000,00 · 129 CNPJs · 53,4% (JetBrains Mono)</p>
+    </div>
+  </section>
+
+  <section class="mt-8" aria-labelledby="botoes">
+    <h2 id="botoes" class="font-display text-lg font-semibold">Botões</h2>
+    <div class="mt-3 flex flex-wrap items-center gap-3 rounded-xl border border-border bg-surface-2 p-5">
+      <c-ui.button variant="primary" data-testid="btn-primary">Primário</c-ui.button>
+      <c-ui.button variant="secondary">Secundário</c-ui.button>
+      <c-ui.button variant="ghost" data-testid="btn-ghost">Ghost</c-ui.button>
+      <c-ui.button variant="danger" size="sm">Perigo sm</c-ui.button>
+      <c-ui.button variant="primary" disabled>Desabilitado</c-ui.button>
+      <c-ui.button variant="primary" loading>Carregando</c-ui.button>
+    </div>
+  </section>
+
+  <section class="mt-8" aria-labelledby="badges">
+    <h2 id="badges" class="font-display text-lg font-semibold">Badges</h2>
+    <div class="mt-3 flex flex-wrap items-center gap-3 rounded-xl border border-border bg-surface-2 p-5">
+      <c-ui.badge tone="success" data-testid="badge-aprovado">Aprovado</c-ui.badge>
+      <c-ui.badge tone="info">Enviado</c-ui.badge>
+      <c-ui.badge>Rascunho</c-ui.badge>
+      <c-ui.badge tone="warn">Devolvido</c-ui.badge>
+      <c-ui.badge tone="danger">Erro</c-ui.badge>
+      <c-ui.badge pillar="PDI">PDI</c-ui.badge>
+      <c-ui.badge pillar="FORMACAO">Formação</c-ui.badge>
+      <c-ui.badge pillar="STARTUPS">Startups</c-ui.badge>
+      <c-ui.badge pillar="AT">AT</c-ui.badge>
+      <c-ui.badge pillar="INFRA">Infra</c-ui.badge>
+      <c-ui.badge pillar="OUTRASFONTES">Outras Fontes</c-ui.badge>
+    </div>
+  </section>
+
+  <section class="mt-8" aria-labelledby="cards">
+    <h2 id="cards" class="font-display text-lg font-semibold">Cards</h2>
+    <div class="mt-3 grid gap-4 md:grid-cols-3">
+      <c-ui.card>
+        <c-slot name="header">Painel</c-slot>
+        Conteúdo de um card de painel padrão.
+        <c-slot name="footer">Rodapé opcional</c-slot>
+      </c-ui.card>
+      <c-ui.card variant="metric">
+        <p class="text-xs font-semibold uppercase tracking-wide text-text-muted">Execução acumulada</p>
+        <p class="numerico mt-1 text-2xl font-bold">R$ 60 mi</p>
+      </c-ui.card>
+      <c-ui.card variant="action">
+        Ações rápidas com padding reduzido.
+      </c-ui.card>
+    </div>
+  </section>
+
+  <section class="mt-8" aria-labelledby="formularios">
+    <h2 id="formularios" class="font-display text-lg font-semibold">Formulários</h2>
+    <div class="mt-3 grid gap-4 rounded-xl border border-border bg-surface-2 p-5 md:grid-cols-3">
+      <c-ui.input name="demo-nome" label="Nome" help="Texto de ajuda do campo." />
+      <c-ui.input name="demo-erro" label="Valor" error="Campo obrigatório." />
+      <c-ui.select name="demo-periodo" label="Período">
+        <option>2026-06 — Aberto</option>
+        <option>2026-05 — Fechado</option>
+      </c-ui.select>
+    </div>
+  </section>
+
+  <section class="mt-8" aria-labelledby="tabela">
+    <h2 id="tabela" class="font-display text-lg font-semibold">Tabela</h2>
+    <div class="mt-3">
+      <c-ui.table caption="Exemplo de tabela com slots head/body">
+        <c-slot name="head"><tr><th>Indicador</th><th>Meta</th><th>Realizado</th><th>%</th></tr></c-slot>
+        <c-slot name="body">
+          <tr><td>CNPJs novos</td><td class="numerico">129</td><td class="numerico">69</td><td class="numerico">53,5%</td></tr>
+          <tr><td>Artigos</td><td class="numerico">20</td><td class="numerico">10</td><td class="numerico">50,0%</td></tr>
+        </c-slot>
+      </c-ui.table>
+    </div>
+  </section>
+
+  <section class="mt-8 pb-16" aria-labelledby="icones">
+    <h2 id="icones" class="font-display text-lg font-semibold">Ícones</h2>
+    <div class="mt-3 flex flex-wrap items-center gap-4 rounded-xl border border-border bg-surface-2 p-5 text-text">
+      <c-ui.icon name="check" /><c-ui.icon name="x" /><c-ui.icon name="alert" /><c-ui.icon name="info" />
+      <c-ui.icon name="search" /><c-ui.icon name="sun" /><c-ui.icon name="moon" /><c-ui.icon name="menu" />
+      <c-ui.icon name="chevron-down" /><c-ui.icon name="chevron-right" /><c-ui.icon name="external" />
+      <c-ui.icon name="plus" /><c-ui.icon name="arrow-right" />
+    </div>
+  </section>
+</div>
+{% endblock %}

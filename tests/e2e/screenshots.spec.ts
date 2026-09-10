@@ -30,6 +30,7 @@ test('captura evidencias visuais das paginas principais', async ({ page }) => {
     ['talentos-organograma', '/talentos/organograma/'],
     ['auditoria', '/auditoria/'],
     ['relatorio-mensal', '/relatorio/mensal/2/'],
+    ['design-system', '/dev/design-system/'],
   ];
   for (const [nome, url] of paginas) {
     await page.goto(url);

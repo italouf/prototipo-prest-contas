@@ -1,0 +1,3 @@
+/* CSS legado (pré-retrofit) isolado em layer para o Tailwind prevalecer.
+   Remover junto com local.css no R6, quando todas as telas estiverem migradas. */
+@import url("local.css") layer(legado);
