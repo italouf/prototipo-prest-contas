@@ -12,13 +12,16 @@ from django.core.management.base import BaseCommand
 from apps.accounts.models import User
 from apps.audit.services import registrar_auditoria
 from apps.core.permissions import garantir_grupos
+from apps.crm_at.models import Empresa, Oportunidade
 from apps.entries.models import Lancamento
 from apps.entries.services import aprovar, salvar_ou_enviar
 from apps.finance.models import FinanceiroConsolidado, ImportacaoFinanceira
+from apps.highlights.models import DestaqueMensal
 from apps.indicators.models import Indicador, Meta
 from apps.periods.models import Periodo
 from apps.periods.services import abrir_periodo, fechar_periodo
 from apps.pillars.models import Pilar, UsuarioPilar
+from apps.talentos.models import Alocacao, Colaborador, Competencia
 
 USUARIOS = [
     ("erica", "erica123", "Érica (coordenação)", "Master"),
@@ -131,6 +134,44 @@ FINANCEIRO_MENSAL = {
     "OUTRASFONTES": ("OUTRAS_FONTES", 800_000, 100_000),
 }
 
+# Task B — CRM AT demo (100% fictício): (nome, cnpj, status)
+CRM_EMPRESAS = [
+    ("Metalúrgica Exemplo S.A.", "11.111.111/0001-11", "ASSOCIADA"),
+    ("Banco Fictício do Sul S.A.", "22.222.222/0001-22", "ASSOCIADA"),
+    ("Startup Demo Quântica LTDA", "33.333.333/0001-33", "PROSPECT"),
+    ("Consultoria Encerada LTDA", "44.444.444/0001-44", "EX_ASSOCIADA"),
+]
+
+# Task B — (empresa_nome, fase, tipo, valor_previsto); pipeline em aberto = 934597
+CRM_OPORTUNIDADES = [
+    ("Startup Demo Quântica LTDA", "PROSPECCAO", "NOVO_CNPJ", "150000"),
+    ("Banco Fictício do Sul S.A.", "NEGOCIACAO", "NOVO_CNPJ", "564000"),
+    ("Metalúrgica Exemplo S.A.", "RENOVACAO", "RENOVACAO", "220597"),
+    ("Consultoria Encerada LTDA", "PERDIDO", "NOVO_CNPJ", "50000"),
+]
+
+# Task B — talentos demo (100% fictício)
+TALENTOS_COMPETENCIAS = ["Gestão de Eventos", "Python", "Óptica Quântica"]
+
+# (nome, cargo, pilar_codigo, competencias, lattes_url)
+TALENTOS_COLABORADORES = [
+    (
+        "Ana Demonstração",
+        "Analista de Projetos",
+        "AT",
+        ("Gestão de Eventos", "Python"),
+        "https://lattes.cnpq.br/0000000000000000",
+    ),
+    ("Bruno Exemplo", "Pesquisador Sênior", "PDI", ("Óptica Quântica",), ""),
+    ("Carla Modelo", "Designer de Eventos", "STARTUPS", ("Gestão de Eventos",), ""),
+]
+
+# (colaborador_nome, projeto_ou_area, horas_semanais, data_inicio, data_fim)
+TALENTOS_ALOCACOES = [
+    ("Ana Demonstração", "Apoio AT — Arena QuIIN", 10, date(2026, 6, 1), None),
+    ("Bruno Exemplo", "Projeto PDI-07", 30, date(2026, 1, 5), date(2026, 3, 31)),
+]
+
 
 class Command(BaseCommand):
     help = "Cria a base de demonstração local do Portal QuIIN (idempotente)."
@@ -155,9 +196,16 @@ class Command(BaseCommand):
         abrir_periodo(periodo_junho, erica)
         self._lancamentos_junho(periodo_junho, indicadores, usuarios, erica)
         self._financeiro_ytd(periodo_junho, pilares)
+        self._crm()
+        self._talentos(pilares)
+        self._highlights(periodo_junho, pilares, erica)
         self._auditoria_demo(erica, usuarios)
 
-        self.stdout.write(self.style.SUCCESS("Base demo pronta: 8 usuários, 6 pilares, 22 indicadores, períodos 2026-05/06/07."))
+        self.stdout.write(self.style.SUCCESS(
+            "Base demo pronta: 8 usuários, 6 pilares, 22 indicadores, períodos 2026-05/06/07, "
+            "CRM com 4 empresas e 4 oportunidades (pipeline em aberto R$ 934.597,00), "
+            "talentos com 3 colaboradores e 2 alocações, highlights com 2 destaques em junho/2026."
+        ))
 
     # ---------- helpers ----------
 
@@ -304,6 +352,76 @@ class Command(BaseCommand):
             periodo=periodo_junho,
             arquivo_nome="financeiro_demo.csv",
             defaults={"status": "SUCESSO", "usuario": None, "log": "Arquivo de exemplo presente em data/seed/financeiro_demo.csv."},
+        )
+
+    def _crm(self):
+        empresas = {}
+        for nome, cnpj, status in CRM_EMPRESAS:
+            empresa, _ = Empresa.objects.update_or_create(
+                nome=nome,
+                defaults={"cnpj": cnpj, "status": status},
+            )
+            empresas[nome] = empresa
+        for nome, fase, tipo, valor in CRM_OPORTUNIDADES:
+            Oportunidade.objects.update_or_create(
+                empresa=empresas[nome],
+                fase=fase,
+                tipo=tipo,
+                defaults={
+                    "valor_previsto": Decimal(valor),
+                    "observacao": "Oportunidade de demonstração.",
+                },
+            )
+        return empresas
+
+    def _talentos(self, pilares):
+        competencias = {}
+        for nome in TALENTOS_COMPETENCIAS:
+            competencia, _ = Competencia.objects.get_or_create(nome=nome)
+            competencias[nome] = competencia
+        colaboradores = {}
+        for nome, cargo, pilar_cod, nomes_comp, lattes in TALENTOS_COLABORADORES:
+            colaborador, _ = Colaborador.objects.update_or_create(
+                nome=nome,
+                defaults={
+                    "cargo": cargo,
+                    "pilar_principal": pilares[pilar_cod],
+                    "lattes_url": lattes,
+                },
+            )
+            colaborador.competencias.set([competencias[n] for n in nomes_comp])
+            colaboradores[nome] = colaborador
+        for nome_col, projeto, horas, inicio, fim in TALENTOS_ALOCACOES:
+            Alocacao.objects.update_or_create(
+                colaborador=colaboradores[nome_col],
+                projeto_ou_area=projeto,
+                data_inicio=inicio,
+                defaults={"horas_semanais": horas, "data_fim": fim},
+            )
+        return colaboradores
+
+    def _highlights(self, periodo_junho, pilares, erica):
+        # periodo_junho já vem do helper _periodo (período ABERTO junho/2026);
+        # não chamar _periodo aqui de novo para não regredir o status a PLANEJADO.
+        DestaqueMensal.objects.update_or_create(
+            periodo=periodo_junho,
+            pilar=None,
+            titulo="Arena QuIIN reúne 113 empreendedores",
+            defaults={
+                "descricao": "Demonstração: arena de negócios reuniu 113 empreendedores no período.",
+                "tipo": "DESTAQUE",
+                "criado_por": erica,
+            },
+        )
+        DestaqueMensal.objects.update_or_create(
+            periodo=periodo_junho,
+            pilar=pilares["AT"],
+            titulo="Fechar 2 renovações em negociação",
+            defaults={
+                "descricao": "Demonstração: priorizar o fechamento de 2 renovações em negociação nos próximos 30 dias.",
+                "tipo": "FOCO_30_DIAS",
+                "criado_por": erica,
+            },
         )
 
     def _auditoria_demo(self, erica, usuarios):
