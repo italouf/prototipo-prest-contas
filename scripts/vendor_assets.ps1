@@ -13,15 +13,17 @@ $assets = @(
 
 foreach ($asset in $assets) {
   $caminho = Join-Path $destino $asset.Arquivo
-  if ((Test-Path $caminho) -and -not $Force -and (Get-Item $caminho).Length -gt 0) {
+  if ((Test-Path $caminho) -and -not $Force -and (Get-Item $caminho).Length -gt 5000) {
     Write-Output ("{0} (já existe)" -f $asset.Arquivo)
     continue
   }
-  Invoke-WebRequest -Uri $asset.Url -OutFile $caminho -TimeoutSec 90
+  $temporario = "$caminho.tmp"
+  Invoke-WebRequest -Uri $asset.Url -OutFile $temporario -TimeoutSec 90
   # Remove sourceMappingURL (o .map não é vendorizado e quebra o
   # pós-processamento do Whitenoise/ManifestStaticFilesStorage).
-  $texto = Get-Content $caminho -Raw
+  $texto = Get-Content $temporario -Raw
   $texto = $texto -replace '(?m)^//# sourceMappingURL=.*\r?\n?', ''
-  [IO.File]::WriteAllText($caminho, $texto, [System.Text.UTF8Encoding]::new($false))
+  [IO.File]::WriteAllText($temporario, $texto, [System.Text.UTF8Encoding]::new($false))
+  Move-Item -Force -Path $temporario -Destination $caminho
   Write-Output ("{0} ({1:N0} bytes)" -f $asset.Arquivo, (Get-Item $caminho).Length)
 }
