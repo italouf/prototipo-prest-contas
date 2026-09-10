@@ -7,7 +7,7 @@ Planos: `docs/superpowers/plans/` · Evidências: `docs/retrofit/evidencias/`
 |---|---|---|
 | R0 | Foundation: deps, tokens QuIIN, fontes, assets vendorizados, primitivos, dark mode, `/dev/design-system/` | ✅ Concluído (2026-09-10) |
 | R1 | Shell: base, sidebar colapsável, topbar, breadcrumbs, RBAC visual, navegação HTMX-boosted | ✅ Concluído (2026-09-10) |
-| R2 | Dashboard executivo: 6 KPIs por pilar, gráficos, heatmap, destaques, avisos, drawer HTMX | ⏳ Pendente |
+| R2 | Dashboard executivo: 6 KPIs por pilar, gráficos, heatmap, destaques, avisos, drawer HTMX | ✅ Concluído (2026-09-10) |
 | R3 | Operacional: lista/filtros, formulário com validação, kanban de status, timeline, modal de devolução, preview CSV | ⏳ Pendente |
 | R4 | CRM AT e Talentos: funil, pipeline, renovações, organograma, cards, busca por skill | ⏳ Pendente |
 | R5 | Relatório A4 e Auditoria: capa, seções por pilar, impressão, timeline/paginação | ⏳ Pendente |
@@ -110,3 +110,44 @@ npx playwright test
 - Conteúdo das páginas internas ainda é o legado (redesign por loop R2–R5).
 - Busca global cobre indicadores, empresas e talentos; ampliar em loops futuros
   se necessário.
+
+## R2 — resultado
+
+**Decisões e entregas**
+
+- `apps/core/dashboard.py`: helpers puros de KPI por pilar (média de execução por
+  indicador, metas atingidas, pendentes), heatmap (verde/amarelo/vermelho/cinza),
+  avisos críticos e serialização JSON dos gráficos.
+- Dashboard (`/`) redesenhado: 6 cards KPI clicáveis (`data-kpi-card`), 3 cards
+  financeiros, heatmap por pilar, destaques com filtro por pilar (HTMX),
+  avisos, gráficos Chart.js (mensal e por pilar) e tabela consolidada.
+- Drawer lateral via `GET /pilar/<pk>/drawer/` (parcial HTMX com guard de pilar,
+  403 fora do RBAC).
+- Filtro de período do dashboard atualiza os widgets via HTMX com `hx-select`
+  (sem reload) e mantém `?periodo=` na URL; sem filtro, o portal passa a
+  priorizar o **período aberto** (antes: o mais recente, que podia ser o
+  planejado) — ajuste no helper compartilhado `periodo_selecionado`.
+- Performance: `itens_do_periodo` (versão em lote de `meta_realizado_percentual`)
+  e `papel_do_usuario` com cache por request; agregações em memória.
+  **160 → 18 queries** no dashboard; teste trava o orçamento em ≤ 30.
+- Chart.js carregado apenas no dashboard (`{% block scripts %}`), com
+  destruição/reinicialização após swap HTMX.
+
+**Testes**
+
+- Django: **149 testes, OK** (10 novos de R2 + ajustes de contrato: limite de
+  destaques 3 → 6).
+- Playwright: **29 testes, 29 verdes** (5 novos em `dashboard_r2.spec.ts`:
+  KPIs, filtro de período sem reload, drawer, filtro de destaques, tempo de
+  resposta do servidor < 1000ms — medido ~450ms).
+
+**Evidências**
+
+- `docs/retrofit/evidencias/R2-depois/` (11 páginas; dashboard com KPIs,
+  heatmap, gráficos e avisos).
+
+**Pendências conscientes**
+
+- Lighthouse Performance ≥ 90 segue previsto para o R6; no R2 o gate é o
+  orçamento de queries + tempo de resposta do servidor.
+- Gráficos usam cores fixas da marca (tema escuro dedicado no R6).
