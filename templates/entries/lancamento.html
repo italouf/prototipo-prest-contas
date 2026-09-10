@@ -1,80 +1,98 @@
 {% extends 'base.html' %}
-{% load core_extras %}
+{% load static core_extras %}
 {% block title %}Lançamentos · {{ pilar.nome }} · Portal QuIIN{% endblock %}
 {% block breadcrumbs %}{% include "partials/breadcrumbs.html" with atual="Lançamentos mensais" %}{% endblock %}
 {% block content %}
-
-<h1>Lançamentos mensais</h1>
-<p class="muted">Período: <strong>{{ periodo.rotulo }}</strong> ({{ periodo.get_status_display }}) · Pilar: <strong>{{ pilar.nome }}</strong></p>
-
-<div class="pilar-switch">
-  {% for p in pilares_nav %}
-    <a class="btn btn-sm {% if p.pk == pilar.pk %}btn-active{% endif %}"
-       href="{% url 'entries:formulario' periodo.pk p.pk %}">{{ p.codigo }}</a>
-  {% endfor %}
-</div>
-
-{% if bloqueado %}
-  <div class="alert alert-warn">Este período está fechado. Os dados abaixo são somente leitura (RN-010).</div>
-{% endif %}
-
-<form method="post">
-  {% csrf_token %}
-  <div class="table-wrap">
-    <table class="table">
-      <thead>
-        <tr>
-          <th>Indicador</th>
-          <th>Un.</th>
-          <th>Valor</th>
-          <th>Comentário</th>
-          <th>Status</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for ind in indicadores %}
-        {% with info=existentes|lancamento_info:ind.pk %}
-        <tr>
-          <td>
-            <strong>{{ ind.nome }}</strong><br>
-            <span class="muted small">{{ ind.codigo }} · {{ ind.get_tipo_display }}</span>
-          </td>
-          <td>{{ ind.unidade }}</td>
-          <td>
-            {% if ind.tipo == 'TXT' %}
-              <textarea name="valor_{{ ind.pk }}" rows="2" {% if bloqueado %}disabled{% endif %}>{{ info.valor }}</textarea>
-            {% else %}
-              <input type="text" name="valor_{{ ind.pk }}" inputmode="decimal"
-                     value="{{ info.valor }}" placeholder="0,00" {% if bloqueado %}disabled{% endif %}>
-            {% endif %}
-          </td>
-          <td>
-            <input type="text" name="comentario_{{ ind.pk }}"
-                   value="{{ info.comentario }}"
-                   placeholder="Observação do mês" {% if bloqueado %}disabled{% endif %}>
-            {% if info.revisao %}
-              <div class="muted small">Revisão: {{ info.revisao }}</div>
-            {% endif %}
-          </td>
-          <td>
-            <span class="badge badge-status status-{{ info.status|lower|default:'pendente' }}">
-              {{ info.status|default:'Pendente'|status_lancamento }}
-            </span>
-          </td>
-        </tr>
-        {% endwith %}
-        {% empty %}
-        <tr><td colspan="5" class="muted">Nenhum indicador ativo neste pilar.</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
+<div x-data="filtroIndicadores" data-testid="page-lancamentos">
+  <div class="flex flex-wrap items-end justify-between gap-3">
+    <div>
+      <h1 class="text-2xl font-bold">Lançamentos mensais</h1>
+      <p class="text-sm text-text-muted">Período <strong>{{ periodo.rotulo }}</strong> ({{ periodo.get_status_display }}) · Pilar <strong>{{ pilar.nome }}</strong></p>
+    </div>
+    <div class="flex flex-wrap gap-1.5">
+      {% for p in pilares_nav %}
+      <a class="rounded-md border border-border px-3 py-1.5 text-sm {% if p.pk == pilar.pk %}bg-quiin-navy text-white{% endif %}"
+         href="{% url 'entries:formulario' periodo.pk p.pk %}">{{ p.codigo }}</a>
+      {% endfor %}
+    </div>
   </div>
 
-  {% if not bloqueado %}
-  <div class="form-actions">
-    <button class="btn btn-ghost" type="submit" name="salvar" value="1">Salvar rascunho</button>
-    <button class="btn btn-primary" type="submit" name="enviar" value="1">Enviar para validação</button>
+  {% if bloqueado %}
+  <div class="mt-4 flex items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-status-pendente-texto" data-testid="periodo-bloqueado">
+    <c-ui.icon name="alert" size="16" /> Período fechado: dados somente leitura (RN-010).
   </div>
   {% endif %}
-</form>
+
+  <div class="mt-4 flex flex-wrap gap-1.5" role="group" aria-label="Filtrar por tipo de indicador">
+    <button type="button" data-testid="filtro-tipo-TODOS" @click="selecionar('TODOS')" :aria-pressed="tipo === 'TODOS'"
+            :class="tipo === 'TODOS' ? 'bg-quiin-navy text-white' : 'border border-border'"
+            class="rounded-full px-3 py-1 text-xs">Todos</button>
+    {% for tipo, rotulo in tipos %}
+    <button type="button" data-testid="filtro-tipo-{{ tipo }}" @click="selecionar('{{ tipo }}')" :aria-pressed="tipo === '{{ tipo }}'"
+            :class="tipo === '{{ tipo }}' ? 'bg-quiin-navy text-white' : 'border border-border'"
+            class="rounded-full px-3 py-1 text-xs">{{ tipo }}</button>
+    {% endfor %}
+  </div>
+
+  <form method="post" class="mt-4">
+    {% csrf_token %}
+    <div class="overflow-x-auto rounded-xl border border-border bg-surface-2">
+      <table class="w-full border-collapse text-sm">
+        <thead>
+          <tr class="border-b border-border text-left text-xs uppercase tracking-wide text-text-muted">
+            <th class="px-4 py-3">Indicador</th><th class="px-4 py-3">Un.</th><th class="px-4 py-3">Valor</th>
+            <th class="px-4 py-3">Comentário</th><th class="px-4 py-3">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for ind in indicadores %}
+          {% with info=existentes|lancamento_info:ind.pk %}
+          <tr x-show="mostra('{{ ind.tipo }}')" data-tipo="{{ ind.tipo }}" class="border-b border-border/60 align-top" data-testid="linha-indicador-{{ ind.codigo }}">
+            <td class="px-4 py-3"><strong>{{ ind.nome }}</strong><br><span class="text-xs text-text-muted">{{ ind.codigo }} · {{ ind.get_tipo_display }}</span></td>
+            <td class="px-4 py-3">{{ ind.unidade }}</td>
+            <td class="px-4 py-3">
+              <div x-data="campoValor('{{ info.valor|escapejs }}', '{{ ind.tipo }}')" class="min-w-[10rem]">
+                {% if ind.tipo == 'TXT' %}
+                <textarea name="valor_{{ ind.pk }}" rows="2" {% if bloqueado %}disabled{% endif %} x-model="valor"
+                          class="w-full rounded-md border border-border bg-surface px-2 py-1.5 text-sm">{{ info.valor }}</textarea>
+                {% else %}
+                <input type="text" name="valor_{{ ind.pk }}" inputmode="decimal" placeholder="0,00" value="{{ info.valor }}"
+                       x-model="valor" {% if bloqueado %}disabled{% endif %}
+                       :class="erro ? 'border-red-500' : 'border-border'"
+                       class="w-full rounded-md border bg-surface px-2 py-1.5 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-focus/60">
+                <p x-show="erro" x-text="erro" class="mt-1 text-xs text-red-600" role="alert"></p>
+                {% endif %}
+              </div>
+            </td>
+            <td class="px-4 py-3">
+              <input type="text" name="comentario_{{ ind.pk }}" value="{{ info.comentario }}" placeholder="Observação do mês"
+                     {% if bloqueado %}disabled{% endif %}
+                     class="w-full rounded-md border border-border bg-surface px-2 py-1.5 text-sm">
+              {% if info.revisao %}<p class="mt-1 text-xs text-status-pendente-texto">Revisão: {{ info.revisao }}</p>{% endif %}
+            </td>
+            <td class="px-4 py-3">
+              <c-ui.badge tone="{% if info.status == 'APROVADO' %}success{% elif info.status == 'ENVIADO' %}info{% elif info.status == 'DEVOLVIDO' %}warn{% else %}neutral{% endif %}">
+                {{ info.status|default:'Pendente'|status_lancamento }}
+              </c-ui.badge>
+            </td>
+          </tr>
+          {% endwith %}
+          {% empty %}
+          <tr><td colspan="5" class="px-4 py-3 text-sm text-text-muted">Nenhum indicador ativo neste pilar.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if not bloqueado %}
+    <div class="mt-4 flex gap-2">
+      <c-ui.button type="submit" name="salvar" value="1" variant="ghost">Salvar rascunho</c-ui.button>
+      <c-ui.button type="submit" name="enviar" value="1">Enviar para validação</c-ui.button>
+    </div>
+    {% endif %}
+  </form>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="{% static 'js/entries/lancamento.js' %}" defer></script>
 {% endblock %}

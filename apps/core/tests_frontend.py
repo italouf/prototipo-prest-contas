@@ -173,3 +173,30 @@ class ChartsDashboardTestes(SimpleTestCase):
         fonte = (settings.BASE_DIR / "static/js/charts/dashboard.js").read_text(encoding="utf-8")
         self.assertIn("htmx:afterSwap", fonte)
         self.assertIn("quiinDashboardCharts", fonte)
+
+
+class ToastsTestes(TestCase):
+    def test_toasts_aparecem_com_mensagem(self):
+        from datetime import date
+
+        from django.contrib.auth.models import Group
+        from django.urls import reverse
+
+        from apps.accounts.models import User
+        from apps.indicators.models import Indicador
+        from apps.periods.models import Periodo
+        from apps.pillars.models import Pilar
+
+        grupo, _ = Group.objects.get_or_create(name="Master")
+        user = User.objects.create_user(username="toast_user", password="x")
+        user.groups.add(grupo)
+        pilar = Pilar.objects.create(codigo="PDI", nome="PDI / FCCT", ordem=1)
+        indicador = Indicador.objects.create(pilar=pilar, codigo="PDI-PROJ-INI", nome="Projetos iniciados", tipo="QTD")
+        periodo = Periodo.objects.create(competencia=date(2026, 6, 1), status="ABERTO", aberto_por=user)
+        self.client.force_login(user)
+        resposta = self.client.post(
+            reverse("entries:formulario", args=[periodo.pk, pilar.pk]),
+            {f"valor_{indicador.pk}": "1", "salvar": "1"},
+            follow=True,
+        )
+        self.assertContains(resposta, "messages pointer-events-none fixed")
