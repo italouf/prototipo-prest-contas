@@ -1,5 +1,6 @@
 """Testes do dashboard executivo: gráficos, status e formatação (RF-060 a RF-065)."""
 from datetime import date
+from decimal import Decimal
 from unittest import mock
 
 from django.http import HttpResponse
@@ -149,3 +150,122 @@ class DashboardPilarRBAC(TestCase):
         self.assertEqual(codigos_chart, {"AT", "PDI"})
         titulos = {d.titulo for d in contexto["destaques"]}
         self.assertEqual(titulos, {"Geral", "Só AT", "Só PDI"})
+
+
+class DashboardR2HelpersTestes(TestCase):
+    """Agregações puras do dashboard executivo (R2)."""
+
+    def _linha(self, pilar, itens):
+        return {"pilar": pilar, "itens": itens}
+
+    def test_kpi_por_pilar_calcula_media_e_contagens(self):
+        from apps.core.dashboard import kpi_por_pilar
+
+        pilar = Pilar(codigo="PDI", nome="PDI / FCCT", ordem=1)
+        linha = self._linha(
+            pilar,
+            [
+                {"percentual": Decimal("50"), "realizado": Decimal("1"), "meta": Decimal("2")},
+                {"percentual": Decimal("150"), "realizado": Decimal("3"), "meta": Decimal("2")},
+                {"percentual": None, "realizado": None, "meta": Decimal("10")},
+            ],
+        )
+        kpi = kpi_por_pilar([linha])[0]
+        self.assertEqual(kpi["percentual"], Decimal("100"))
+        self.assertEqual(kpi["com_meta"], 3)
+        self.assertEqual(kpi["atingidos"], 1)
+        self.assertEqual(kpi["pendentes"], 1)
+        self.assertEqual(kpi["total"], 3)
+
+    def test_heatmap_classifica_niveis(self):
+        from apps.core.dashboard import heatmap_por_pilar
+
+        pilar = Pilar(codigo="AT", nome="Associação Tecnológica", ordem=1)
+        linha = self._linha(
+            pilar,
+            [
+                {"indicador": Indicador(codigo="A", nome="A"), "percentual": Decimal("120"), "realizado": 1},
+                {"indicador": Indicador(codigo="B", nome="B"), "percentual": Decimal("60"), "realizado": 1},
+                {"indicador": Indicador(codigo="C", nome="C"), "percentual": Decimal("10"), "realizado": 1},
+                {"indicador": Indicador(codigo="D", nome="D"), "percentual": None, "realizado": None},
+            ],
+        )
+        celulas = heatmap_por_pilar([linha])[0]["celulas"]
+        self.assertEqual([c["nivel"] for c in celulas], ["ok", "atencao", "critico", "neutro"])
+
+    def test_avisos_incluem_pendencias_e_pilares_incompletos(self):
+        from apps.core.dashboard import avisos_do_dashboard
+
+        pdi = Pilar.objects.create(codigo="PDI", nome="PDI / FCCT", ordem=1)
+        periodo = Periodo.objects.create(competencia=date(2026, 6, 1), status="ABERTO")
+        pendencias = [{"pilar": pdi, "faltantes": [Indicador(codigo="X")]}]
+        avisos = avisos_do_dashboard(periodo, pendencias, {"ENVIADO": {"quantidade": 3}}, 3)
+        textos = " ".join(a["texto"] for a in avisos)
+        self.assertIn("3 lançamento", textos)
+        self.assertIn("PDI / FCCT", textos)
+
+    def test_graficos_dados_serializa_decimal(self):
+        from apps.core.dashboard import graficos_dados
+
+        mensal, financeiro = graficos_dados(
+            [{"rotulo": "Jun", "captado": Decimal("10.5"), "executado": Decimal("2")}],
+            [{"nome": "AT", "captado": Decimal("1"), "executado": Decimal("0.5")}],
+        )
+        self.assertIn('"captado": 10.5', mensal)
+        self.assertIn('"nome": "AT"', financeiro)
+
+
+class DashboardR2ViewTestes(TestCase):
+    def setUp(self):
+        garantir_grupos()
+        self.erica = adicionar_grupo(User.objects.create_user(username="r2_master", password="x"), "Master")
+        self.pdi = Pilar.objects.create(codigo="PDI", nome="PDI / FCCT", ordem=1)
+        self.at = Pilar.objects.create(codigo="AT", nome="Associação Tecnológica", ordem=2)
+        self.ind = Indicador.objects.create(pilar=self.pdi, codigo="PDI-PROJ-INI", nome="Projetos iniciados", tipo="QTD")
+        Meta.objects.create(
+            indicador=self.ind, competencia_inicio=date(2026, 1, 1),
+            competencia_fim=date(2026, 12, 31), periodicidade="MENSAL", valor=2,
+        )
+        self.periodo = Periodo.objects.create(competencia=date(2026, 6, 1), status="ABERTO", aberto_por=self.erica)
+        salvar_ou_enviar(self.periodo, self.pdi, self.erica, {str(self.ind.pk): {"valor": "1"}}, enviar=True)
+        self.client.force_login(self.erica)
+
+    def test_dashboard_expoe_kpis_heatmap_e_avisos(self):
+        resposta = self.client.get(reverse("core:dashboard"))
+        self.assertEqual(len(resposta.context["kpis"]), 2)
+        self.assertEqual(len(resposta.context["heatmap"]), 2)
+        self.assertIn("chart_mensal_json", resposta.context)
+
+    def test_drawer_do_pilar_renderiza_itens(self):
+        resposta = self.client.get(
+            reverse("core:pilar_drawer", args=[self.pdi.pk]), {"periodo": "2026-06-01"}
+        )
+        self.assertEqual(resposta.status_code, 200)
+        self.assertContains(resposta, "PDI-PROJ-INI")
+        self.assertNotContains(resposta, "dashboard executivo")
+
+    def test_drawer_nega_pilar_nao_visivel(self):
+        focal = adicionar_grupo(User.objects.create_user(username="r2_focal", password="x"), "PontoFocal")
+        UsuarioPilar.objects.create(usuario=focal, pilar=self.pdi)
+        self.client.force_login(focal)
+        resposta = self.client.get(reverse("core:pilar_drawer", args=[self.at.pk]))
+        self.assertEqual(resposta.status_code, 403)
+        self.assertNotContains(resposta, "AT-CNPJ", status_code=403)
+
+
+class DestaquesFiltroTestes(TestCase):
+    def setUp(self):
+        garantir_grupos()
+        self.erica = adicionar_grupo(User.objects.create_user(username="r2_dest", password="x"), "Master")
+        self.pdi = Pilar.objects.create(codigo="PDI", nome="PDI / FCCT", ordem=1)
+        self.at = Pilar.objects.create(codigo="AT", nome="Associação Tecnológica", ordem=2)
+        self.periodo = Periodo.objects.create(competencia=date(2026, 6, 1), status="ABERTO", aberto_por=self.erica)
+        DestaqueMensal.objects.create(periodo=self.periodo, pilar=None, titulo="Geral", descricao="G")
+        DestaqueMensal.objects.create(periodo=self.periodo, pilar=self.pdi, titulo="Só PDI", descricao="P")
+        DestaqueMensal.objects.create(periodo=self.periodo, pilar=self.at, titulo="Só AT", descricao="A")
+        self.client.force_login(self.erica)
+
+    def test_filtra_destaques_por_pilar(self):
+        resposta = self.client.get(reverse("core:dashboard"), {"destaque_pilar": self.pdi.pk})
+        titulos = {d.titulo for d in resposta.context["destaques"]}
+        self.assertEqual(titulos, {"Geral", "Só PDI"})

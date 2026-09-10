@@ -3,6 +3,7 @@ from decimal import Decimal
 
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q, Sum
+from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, render
 
 from apps.entries.models import Lancamento
@@ -12,6 +13,7 @@ from apps.indicators.models import Indicador
 from apps.pillars.models import Pilar
 
 from .calculos import meta_realizado_percentual
+from .dashboard import avisos_do_dashboard, graficos_dados, heatmap_por_pilar, kpi_por_pilar
 from .permissions import eh_gestor, pilares_visiveis, sem_permissao, usuario_pode_pilar
 from .utils import periodo_selecionado
 
@@ -32,6 +34,12 @@ def dashboard(request):
         "status_counts": {},
         "eh_gestor": eh_gestor(request.user),
         "destaques": [],
+        "kpis": [],
+        "heatmap": [],
+        "avisos": [],
+        "destaque_pilar": "",
+        "chart_mensal_json": "[]",
+        "chart_financeiro_json": "[]",
     }
     if periodo is None:
         return render(request, "home.html", contexto)
@@ -76,8 +84,30 @@ def dashboard(request):
             "chart_financeiro": _chart_financeiro(fin_ytd),
             "chart_mensal": _chart_mensal(fin_ytd, ano),
             "status_counts": _status_counts(periodo, pilares),
-            "destaques": DestaqueMensal.objects.filter(periodo=periodo).filter(Q(pilar__isnull=True) | Q(pilar__in=pilares)).select_related("pilar").order_by("-criado_em")[:3],
         }
+    )
+
+    destaque_pilar = request.GET.get("destaque_pilar", "")
+    destaques_qs = (
+        DestaqueMensal.objects.filter(periodo=periodo)
+        .filter(Q(pilar__isnull=True) | Q(pilar__in=pilares))
+        .select_related("pilar")
+        .order_by("-criado_em")
+    )
+    if destaque_pilar:
+        destaques_qs = destaques_qs.filter(Q(pilar_id=destaque_pilar) | Q(pilar__isnull=True))
+    contexto["destaques"] = destaques_qs[:6]
+    contexto["destaque_pilar"] = destaque_pilar
+    contexto["kpis"] = kpi_por_pilar(linhas)
+    contexto["heatmap"] = heatmap_por_pilar(linhas)
+    contexto["avisos"] = avisos_do_dashboard(
+        periodo,
+        pendencias,
+        contexto["status_counts"],
+        (contexto["status_counts"].get("ENVIADO") or {}).get("quantidade", 0),
+    )
+    contexto["chart_mensal_json"], contexto["chart_financeiro_json"] = graficos_dados(
+        contexto["chart_mensal"], contexto["chart_financeiro"]
     )
     return render(request, "home.html", contexto)
 
@@ -98,6 +128,24 @@ def pilar(request, pk):
         request,
         "dashboard/pilar.html",
         {"pilar": pilar_obj, "periodo": periodo, "periodos": periodos, "itens": itens, "destaques": destaques},
+    )
+
+
+@login_required
+def pilar_drawer(request, pk):
+    """Detalhe do pilar em drawer lateral (HTMX), respeitando o RBAC."""
+    pilar_obj = get_object_or_404(Pilar, pk=pk)
+    if not usuario_pode_pilar(request.user, pilar_obj):
+        return HttpResponseForbidden("Sem permissão para este pilar.")
+    periodo, _ = periodo_selecionado(request)
+    itens = []
+    if periodo is not None:
+        indicadores = Indicador.objects.filter(pilar=pilar_obj, ativo=True)
+        itens = [{"indicador": ind, **meta_realizado_percentual(ind, periodo)} for ind in indicadores]
+    return render(
+        request,
+        "partials/dashboard/drawer_pilar.html",
+        {"pilar": pilar_obj, "periodo": periodo, "itens": itens},
     )
 
 

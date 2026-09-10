@@ -1,0 +1,31 @@
+{% load core_extras %}
+<div data-testid="drawer-pilar">
+  <p class="text-xs font-semibold uppercase tracking-wide text-text-muted">Pilar</p>
+  <h3 class="font-display text-lg font-bold">{{ pilar.nome }}</h3>
+  {% if periodo %}<p class="text-sm text-text-muted">Competência {{ periodo.rotulo }}</p>{% endif %}
+  <div class="mt-4 space-y-3">
+    {% for item in itens %}
+    <div class="rounded-lg border border-border p-3">
+      <div class="flex items-start justify-between gap-2">
+        <div>
+          <p class="text-sm font-semibold">{{ item.indicador.nome }}</p>
+          <p class="text-xs text-text-muted">{{ item.indicador.codigo }} · {{ item.indicador.unidade }}</p>
+        </div>
+        <c-ui.badge tone="{% if item.percentual is not None and item.percentual >= 100 %}success{% elif item.percentual is None %}neutral{% else %}warn{% endif %}">
+          {% if item.percentual is not None %}{{ item.percentual|floatformat:0 }}%{% else %}—{% endif %}
+        </c-ui.badge>
+      </div>
+      <p class="mt-1 text-xs text-text-muted">
+        Meta: {% if item.meta is not None %}{{ item.meta|numero_ptbr }}{% else %}—{% endif %}
+        · Realizado: {% if item.realizado is not None %}{{ item.realizado|numero_ptbr }}{% else %}—{% endif %}
+        {% if item.ytd %}(YTD){% endif %}
+      </p>
+    </div>
+    {% empty %}
+    <p class="text-sm text-text-muted">Nenhum indicador ativo neste pilar.</p>
+    {% endfor %}
+  </div>
+  <div class="mt-4">
+    <c-ui.button href="{% url 'core:pilar' pilar.pk %}" size="sm">Abrir página do pilar</c-ui.button>
+  </div>
+</div>
