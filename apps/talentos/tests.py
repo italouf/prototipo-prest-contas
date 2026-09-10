@@ -586,3 +586,21 @@ class NovasCompetenciasTestes(TestCase):
                 self.assertEqual(Competencia.objects.count(), total_antes)
                 self.assertEqual(list(colaborador.competencias.all()), [])
                 Colaborador.objects.all().delete()
+
+
+class OrganogramaR4Testes(TalentosBaseTestes):
+    def test_contexto_traz_horas_vigentes_e_disponibilidade(self):
+        contexto = self._contexto()
+        colaborador = contexto["colaboradores"][0]
+        self.assertTrue(hasattr(colaborador, "horas_vigentes"))
+        self.assertEqual(colaborador.disponibilidade, max(0, 40 - colaborador.horas_vigentes))
+
+    def test_htmx_renderiza_apenas_o_partial(self):
+        from apps.talentos.views import OrganogramaView
+
+        requisicao = _request("/talentos/organograma/", self.usuario)
+        requisicao.htmx = True
+        with mock.patch("apps.talentos.views.render") as mock_render:
+            mock_render.return_value = HttpResponse()
+            OrganogramaView.as_view()(requisicao)
+        self.assertEqual(mock_render.call_args[0][1], "talentos/_lista.html")

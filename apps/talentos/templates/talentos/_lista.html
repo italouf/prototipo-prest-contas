@@ -1,0 +1,41 @@
+{% load core_extras %}
+<div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3" data-testid="talentos-lista-conteudo">
+  {% for c in colaboradores %}
+  <article class="rounded-xl border border-border bg-surface-2 p-4" data-testid="talento-card"
+           data-busca="{{ c.nome|lower }} {% for comp in c.competencias.all %}{{ comp.nome|lower }} {% endfor %}"
+           x-show="!busca || $el.dataset.busca.includes(busca.toLowerCase())">
+    <div class="flex items-start gap-3">
+      {% if c.foto %}
+      <img src="{{ c.foto.url }}" alt="Foto de {{ c.nome }}" class="h-12 w-12 rounded-full object-cover">
+      {% else %}
+      <span class="flex h-12 w-12 items-center justify-center rounded-full bg-quiin-violet/15 font-display text-lg font-bold text-pillar-pdi">{{ c.nome|slice:':1' }}</span>
+      {% endif %}
+      <div class="min-w-0">
+        <h3 class="truncate font-semibold">{{ c.nome }}</h3>
+        <p class="text-xs text-text-muted">{{ c.cargo }}</p>
+        {% if c.pilar_principal %}<c-ui.badge pillar="{{ c.pilar_principal.codigo }}">{{ c.pilar_principal.codigo }}</c-ui.badge>{% endif %}
+      </div>
+    </div>
+    <div class="mt-3 flex flex-wrap gap-1">
+      {% for comp in c.competencias.all %}<span class="rounded-full bg-quiin-mist/50 px-2 py-0.5 text-xs">{{ comp.nome }}</span>{% endfor %}
+    </div>
+    <div class="mt-3">
+      <div class="flex items-center justify-between text-xs text-text-muted">
+        <span>{{ c.horas_vigentes }}h/sem alocadas</span><span>{{ c.disponibilidade }}h livres</span>
+      </div>
+      <div class="mt-1 h-1.5 overflow-hidden rounded bg-quiin-mist/60">
+        <div class="h-full rounded bg-quiin-sky" style="width: {% widthratio c.horas_vigentes 40 100 %}%"></div>
+      </div>
+    </div>
+    <div class="mt-3 flex items-center gap-3 text-xs">
+      {% if c.lattes_url %}<a href="{{ c.lattes_url }}" class="text-quiin-royal underline" target="_blank" rel="noopener">Lattes</a>{% endif %}
+      {% if pode_editar_talentos %}
+      <a href="{% url 'talentos:colaborador_editar' c.pk %}" class="text-quiin-royal underline">editar</a>
+      <a href="{% url 'talentos:alocacao_criar' c.pk %}" class="text-quiin-royal underline">+ alocação</a>
+      {% endif %}
+    </div>
+  </article>
+  {% empty %}
+  <p class="text-sm text-text-muted">Nenhum colaborador encontrado para os filtros selecionados.</p>
+  {% endfor %}
+</div>

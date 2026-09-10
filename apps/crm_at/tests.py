@@ -304,3 +304,16 @@ class CadastroCRMTestes(TestCase):
             mock_render.return_value = HttpResponse()
             FunilATView.as_view()(requisicao)
         return _contexto_de_render(mock_render)
+
+
+class FunilR4Testes(FunilATViewTestes):
+    def test_contexto_traz_funil_renovacoes_e_meta_cnpjs(self):
+        contexto = self._contexto()
+        self.assertIn("funil", contexto)
+        self.assertIn("renovacoes", contexto)
+        self.assertIn("meta_cnpjs", contexto)
+        self.assertIn("empresas_associadas", contexto)
+        fases = [g["fase"] for g in contexto["funil"]]
+        self.assertEqual(len(fases), 5)
+        self.assertNotIn("RENOVACAO", fases)
+        self.assertNotIn("PERDIDO", fases)

@@ -39,18 +39,22 @@ class OrganogramaView(LoginRequiredMixin, View):
                 competencia_id = None
             if competencia_id is not None and Competencia.objects.filter(pk=competencia_id).exists():
                 qs = qs.filter(competencias__pk=competencia_id)
-        return render(
-            request,
-            "talentos/organograma.html",
-            {
-                "colaboradores": qs,
-                "pilares": Pilar.objects.filter(ativo=True),
-                "competencias": Competencia.objects.all(),
-                "pilar_selecionado": pilar_selecionado,
-                "competencia_selecionada": competencia_selecionada,
-                "pode_editar_talentos": pode_lancar(request.user),
-            },
-        )
+        colaboradores = list(qs)
+        for colaborador in colaboradores:
+            vigentes_colab = getattr(colaborador, "alocacoes_vigentes", [])
+            colaborador.horas_vigentes = sum(a.horas_semanais for a in vigentes_colab)
+            colaborador.disponibilidade = max(0, 40 - colaborador.horas_vigentes)
+        contexto = {
+            "colaboradores": colaboradores,
+            "pilares": Pilar.objects.filter(ativo=True),
+            "competencias": Competencia.objects.all(),
+            "pilar_selecionado": pilar_selecionado,
+            "competencia_selecionada": competencia_selecionada,
+            "pode_editar_talentos": pode_lancar(request.user),
+        }
+        if getattr(request, "htmx", False):
+            return render(request, "talentos/_lista.html", contexto)
+        return render(request, "talentos/organograma.html", contexto)
 
 
 @login_required
