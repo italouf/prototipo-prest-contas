@@ -59,8 +59,11 @@ test('detalhes expansíveis aparecem na auditoria', async ({ page }) => {
   await login(page, 'erica', 'erica123');
   await page.goto('/auditoria/');
   const details = page.locator('details.audit-detail').first();
-  if ((await details.count()) > 0) {
-    await details.locator('summary').click();
-    await expect(details.locator('.audit-detail-body')).toBeVisible();
+  if ((await details.count()) === 0) {
+    test.skip(true, 'sem detalhes expansíveis no seed');
+    return;
   }
+  await expect(details).not.toHaveAttribute('open', '');
+  await details.locator('summary').click();
+  await expect(details).toHaveAttribute('open', '');
 });
