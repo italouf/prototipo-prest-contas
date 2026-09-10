@@ -8,7 +8,7 @@ from django.utils import timezone
 from django.views import View
 
 from apps.audit.services import registrar_auditoria
-from apps.core.permissions import pode_lancar, sem_permissao
+from apps.core.permissions import eh_gestor, pode_lancar, sem_permissao, usuario_pode_pilar
 from apps.pillars.models import Pilar
 
 from .forms import AlocacaoForm, ColaboradorForm
@@ -85,6 +85,10 @@ def colaborador_editar(request, pk):
     if not pode_lancar(request.user):
         return sem_permissao(request)
     colaborador = get_object_or_404(Colaborador, pk=pk)
+    if not eh_gestor(request.user):
+        pilar_atual = colaborador.pilar_principal
+        if pilar_atual is None or not usuario_pode_pilar(request.user, pilar_atual):
+            return sem_permissao(request)
     if request.method == "POST":
         nome_anterior = colaborador.nome
         form = ColaboradorForm(request.POST, request.FILES, instance=colaborador, user=request.user)

@@ -409,6 +409,9 @@ class ColaboradorPilarRestritoTestes(TestCase):
             User.objects.create_user(username="focal_pdi", password="x"), "PontoFocal"
         )
         UsuarioPilar.objects.create(usuario=self.focal_pdi, pilar=self.pilar_pdi)
+        self.master = adicionar_grupo(
+            User.objects.create_user(username="master_tal", password="x"), "Master"
+        )
 
     def test_focal_pdi_cria_com_pdi_ok(self):
         from apps.talentos.models import Colaborador
@@ -450,6 +453,85 @@ class ColaboradorPilarRestritoTestes(TestCase):
         contexto = _contexto_de_render(mock_render)
         self.assertFalse(contexto["form"].is_valid())
         self.assertIn("pilar_principal", contexto["form"].errors)
+
+    def test_focal_pdi_editar_colaborador_at_negado_403(self):
+        from apps.talentos.models import Colaborador
+        from apps.talentos.views import colaborador_editar
+
+        colab = Colaborador.objects.create(
+            nome="Alvo AT", cargo="Analista", pilar_principal=self.pilar_at
+        )
+        requisicao = _request(f"/talentos/colaboradores/{colab.pk}/editar/", self.focal_pdi)
+        with mock.patch("apps.core.permissions.render") as mock_403:
+            mock_403.return_value = HttpResponse(status=403)
+            resposta = colaborador_editar(requisicao, pk=colab.pk)
+        self.assertEqual(resposta.status_code, 403)
+
+    def test_focal_pdi_editar_post_colaborador_at_nao_altera(self):
+        from apps.talentos.models import Colaborador
+        from apps.talentos.views import colaborador_editar
+
+        colab = Colaborador.objects.create(
+            nome="Alvo AT", cargo="Analista", pilar_principal=self.pilar_at
+        )
+        dados = {
+            "nome": "Alvo Migrado",
+            "cargo": "Analista",
+            "pilar_principal": str(self.pilar_pdi.pk),
+            "lattes_url": "",
+            "competencias": [],
+            "novas_competencias": "",
+        }
+        requisicao = _post_request(
+            f"/talentos/colaboradores/{colab.pk}/editar/", self.focal_pdi, dados
+        )
+        with mock.patch("apps.core.permissions.render") as mock_403:
+            mock_403.return_value = HttpResponse(status=403)
+            resposta = colaborador_editar(requisicao, pk=colab.pk)
+        self.assertEqual(resposta.status_code, 403)
+        colab.refresh_from_db()
+        self.assertEqual(colab.nome, "Alvo AT")
+        self.assertEqual(colab.pilar_principal_id, self.pilar_at.pk)
+
+    def test_focal_pdi_editar_colaborador_sem_pilar_negado_403(self):
+        from apps.talentos.models import Colaborador
+        from apps.talentos.views import colaborador_editar
+
+        colab = Colaborador.objects.create(
+            nome="Sem Pilar", cargo="Analista", pilar_principal=None
+        )
+        requisicao = _request(f"/talentos/colaboradores/{colab.pk}/editar/", self.focal_pdi)
+        with mock.patch("apps.core.permissions.render") as mock_403:
+            mock_403.return_value = HttpResponse(status=403)
+            resposta = colaborador_editar(requisicao, pk=colab.pk)
+        self.assertEqual(resposta.status_code, 403)
+        colab.refresh_from_db()
+        self.assertEqual(colab.nome, "Sem Pilar")
+
+    def test_gestor_edita_colaborador_de_qualquer_pilar_ok(self):
+        from apps.talentos.views import colaborador_editar
+
+        from apps.talentos.models import Colaborador
+
+        colab = Colaborador.objects.create(
+            nome="Alvo AT", cargo="Analista", pilar_principal=self.pilar_at
+        )
+        dados = {
+            "nome": "Alvo AT",
+            "cargo": "Coordenador",
+            "pilar_principal": str(self.pilar_pdi.pk),
+            "lattes_url": "",
+            "competencias": [],
+            "novas_competencias": "",
+        }
+        requisicao = _post_request(
+            f"/talentos/colaboradores/{colab.pk}/editar/", self.master, dados
+        )
+        resposta = colaborador_editar(requisicao, pk=colab.pk)
+        self.assertEqual(resposta.status_code, 302)
+        colab.refresh_from_db()
+        self.assertEqual(colab.cargo, "Coordenador")
+        self.assertEqual(colab.pilar_principal_id, self.pilar_pdi.pk)
 
 
 class NovasCompetenciasTestes(TestCase):
