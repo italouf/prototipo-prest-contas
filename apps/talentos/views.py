@@ -120,7 +120,6 @@ def alocacao_criar(request, colaborador_pk):
         if form.is_valid():
             alocacao = form.save(commit=False)
             alocacao.colaborador = colaborador
-            alocacao.full_clean()
             alocacao.save()
             registrar_auditoria(
                 request.user,
