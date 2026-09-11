@@ -12,6 +12,7 @@ Planos: `docs/superpowers/plans/` · Evidências: `docs/retrofit/evidencias/`
 | R4 | CRM AT e Talentos: funil, pipeline, renovações, organograma, cards, busca por skill | ✅ Concluído (2026-09-10) |
 | R5 | Relatório A4 e Auditoria: capa, seções por pilar, impressão, timeline/paginação | ✅ Concluído (2026-09-10) |
 | R6 | Polish: skeletons, tooltips, animações, view transitions, a11y, bundle, remoção do CSS legado | ✅ Concluído (2026-09-10) |
+| R7 | Correções: Montserrat (acentos), robustez do boost, drag no kanban, modelo CSV, empresa texto, reabrir perdida | ✅ Concluído (2026-09-10) |
 
 ## R0 — resultado
 
@@ -257,3 +258,29 @@ npx playwright test
 **Evidências**
 
 - `docs/retrofit/evidencias/R6-depois/` (11 páginas).
+
+## R7 — resultado (correções e evoluções)
+
+**Entregas**
+
+- **Fonte**: Montserrat variável (OFL) no display — elimina os artefatos de
+  acento da Panton trial (glifos-marca d'água comprovados com `fontTools`).
+- **Navegação hx-boost**: `components.js` global (Alpine) e `charts.js` com
+  lazy-load do Chart.js; `x-cloak` trocado por `display:none` em conteúdo
+  trocado; `OrganogramaView` target-aware. Corrige timeline, modal de devolução,
+  filtros, preview CSV, gráficos e o primeiro clique em Talentos.
+- **Kanban**: drag-and-drop com endpoint de movimentação e toasts; modal de
+  devolução ao arrastar para Devolvido; botão “Enviar” como alternativa acessível.
+- **Financeiro**: download do `modelo_financeiro.csv` importável.
+- **CRM**: empresa como texto com datalist; oportunidades perdidas reaproveitam
+  a edição (“editar / reabrir”).
+
+**Testes**
+
+- Django: **190 testes, OK**.
+- Playwright: **62 testes, 62 verdes** (8 novos em `fixes_r7.spec.ts`,
+  incluindo regressões de timeline/modal após boost e drag determinístico).
+
+**Evidências**
+
+- `docs/retrofit/evidencias/R7-depois/` (11 páginas).

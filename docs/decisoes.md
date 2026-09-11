@@ -108,3 +108,37 @@
   e regra adotada: **nunca usar `Get-Content`/`Set-Content` para editar fontes
   com acentos; usar as ferramentas de edição nativas**; varredura automática de
   mojibake (`Ã`/`Â`) passou a fazer parte da verificação final.
+
+## Correções e evoluções (R7 — 2026-09-10)
+
+- **Tipografia**: Panton trial substituída por **Montserrat variável (OFL)**
+  self-hosted. Causa dos artefatos: os glifos acentuados da trial
+  (`ccedilla`/`atilde`) são glifos-marca d'água com 12 contornos e caixa fora do
+  normal, comprovado com `fontTools`; a Montserrat usa compostos legítimos
+  (`c`+`uni0327`, `a`+`tildecomb`). Download no `scripts/convert_fonts.py`
+  (google/fonts → `font/`), conversão TTF→woff2 e `@font-face` variável
+  (`font-weight: 100 900`).
+- **Robustez da navegação hx-boost**: componentes Alpine passaram a ser
+  registrados globalmente em `static/js/components.js` (antes, scripts por página
+  não eram reexecutados após boost, quebrando timeline, modal de devolução,
+  filtros e preview CSV); Chart.js virou lazy-load em `static/js/charts.js`
+  (meta `chart-url` + evento `quiin:chart-pronto`); `x-cloak` foi trocado por
+  `style="display:none"` em conteúdo trocado (o Alpine remove `x-cloak` só uma
+  vez, no start); `OrganogramaView` só devolve o partial quando o
+  `HX-Target` é o filtro (`talentos-lista`), corrigindo o primeiro clique em
+  Talentos.
+- **Kanban drag-and-drop**: endpoint `POST /aprovacao/lancamento/<pk>/mover/`
+  com serviço `mover_lancamento` (Rascunho/Devolvido→Enviado, Enviado→Aprovado,
+  Enviado→Devolvido com justificativa via modal; Aprovado é imutável), partial
+  `_kanban.html` atualizado via HTMX e toasts client-side (`HX-Trigger` +
+  `window.quiinToast`). Botão “Enviar” mantém a alternativa acessível.
+- **Financeiro**: rota `finance:modelo_csv` baixa `modelo_financeiro.csv`
+  compatível com o importador (competência do período selecionado, uma linha
+  por pilar, tipos válidos).
+- **CRM**: `OportunidadeForm` usa **empresa como texto com `<datalist>`**
+  resolvendo por nome exato (case-insensitive) e erro orientando o cadastro;
+  oportunidades perdidas ganharam link “editar / reabrir”.
+- Testes: **190 Django / 62 E2E** verdes; E2E de regressão específico em
+  `tests/e2e/fixes_r7.spec.ts` (timeline e modal após boost, primeiro clique em
+  Talentos, drag nos dois sentidos, devolução por drag, download do CSV,
+  empresa texto/datalist, reabrir perdida).

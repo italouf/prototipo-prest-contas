@@ -93,6 +93,9 @@ python manage.py tailwind runserver         # dev: runserver + watcher
 
 - `font/` (origem) e `static/fonts/{panton,myriad-pro}` (derivados licenciados) não
   são versionados; sem eles, a UI cai no fallback de sistema.
+- O script baixa automaticamente a **Montserrat variável** (OFL, google/fonts)
+  quando ausente e converte para woff2; Myriad Pro e JetBrains Mono vêm de
+  `font/`.
 - Catálogo do design system (somente DEBUG): http://127.0.0.1:8000/dev/design-system/
 - Em Windows, se o console falhar com emojis do CLI do Tailwind, use `PYTHONUTF8=1`.
 
