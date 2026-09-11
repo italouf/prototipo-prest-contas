@@ -234,7 +234,7 @@
   </div>
 {% endif %}
 
-<div id="drawer" x-show="drawerAberto" x-cloak class="fixed inset-0 z-50" data-testid="drawer" role="dialog" aria-modal="true" aria-label="Detalhe do pilar">
+<div id="drawer" x-show="drawerAberto" style="display: none" class="fixed inset-0 z-50" data-testid="drawer" role="dialog" aria-modal="true" aria-label="Detalhe do pilar">
   <div class="absolute inset-0 bg-black/40" @click="drawerAberto = false"></div>
   <aside class="absolute right-0 top-0 h-full w-full max-w-md overflow-y-auto bg-surface-2 p-5 shadow-2xl">
     <div class="flex items-center justify-between">
@@ -248,9 +248,4 @@
   </aside>
 </div>
 </div>
-{% endblock %}
-
-{% block scripts %}
-<script src="{% static 'js/vendor/chart.umd.js' %}" defer></script>
-<script src="{% static 'js/charts/dashboard.js' %}" defer></script>
 {% endblock %}

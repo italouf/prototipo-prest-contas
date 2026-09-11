@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
 <meta name="htmx-config" content='{"globalViewTransitions": true}'>
+<meta name="chart-url" content="{% static 'js/vendor/chart.umd.js' %}">
 <title>{% block title %}Portal QuIIN{% endblock %}</title>
 <link rel="stylesheet" href="{% static 'css/fonts.css' %}">
 {% tailwind_css %}
@@ -33,6 +34,7 @@
     {% if user.is_authenticated %}
     <c-layout.topbar />
     <div id="progresso" class="htmx-indicator fixed inset-x-0 top-0 z-50 h-0.5 bg-quiin-sky"></div>
+    <div id="toasts" class="messages pointer-events-none fixed right-4 top-4 z-[80] w-80 space-y-2" role="status" aria-live="polite"></div>
     <div id="skeleton-global" class="htmx-indicator fixed inset-x-0 top-14 bottom-0 z-30 bg-surface/95 p-6" aria-hidden="true">
       <div class="mx-auto grid w-full max-w-[1440px] gap-4 sm:grid-cols-3">
         <div class="skeleton h-24"></div>
@@ -69,7 +71,8 @@
 
 <script src="{% static 'js/vendor/htmx.min.js' %}" defer></script>
 <script src="{% static 'js/vendor/head-support.js' %}" defer></script>
-{% block scripts %}{% endblock %}
+<script src="{% static 'js/components.js' %}" defer></script>
+<script src="{% static 'js/charts.js' %}" defer></script>
 <script src="{% static 'js/vendor/alpine.min.js' %}" defer></script>
 <script>
   function quiinAtivarNav() {

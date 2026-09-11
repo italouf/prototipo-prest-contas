@@ -52,7 +52,7 @@ class OrganogramaView(LoginRequiredMixin, View):
             "competencia_selecionada": competencia_selecionada,
             "pode_editar_talentos": pode_lancar(request.user),
         }
-        if getattr(request, "htmx", False):
+        if getattr(request, "htmx", False) and getattr(request.htmx, "target", "") == "talentos-lista":
             return render(request, "talentos/_lista.html", contexto)
         return render(request, "talentos/organograma.html", contexto)
 

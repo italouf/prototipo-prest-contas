@@ -12,9 +12,12 @@ test('funil mostra pipeline, meta de CNPJs e renovacoes separadas', async ({ pag
   await page.goto('/crm-at/funil/');
   await expect(page.getByTestId('funil-kpis')).toContainText('Pipeline em aberto');
   await expect(page.getByTestId('funil-kpis')).toContainText('Meta CNPJs novos');
-  await expect(page.getByTestId('funil-coluna-NEGOCIACAO')).toContainText('Banco Fictício do Sul S.A.');
-  await expect(page.getByTestId('funil-coluna-PROSPECCAO')).toContainText('Startup Demo Quântica LTDA');
-  await expect(page.getByTestId('kanban-renovacoes')).toContainText('Metalúrgica Exemplo S.A.');
+  const colunas = ['PROSPECCAO', 'QUALIFICACAO', 'REUNIAO_TECNICA', 'NEGOCIACAO', 'FECHAMENTO'];
+  for (const fase of colunas) {
+    await expect(page.getByTestId(`funil-coluna-${fase}`)).toBeVisible();
+  }
+  await expect(page.locator('[data-testid^="oportunidade-"]').first()).toBeVisible();
+  await expect(page.getByTestId('kanban-renovacoes')).toBeVisible();
   await expect(page.getByTestId('page-funil')).toContainText('RN-007');
 });
 

@@ -595,12 +595,20 @@ class OrganogramaR4Testes(TalentosBaseTestes):
         self.assertTrue(hasattr(colaborador, "horas_vigentes"))
         self.assertEqual(colaborador.disponibilidade, max(0, 40 - colaborador.horas_vigentes))
 
-    def test_htmx_renderiza_apenas_o_partial(self):
-        from apps.talentos.views import OrganogramaView
+    def test_htmx_com_target_do_filtro_renderiza_apenas_o_partial(self):
+        self.client.force_login(self.usuario)
+        resposta = self.client.get(
+            reverse("talentos:organograma"),
+            headers={"HX-Request": "true", "HX-Target": "talentos-lista"},
+        )
+        self.assertTemplateUsed(resposta, "talentos/_lista.html")
+        self.assertNotContains(resposta, "Organograma")
 
-        requisicao = _request("/talentos/organograma/", self.usuario)
-        requisicao.htmx = True
-        with mock.patch("apps.talentos.views.render") as mock_render:
-            mock_render.return_value = HttpResponse()
-            OrganogramaView.as_view()(requisicao)
-        self.assertEqual(mock_render.call_args[0][1], "talentos/_lista.html")
+    def test_htmx_com_target_main_renderiza_pagina_completa(self):
+        self.client.force_login(self.usuario)
+        resposta = self.client.get(
+            reverse("talentos:organograma"),
+            headers={"HX-Request": "true", "HX-Target": "main"},
+        )
+        self.assertTemplateUsed(resposta, "talentos/organograma.html")
+        self.assertContains(resposta, "Organograma")

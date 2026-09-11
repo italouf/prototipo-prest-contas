@@ -33,7 +33,7 @@
       </div>
     </div>
 
-    <div x-show="nomeArquivo" x-cloak class="mt-4" data-testid="preview-csv">
+    <div x-show="nomeArquivo" style="display: none" class="mt-4" data-testid="preview-csv">
       <div class="flex flex-wrap items-center gap-3">
         <h2 class="font-display text-lg font-semibold">Preview</h2>
         <span class="text-sm" x-show="valido" data-testid="preview-valido">
@@ -107,7 +107,4 @@
     </div>
   </section>
 </div>
-{% endblock %}
-{% block scripts %}
-<script src="{% static 'js/finance/importar.js' %}" defer></script>
 {% endblock %}

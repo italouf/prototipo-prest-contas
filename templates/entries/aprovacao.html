@@ -53,7 +53,7 @@
     {% endfor %}
   </div>
 
-  <div x-show="devolver.aberto" x-cloak class="fixed inset-0 z-50" data-testid="modal-devolucao" role="dialog" aria-modal="true" aria-labelledby="titulo-devolucao">
+  <div x-show="devolver.aberto" style="display: none" class="fixed inset-0 z-50" data-testid="modal-devolucao" role="dialog" aria-modal="true" aria-labelledby="titulo-devolucao">
     <div class="absolute inset-0 bg-black/40" @click="fecharDevolucao()"></div>
     <div class="absolute left-1/2 top-1/2 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-xl bg-surface-2 p-5 shadow-2xl">
       <h2 id="titulo-devolucao" class="font-display text-lg font-semibold">Devolver <span class="numerico" x-text="devolver.codigo"></span></h2>
@@ -71,7 +71,7 @@
     </div>
   </div>
 
-  <div x-show="drawerAberto" x-cloak class="fixed inset-0 z-40" data-testid="drawer-timeline" role="dialog" aria-modal="true" aria-label="Timeline do lançamento">
+  <div x-show="drawerAberto" style="display: none" class="fixed inset-0 z-40" data-testid="drawer-timeline" role="dialog" aria-modal="true" aria-label="Timeline do lançamento">
     <div class="absolute inset-0 bg-black/40" @click="drawerAberto = false"></div>
     <aside class="absolute right-0 top-0 h-full w-full max-w-md overflow-y-auto bg-surface-2 p-5 shadow-2xl">
       <div class="flex items-center justify-between">
@@ -85,7 +85,4 @@
     </aside>
   </div>
 </div>
-{% endblock %}
-{% block scripts %}
-<script src="{% static 'js/entries/aprovacao.js' %}" defer></script>
 {% endblock %}

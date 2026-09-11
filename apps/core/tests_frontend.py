@@ -166,13 +166,18 @@ class ShellTestes(TestCase):
 class ChartsDashboardTestes(SimpleTestCase):
     def test_wrapper_e_chartjs_presentes(self):
         for rel in (
-            "static/js/charts/dashboard.js",
+            "static/js/charts.js",
+            "static/js/components.js",
             "static/js/vendor/chart.umd.js",
         ):
             self.assertTrue((settings.BASE_DIR / rel).exists(), f"{rel} ausente")
-        fonte = (settings.BASE_DIR / "static/js/charts/dashboard.js").read_text(encoding="utf-8")
+        fonte = (settings.BASE_DIR / "static/js/charts.js").read_text(encoding="utf-8")
         self.assertIn("htmx:afterSwap", fonte)
-        self.assertIn("quiinDashboardCharts", fonte)
+        self.assertIn("quiin:chart-pronto", fonte)
+        componentes = (settings.BASE_DIR / "static/js/components.js").read_text(encoding="utf-8")
+        self.assertIn("painelAprovacao", componentes)
+        self.assertIn("previewCsv", componentes)
+        self.assertIn("quiinToast", componentes)
 
 
 class ToastsTestes(TestCase):
