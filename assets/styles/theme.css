@@ -38,8 +38,8 @@
   --color-pillar-startups-texto: #155d94;
   --color-pillar-outrasfontes-texto: #0e7a4f;
 
-  --font-display: "Montserrat", "Myriad Pro", system-ui, sans-serif;
-  --font-sans: "Myriad Pro", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Montserrat", system-ui, sans-serif;
+  --font-sans: "Montserrat", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Code", monospace;
 }
 

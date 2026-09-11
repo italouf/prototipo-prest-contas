@@ -138,6 +138,12 @@
 - **CRM**: `OportunidadeForm` usa **empresa como texto com `<datalist>`**
   resolvendo por nome exato (case-insensitive) e erro orientando o cadastro;
   oportunidades perdidas ganharam link “editar / reabrir”.
+- **Fontes no deploy (Render)**: Myriad Pro saiu dos `@font-face` e dos tokens
+  (`--font-sans`/`--font-display`) — a UI usa só Montserrat + JetBrains Mono,
+  ambas versionadas. Causa da falha de build: `fonts.css` referenciava arquivos
+  ignorados pelo git, e o `CompressedManifestStaticFilesStorage` do Whitenoise
+  abortava o `collectstatic`. Defesa extra: `WHITENOISE_MANIFEST_STRICT = False`
+  (asset ausente vira warning, não derruba o deploy).
 - Testes: **190 Django / 62 E2E** verdes; E2E de regressão específico em
   `tests/e2e/fixes_r7.spec.ts` (timeline e modal após boost, primeiro clique em
   Talentos, drag nos dois sentidos, devolução por drag, download do CSV,

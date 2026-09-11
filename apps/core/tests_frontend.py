@@ -41,7 +41,6 @@ class FontesTestes(SimpleTestCase):
             self.skipTest("font/ ausente (ambiente sem fontes locais)")
         for rel in (
             "static/fonts/montserrat/Montserrat-Variable.woff2",
-            "static/fonts/myriad-pro/MyriadPro-Regular.woff2",
             "static/fonts/jetbrains-mono/JetBrainsMono-Regular.woff2",
         ):
             self.assertTrue((settings.BASE_DIR / rel).exists(), f"{rel} não gerado")

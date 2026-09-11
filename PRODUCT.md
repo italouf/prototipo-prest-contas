@@ -58,9 +58,8 @@ consolidada e segregada por pilar, rodando apenas localmente.
   `#1B1641`, royal `#0F3B94`, blue `#144FAD`, sky `#1D72B9`, quantum-green
   `#2EBF7D`, violet `#3B249C`, mist `#DEDFE8`), com tokens semânticos por
   status e por pilar.
-- Tipografia: Montserrat variável (headlines, OFL, self-hosted após os
-  artefatos de acento da trial da Panton), Myriad Pro (corpo),
-  JetBrains Mono (dados numéricos).
+- Tipografia: Montserrat variável (headlines e corpo, OFL, self-hosted após os
+  artefatos de acento da trial da Panton), JetBrains Mono (dados numéricos).
 - Design system interno em `templates/components/` com catálogo em
   `/dev/design-system/` (somente DEBUG).
 - `relatorio.html` continua sem valor de referência visual.

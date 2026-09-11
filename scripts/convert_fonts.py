@@ -26,12 +26,6 @@ JETBRAINS = {
     "Medium": "JetBrainsMono-2.304/fonts/webfonts/JetBrainsMono-Medium.woff2",
     "Bold": "JetBrainsMono-2.304/fonts/webfonts/JetBrainsMono-Bold.woff2",
 }
-MYRIAD = {
-    "Light": "myriad-pro/MyriadPro-Light.otf",
-    "Regular": "myriad-pro/MYRIADPRO-REGULAR.OTF",
-    "SemiBold": "myriad-pro/MYRIADPRO-SEMIBOLD.OTF",
-    "Bold": "myriad-pro/MYRIADPRO-BOLD.OTF",
-}
 
 
 def _destino(pasta: str, nome: str) -> Path:
@@ -82,13 +76,6 @@ def processar(force: bool = False) -> list[str]:
                 destino.parent.mkdir(parents=True, exist_ok=True)
                 destino.write_bytes(origem.read_bytes())
                 gerados.append(str(destino.relative_to(BASE_DIR)))
-    for nome, rel in MYRIAD.items():
-        origem = FONT_DIR / rel
-        destino = _destino("myriad-pro", f"MyriadPro-{nome}")
-        if _precisa_gerar(origem, destino, force):
-            _converter(origem, destino)
-            gerados.append(str(destino.relative_to(BASE_DIR)))
-
     if _baixar_montserrat():
         destino = _destino("montserrat", "Montserrat-Variable")
         if _precisa_gerar(MONTSSERRAT_ORIGEM, destino, force):
@@ -100,7 +87,6 @@ def processar(force: bool = False) -> list[str]:
 def faltantes() -> list[str]:
     esperados = (
         [("jetbrains-mono", f"JetBrainsMono-{n}") for n in JETBRAINS]
-        + [("myriad-pro", f"MyriadPro-{n}") for n in MYRIAD]
         + [("montserrat", "Montserrat-Variable")]
     )
     return [f"{p}/{n}.woff2" for p, n in esperados if not _destino(p, n).exists()]

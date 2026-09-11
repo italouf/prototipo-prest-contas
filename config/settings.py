@@ -123,6 +123,7 @@ STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
     "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
 }
+WHITENOISE_MANIFEST_STRICT = False
 
 _csrf_origins = os.environ.get("CSRF_TRUSTED_ORIGINS", "")
 if _csrf_origins:
