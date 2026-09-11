@@ -1,7 +1,7 @@
 """Converte/copia fontes de font/ para static/fonts/ (idempotente).
 
 Uso:
-    python scripts/convert_fonts.py           # gera o que faltar
+    python scripts/convert_fonts.py           # gera o que faltar (baixa Montserrat se necessário)
     python scripts/convert_fonts.py --force   # regera tudo
     python scripts/convert_fonts.py --check   # não gera; falha se faltar algo
 """
@@ -9,19 +9,18 @@ from __future__ import annotations
 
 import argparse
 import sys
+import urllib.request
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 FONT_DIR = BASE_DIR / "font"
 OUT_DIR = BASE_DIR / "static" / "fonts"
 
-PANTON = {
-    "Light": "panton/WEB/Panton-Trial-Light.woff2",
-    "Regular": "panton/WEB/Panton-Trial-Regular.woff2",
-    "SemiBold": "panton/WEB/Panton-Trial-SemiBold.woff2",
-    "Bold": "panton/WEB/Panton-Trial-Bold.woff2",
-    "Black": "panton/WEB/Panton-Trial-Black.woff2",
-}
+MONTSSERRAT_URL = (
+    "https://raw.githubusercontent.com/google/fonts/main/ofl/montserrat/Montserrat%5Bwght%5D.ttf"
+)
+MONTSSERRAT_ORIGEM = FONT_DIR / "montserrat" / "Montserrat[wght].ttf"
+
 JETBRAINS = {
     "Regular": "JetBrainsMono-2.304/fonts/webfonts/JetBrainsMono-Regular.woff2",
     "Medium": "JetBrainsMono-2.304/fonts/webfonts/JetBrainsMono-Medium.woff2",
@@ -47,12 +46,35 @@ def _precisa_gerar(origem: Path, destino: Path, force: bool) -> bool:
     return origem.stat().st_mtime > destino.stat().st_mtime
 
 
+def _baixar_montserrat() -> bool:
+    """Baixa a Montserrat variável (OFL) do repositório google/fonts."""
+    if MONTSSERRAT_ORIGEM.exists():
+        return True
+    destino = MONTSSERRAT_ORIGEM
+    destino.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        print("Baixando Montserrat variável (google/fonts, OFL)…")
+        with urllib.request.urlopen(MONTSSERRAT_URL, timeout=90) as resposta:
+            destino.write_bytes(resposta.read())
+        return True
+    except Exception as exc:  # pragma: no cover - rede
+        print(f"Aviso: não foi possível baixar a Montserrat ({exc}). Usando fallback.")
+        return False
+
+
+def _converter(origem: Path, destino: Path) -> None:
+    from fontTools.ttLib import TTFont
+
+    destino.parent.mkdir(parents=True, exist_ok=True)
+    fonte = TTFont(str(origem))
+    fonte.flavor = "woff2"
+    fonte.save(str(destino))
+    fonte.close()
+
+
 def processar(force: bool = False) -> list[str]:
     gerados: list[str] = []
-    for pasta, mapa, prefixo in (
-        ("panton", PANTON, "Panton"),
-        ("jetbrains-mono", JETBRAINS, "JetBrainsMono"),
-    ):
+    for pasta, mapa, prefixo in (("jetbrains-mono", JETBRAINS, "JetBrainsMono"),):
         for nome, rel in mapa.items():
             origem = FONT_DIR / rel
             destino = _destino(pasta, f"{prefixo}-{nome}")
@@ -64,22 +86,22 @@ def processar(force: bool = False) -> list[str]:
         origem = FONT_DIR / rel
         destino = _destino("myriad-pro", f"MyriadPro-{nome}")
         if _precisa_gerar(origem, destino, force):
-            from fontTools.ttLib import TTFont
+            _converter(origem, destino)
+            gerados.append(str(destino.relative_to(BASE_DIR)))
 
-            destino.parent.mkdir(parents=True, exist_ok=True)
-            fonte = TTFont(str(origem))
-            fonte.flavor = "woff2"
-            fonte.save(str(destino))
-            fonte.close()
+    if _baixar_montserrat():
+        destino = _destino("montserrat", "Montserrat-Variable")
+        if _precisa_gerar(MONTSSERRAT_ORIGEM, destino, force):
+            _converter(MONTSSERRAT_ORIGEM, destino)
             gerados.append(str(destino.relative_to(BASE_DIR)))
     return gerados
 
 
 def faltantes() -> list[str]:
     esperados = (
-        [("panton", f"Panton-{n}") for n in PANTON]
-        + [("jetbrains-mono", f"JetBrainsMono-{n}") for n in JETBRAINS]
+        [("jetbrains-mono", f"JetBrainsMono-{n}") for n in JETBRAINS]
         + [("myriad-pro", f"MyriadPro-{n}") for n in MYRIAD]
+        + [("montserrat", "Montserrat-Variable")]
     )
     return [f"{p}/{n}.woff2" for p, n in esperados if not _destino(p, n).exists()]
 

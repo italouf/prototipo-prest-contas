@@ -1,9 +1,5 @@
 /* static/css/fonts.css — self-hosted (geradas por scripts/convert_fonts.py) */
-@font-face { font-family: "Panton"; src: url("../fonts/panton/Panton-Light.woff2") format("woff2"); font-weight: 300; font-display: swap; }
-@font-face { font-family: "Panton"; src: url("../fonts/panton/Panton-Regular.woff2") format("woff2"); font-weight: 400; font-display: swap; }
-@font-face { font-family: "Panton"; src: url("../fonts/panton/Panton-SemiBold.woff2") format("woff2"); font-weight: 600; font-display: swap; }
-@font-face { font-family: "Panton"; src: url("../fonts/panton/Panton-Bold.woff2") format("woff2"); font-weight: 700; font-display: swap; }
-@font-face { font-family: "Panton"; src: url("../fonts/panton/Panton-Black.woff2") format("woff2"); font-weight: 900; font-display: swap; }
+@font-face { font-family: "Montserrat"; src: url("../fonts/montserrat/Montserrat-Variable.woff2") format("woff2-variations"); font-weight: 100 900; font-display: swap; }
 
 @font-face { font-family: "Myriad Pro"; src: url("../fonts/myriad-pro/MyriadPro-Light.woff2") format("woff2"); font-weight: 300; font-display: swap; }
 @font-face { font-family: "Myriad Pro"; src: url("../fonts/myriad-pro/MyriadPro-Regular.woff2") format("woff2"); font-weight: 400; font-display: swap; }

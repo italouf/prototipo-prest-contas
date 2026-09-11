@@ -40,7 +40,7 @@ class FontesTestes(SimpleTestCase):
         if not (settings.BASE_DIR / "font").exists():
             self.skipTest("font/ ausente (ambiente sem fontes locais)")
         for rel in (
-            "static/fonts/panton/Panton-Regular.woff2",
+            "static/fonts/montserrat/Montserrat-Variable.woff2",
             "static/fonts/myriad-pro/MyriadPro-Regular.woff2",
             "static/fonts/jetbrains-mono/JetBrainsMono-Regular.woff2",
         ):
