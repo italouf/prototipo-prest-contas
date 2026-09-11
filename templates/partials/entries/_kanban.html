@@ -1,0 +1,56 @@
+{% load core_extras %}
+<div id="kanban" data-testid="kanban" class="mt-4 grid gap-4 lg:grid-cols-4">
+  {% for status, cartoes in kanban.items %}
+  <section class="rounded-xl border border-border bg-surface-2 p-3" data-testid="kanban-coluna-{{ status }}"
+           aria-label="Coluna {{ status|status_lancamento }}"
+           @dragover.prevent @drop.prevent="soltar($event, '{{ status }}')">
+    <header class="flex items-center justify-between px-1 pb-2">
+      <h2 class="text-sm font-semibold">{{ status|status_lancamento }}</h2>
+      <span class="rounded-full bg-quiin-mist/50 px-2 py-0.5 text-xs">{{ cartoes|length }}</span>
+    </header>
+    <div class="space-y-2">
+      {% for lc in cartoes %}
+      <article class="anim-entrada rounded-lg border border-border bg-surface p-3"
+               data-testid="kanban-card-{{ lc.pk }}"
+               data-card-id="{{ lc.pk }}" data-codigo="{{ lc.indicador.codigo }}"
+               data-mover-url="{% url 'entries:lancamento_mover' lc.pk %}"
+               {% if status == 'ENVIADO' or pode_enviar and status != 'APROVADO' %}draggable="true"{% else %}draggable="false"{% endif %}
+               @dragstart="iniciarArrasto($event, {{ lc.pk }})">
+        <p class="text-sm font-semibold">{{ lc.indicador.nome }}</p>
+        <p class="text-xs text-text-muted">{{ lc.indicador.codigo }} · {{ lc.indicador.pilar.codigo }}</p>
+        <p class="numerico mt-1 text-sm">{{ lc.valor_numerico|numero_ptbr }}{{ lc.valor_texto }}</p>
+        {% if lc.comentario %}<p class="mt-1 text-xs text-text-muted">{{ lc.comentario }}</p>{% endif %}
+        {% if lc.comentario_revisao %}<p class="mt-1 text-xs text-status-pendente-texto">Revisão: {{ lc.comentario_revisao }}</p>{% endif %}
+        <p class="mt-1 text-xs text-text-muted">por {{ lc.usuario_criacao.nome_exibicao|default:'—' }}</p>
+        {% if lc.usuario_aprovacao %}
+        <p class="text-xs text-text-muted">revisado por {{ lc.usuario_aprovacao.nome_exibicao }}</p>
+        {% endif %}
+        {% if status == 'ENVIADO' %}
+        <div class="mt-2 flex flex-wrap gap-2">
+          <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="lancamento_id" value="{{ lc.pk }}">
+            <c-ui.button type="submit" size="sm" name="aprovar" value="1">Aprovar</c-ui.button>
+          </form>
+          <c-ui.button type="button" size="sm" variant="danger"
+                       @click="abrirDevolucao({{ lc.pk }}, '{{ lc.indicador.codigo }}')">Devolver</c-ui.button>
+        </div>
+        {% elif pode_enviar and status != 'APROVADO' %}
+        <div class="mt-2">
+          <button type="button" data-testid="enviar-{{ lc.pk }}"
+                  class="rounded-md border border-quiin-navy bg-quiin-navy px-3 py-1.5 text-xs font-semibold text-white hover:bg-quiin-royal"
+                  hx-post="{% url 'entries:lancamento_mover' lc.pk %}" hx-vals='{"destino": "ENVIADO"}'
+                  hx-target="#kanban" hx-swap="outerHTML">Enviar</button>
+        </div>
+        {% endif %}
+        <button type="button" class="mt-2 text-xs text-quiin-royal underline"
+                hx-get="{% url 'entries:lancamento_drawer' lc.pk %}" hx-target="#drawer-conteudo" hx-swap="innerHTML" hx-indicator="#skeleton-global"
+                @click="abrirTimeline()" data-testid="timeline-{{ lc.pk }}">Ver timeline</button>
+      </article>
+      {% empty %}
+      <p class="px-1 text-xs text-text-muted">Nenhum lançamento.</p>
+      {% endfor %}
+    </div>
+  </section>
+  {% endfor %}
+</div>

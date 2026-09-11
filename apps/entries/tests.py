@@ -128,3 +128,83 @@ class AprovacaoR3Testes(TestCase):
         self.assertContains(resposta, 'data-testid="filtro-tipo-TODOS"')
         self.assertContains(resposta, 'data-testid="filtro-tipo-QTD"')
         self.assertContains(resposta, 'x-data="campoValor(')
+
+
+class MoverLancamentoR7Testes(TestCase):
+    """Drag-and-drop do kanban (R7): transições, permissões e justificativa."""
+
+    def setUp(self):
+        garantir_grupos()
+        self.erica = adicionar_grupo(User.objects.create_user(username="r7_master", password="x"), "Master")
+        self.pilar = Pilar.objects.create(codigo="PDI", nome="PDI / FCCT", ordem=1)
+        self.ind = Indicador.objects.create(pilar=self.pilar, codigo="PDI-PROJ-INI", nome="Projetos iniciados", tipo="QTD")
+        Meta.objects.create(
+            indicador=self.ind, competencia_inicio=date(2026, 1, 1),
+            competencia_fim=date(2026, 12, 31), periodicidade="MENSAL", valor=2,
+        )
+        self.periodo = Periodo.objects.create(competencia=date(2026, 6, 1), status="ABERTO", aberto_por=self.erica)
+        salvar_ou_enviar(self.periodo, self.pilar, self.erica, {str(self.ind.pk): {"valor": "1"}}, enviar=True)
+        self.lc = Lancamento.objects.get(periodo=self.periodo)
+        self.client.force_login(self.erica)
+
+    def _mover(self, destino, justificativa=""):
+        resposta = self.client.post(
+            reverse("entries:lancamento_mover", args=[self.lc.pk]),
+            {"destino": destino, "comentario_revisao": justificativa},
+        )
+        self.lc.refresh_from_db()
+        return resposta
+
+    def test_pagina_kanban_tem_atributos_de_drag(self):
+        resposta = self.client.get(reverse("entries:aprovacao", args=[self.periodo.pk]))
+        self.assertContains(resposta, 'data-testid="kanban"')
+        self.assertContains(resposta, 'data-mover-url=')
+        self.assertContains(resposta, 'data-card-id=')
+        self.assertContains(resposta, 'draggable="true"')
+
+    def test_enviar_de_rascunho_via_mover(self):
+        self.lc.status = "RASCUNHO"
+        self.lc.save(update_fields=["status"])
+        resposta = self._mover("ENVIADO")
+        self.assertEqual(resposta.status_code, 200)
+        self.assertEqual(self.lc.status, "ENVIADO")
+        self.assertIn("success", resposta["HX-Trigger"])
+        self.assertIn("Enviado", resposta["HX-Trigger"])
+
+    def test_aprovar_via_mover(self):
+        resposta = self._mover("APROVADO")
+        self.assertEqual(self.lc.status, "APROVADO")
+        self.assertIn("success", resposta["HX-Trigger"])
+
+    def test_devolver_exige_justificativa(self):
+        resposta = self._mover("DEVOLVIDO")
+        self.assertEqual(self.lc.status, "ENVIADO")
+        self.assertIn("error", resposta["HX-Trigger"])
+        self._mover("DEVOLVIDO", "Ajustar a meta.")
+        self.assertEqual(self.lc.status, "DEVOLVIDO")
+        self.assertEqual(self.lc.comentario_revisao, "Ajustar a meta.")
+
+    def test_destino_invalido_nao_muda_status(self):
+        resposta = self._mover("RASCUNHO")
+        self.assertEqual(self.lc.status, "ENVIADO")
+        self.assertIn("error", resposta["HX-Trigger"])
+
+    def test_periodo_fechado_bloqueia_envio(self):
+        self.periodo.status = "FECHADO"
+        self.periodo.save(update_fields=["status"])
+        self.lc.status = "RASCUNHO"
+        self.lc.save(update_fields=["status"])
+        resposta = self._mover("ENVIADO")
+        self.assertEqual(self.lc.status, "RASCUNHO")
+        self.assertIn("error", resposta["HX-Trigger"])
+
+    def test_requer_gestor(self):
+        focal = adicionar_grupo(User.objects.create_user(username="r7_focal", password="x"), "PontoFocal")
+        UsuarioPilar.objects.create(usuario=focal, pilar=self.pilar)
+        self.client.force_login(focal)
+        resposta = self.client.post(
+            reverse("entries:lancamento_mover", args=[self.lc.pk]), {"destino": "APROVADO"}
+        )
+        self.assertEqual(resposta.status_code, 403)
+        self.lc.refresh_from_db()
+        self.assertEqual(self.lc.status, "ENVIADO")

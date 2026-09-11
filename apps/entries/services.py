@@ -89,6 +89,35 @@ def devolver(lc, usuario, justificativa):
     return lc
 
 
+def mover_lancamento(lc, usuario, destino, justificativa=""):
+    """Movimenta um lançamento no kanban (drag-and-drop).
+
+    Transições permitidas:
+    - RASCUNHO/DEVOLVIDO -> ENVIADO (requer pode_lancar, pilar e período editável)
+    - ENVIADO -> APROVADO (requer pode_aprovar)
+    - ENVIADO -> DEVOLVIDO (requer pode_aprovar + justificativa)
+    """
+    destino = (destino or "").strip().upper()
+    if destino not in ("ENVIADO", "APROVADO", "DEVOLVIDO"):
+        raise ValidationError("Destino inválido para movimentação.")
+    if destino == "ENVIADO":
+        if lc.status not in ("RASCUNHO", "DEVOLVIDO"):
+            raise ValidationError("Apenas rascunhos ou devolvidos podem ser enviados.")
+        _validar_acesso(lc.periodo, lc.indicador.pilar, usuario)
+        status_anterior = lc.status
+        lc.status = "ENVIADO"
+        lc.comentario_revisao = ""
+        lc.save(update_fields=["status", "comentario_revisao", "atualizado_em"])
+        registrar_auditoria(
+            usuario, "ENVIAR_LANCAMENTO", "Lancamento",
+            registro_id=lc.pk, campo="status", valor_anterior=status_anterior, valor_novo="ENVIADO",
+        )
+        return lc
+    if destino == "APROVADO":
+        return aprovar(lc, usuario)
+    return devolver(lc, usuario, justificativa)
+
+
 def _validar_acesso(periodo, pilar, usuario):
     if not pode_lancar(usuario):
         raise ValidationError("Seu perfil não permite lançamentos.")
