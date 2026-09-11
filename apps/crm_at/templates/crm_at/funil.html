@@ -94,7 +94,13 @@
     <summary class="cursor-pointer text-sm font-semibold">Oportunidades perdidas ({{ perdidos|length }})</summary>
     <ul class="mt-2 space-y-1 text-sm text-text-muted">
       {% for o in perdidos %}
-      <li>{{ o.empresa.nome }} · {{ o.valor_previsto|brl }}</li>
+      <li class="flex flex-wrap items-center justify-between gap-2">
+        <span>{{ o.empresa.nome }} · {{ o.valor_previsto|brl }}</span>
+        {% if pode_editar_crm %}
+        <a class="text-xs text-quiin-royal underline" data-testid="editar-perdido-{{ o.pk }}"
+           href="{% url 'crm_at:oportunidade_editar' o.pk %}">editar / reabrir</a>
+        {% endif %}
+      </li>
       {% endfor %}
     </ul>
   </details>

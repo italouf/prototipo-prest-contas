@@ -29,7 +29,10 @@ test('fluxo completo rascunho -> enviado -> aprovado no kanban', async ({ page }
   const colunaEnviado = page.getByTestId('kanban-coluna-ENVIADO');
   const cartao = colunaEnviado.locator('article', { hasText: 'Projetos iniciados' }).first();
   await expect(cartao).toBeVisible();
-  await cartao.getByRole('button', { name: /^Aprovar$/ }).click();
+  await Promise.all([
+    page.waitForLoadState('load'),
+    cartao.getByRole('button', { name: /^Aprovar$/ }).click(),
+  ]);
   await expect(page.locator('.messages .alert')).toContainText(/aprovado/i);
   await expect(page.getByTestId('kanban-coluna-APROVADO')).toContainText('Projetos iniciados');
 });

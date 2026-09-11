@@ -108,3 +108,39 @@ class ImportarPreviewR3Testes(TestCase):
         resposta = self.client.get(reverse("finance:importar"))
         self.assertContains(resposta, 'x-data="previewCsv"')
         self.assertContains(resposta, 'data-testid="preview-csv"')
+
+
+class ModeloCsvR7Testes(TestCase):
+    def setUp(self):
+        garantir_grupos()
+        self.erica = adicionar_grupo(User.objects.create_user(username="r7_fin", password="x"), "Master")
+        self.pdi = Pilar.objects.create(codigo="PDI", nome="PDI / FCCT", ordem=1)
+        self.at = Pilar.objects.create(codigo="AT", nome="Associação Tecnológica", ordem=2)
+        self.outras = Pilar.objects.create(codigo="OUTRASFONTES", nome="Outras Fontes", ordem=3)
+        self.periodo = Periodo.objects.create(competencia=date(2026, 6, 1), status="ABERTO", aberto_por=self.erica)
+        self.client.force_login(self.erica)
+
+    def test_download_do_modelo(self):
+        resposta = self.client.get(reverse("finance:modelo_csv"))
+        self.assertEqual(resposta.status_code, 200)
+        self.assertIn("text/csv", resposta["Content-Type"])
+        self.assertIn("attachment", resposta["Content-Disposition"])
+        conteudo = resposta.content.decode("utf-8-sig")
+        linhas = conteudo.strip().splitlines()
+        self.assertEqual(
+            linhas[0],
+            "competencia,pilar,tipo_recurso,valor_captado,valor_executado,observacao",
+        )
+        self.assertEqual(len(linhas), 4)
+        self.assertIn("2026-06,AT,AT,0,0", conteudo)
+        self.assertIn("2026-06,OUTRASFONTES,OUTRAS_FONTES,0,0", conteudo)
+
+    def test_modelo_requer_permissao(self):
+        focal = adicionar_grupo(User.objects.create_user(username="r7_fin_focal", password="x"), "PontoFocal")
+        self.client.force_login(focal)
+        resposta = self.client.get(reverse("finance:modelo_csv"))
+        self.assertEqual(resposta.status_code, 403)
+
+    def test_pagina_importar_tem_botao_do_modelo(self):
+        resposta = self.client.get(reverse("finance:importar"))
+        self.assertContains(resposta, 'data-testid="baixar-modelo-csv"')

@@ -25,6 +25,9 @@
       <c-ui.button href="{% url 'crm_at:funil' %}" variant="ghost">Voltar ao funil</c-ui.button>
     </div>
   </form>
-  <p class="mt-1 text-xs text-text-muted">Não encontrou a empresa? <a href="{% url 'crm_at:empresa_criar' %}?next={{ request.path|urlencode }}">Cadastrar nova empresa</a>.</p>
+      <p class="mt-1 text-xs text-text-muted">Não encontrou a empresa? <a href="{% url 'crm_at:empresa_criar' %}?next={{ request.path|urlencode }}">Cadastrar nova empresa</a>.</p>
 </div>
+<datalist id="empresas-lista">
+  {% for nome in empresas_nomes %}<option value="{{ nome }}"></option>{% endfor %}
+</datalist>
 {% endblock %}

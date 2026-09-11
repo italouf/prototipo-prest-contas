@@ -10,7 +10,10 @@
       <p class="text-sm text-text-muted">Captação e execução por pilar no período selecionado.</p>
     </div>
     {% if pode_importar_financeiro %}
-    <c-ui.button href="{% url 'finance:importar' %}">Importar CSV consolidado</c-ui.button>
+    <div class="flex flex-wrap gap-2">
+      <c-ui.button href="{% url 'finance:importar' %}">Importar CSV consolidado</c-ui.button>
+      <c-ui.button href="{% url 'finance:modelo_csv' %}" variant="ghost">Baixar modelo CSV</c-ui.button>
+    </div>
     {% endif %}
   </div>
 

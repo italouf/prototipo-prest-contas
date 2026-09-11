@@ -115,7 +115,11 @@ def oportunidade_criar(request):
     return render(
         request,
         "crm_at/oportunidade_form.html",
-        {"form": form, "titulo": "Nova oportunidade"},
+        {
+            "form": form,
+            "titulo": "Nova oportunidade",
+            "empresas_nomes": Empresa.objects.order_by("nome").values_list("nome", flat=True),
+        },
     )
 
 
@@ -145,7 +149,12 @@ def oportunidade_editar(request, pk):
     return render(
         request,
         "crm_at/oportunidade_form.html",
-        {"form": form, "titulo": "Editar oportunidade", "oportunidade": oportunidade},
+        {
+            "form": form,
+            "titulo": "Editar oportunidade",
+            "oportunidade": oportunidade,
+            "empresas_nomes": Empresa.objects.order_by("nome").values_list("nome", flat=True),
+        },
     )
 
 

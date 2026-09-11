@@ -4,7 +4,13 @@
 {% block breadcrumbs %}{% include "partials/breadcrumbs.html" with atual="Importar financeiro" %}{% endblock %}
 {% block content %}
 <div data-testid="page-importar">
-  <h1 class="text-2xl font-bold">Importação de financeiro consolidado</h1>
+  <div class="flex flex-wrap items-end justify-between gap-3">
+    <div>
+      <h1 class="text-2xl font-bold">Importação de financeiro consolidado</h1>
+      <p class="text-sm text-text-muted">Baixe o modelo, preencha e importe de forma atômica (RF-082).</p>
+    </div>
+    <c-ui.button href="{% url 'finance:modelo_csv' %}" variant="ghost" data-testid="baixar-modelo-csv">Baixar modelo CSV</c-ui.button>
+  </div>
 
   <div class="mt-4 rounded-xl border border-border bg-surface-2 p-5">
     <h2 class="font-display text-lg font-semibold">Layout obrigatório do CSV (RF-081)</h2>

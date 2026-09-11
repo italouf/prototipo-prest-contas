@@ -174,7 +174,7 @@ class CadastroCRMTestes(TestCase):
         from apps.crm_at.views import oportunidade_criar
 
         dados = {
-            "empresa": str(self.empresa.pk),
+            "empresa_nome": "Acme S.A.",
             "valor_previsto": "1500.00",
             "fase": "QUALIFICACAO",
             "tipo": "NOVO_CNPJ",
@@ -257,7 +257,7 @@ class CadastroCRMTestes(TestCase):
             empresa=self.empresa, valor_previsto=Decimal("1000.00"), fase="PROSPECCAO"
         )
         dados = {
-            "empresa": str(self.empresa.pk),
+            "empresa_nome": "Acme S.A.",
             "valor_previsto": "1000.00",
             "fase": "NEGOCIACAO",
             "tipo": "NOVO_CNPJ",
@@ -317,3 +317,54 @@ class FunilR4Testes(FunilATViewTestes):
         self.assertEqual(len(fases), 5)
         self.assertNotIn("RENOVACAO", fases)
         self.assertNotIn("PERDIDO", fases)
+
+
+class OportunidadeFormR7Testes(CadastroCRMTestes):
+    """Empresa como texto com datalist e edição de oportunidades perdidas (R7)."""
+
+    def test_criar_com_empresa_desconhecida_reexibe_erro(self):
+        from apps.crm_at.views import oportunidade_criar
+
+        dados = {
+            "empresa_nome": "Inexistente Ltda",
+            "valor_previsto": "100.00",
+            "fase": "PROSPECCAO",
+            "tipo": "NOVO_CNPJ",
+            "observacao": "",
+        }
+        requisicao = _post_request("/crm-at/oportunidades/nova/", self.focal_at, dados)
+        with mock.patch("apps.crm_at.views.render") as mock_render:
+            mock_render.return_value = HttpResponse()
+            resposta = oportunidade_criar(requisicao)
+        self.assertEqual(resposta.status_code, 200)
+        self.assertFalse(Oportunidade.objects.exists())
+        self.assertIn("empresa_nome", _contexto_de_render(mock_render)["form"].errors)
+
+    def test_editar_oportunidade_perdida_permite_reabrir(self):
+        from apps.crm_at.views import oportunidade_editar
+
+        oportunidade = Oportunidade.objects.create(
+            empresa=self.empresa, valor_previsto=Decimal("500.00"), fase="PERDIDO"
+        )
+        dados = {
+            "empresa_nome": "Acme S.A.",
+            "valor_previsto": "500.00",
+            "fase": "NEGOCIACAO",
+            "tipo": "NOVO_CNPJ",
+            "observacao": "Reaberta por engano.",
+        }
+        requisicao = _post_request(
+            f"/crm-at/oportunidades/{oportunidade.pk}/editar/", self.focal_at, dados
+        )
+        resposta = oportunidade_editar(requisicao, pk=oportunidade.pk)
+        self.assertEqual(resposta.status_code, 302)
+        oportunidade.refresh_from_db()
+        self.assertEqual(oportunidade.fase, "NEGOCIACAO")
+
+    def test_funil_perdidos_tem_link_de_edicao(self):
+        Oportunidade.objects.create(
+            empresa=self.empresa, valor_previsto=Decimal("500.00"), fase="PERDIDO"
+        )
+        self.client.force_login(self.focal_at)
+        resposta = self.client.get(reverse("crm_at:funil"))
+        self.assertContains(resposta, "editar / reabrir")
