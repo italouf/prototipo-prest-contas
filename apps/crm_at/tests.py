@@ -368,3 +368,10 @@ class OportunidadeFormR7Testes(CadastroCRMTestes):
         self.client.force_login(self.focal_at)
         resposta = self.client.get(reverse("crm_at:funil"))
         self.assertContains(resposta, "editar / reabrir")
+
+    def test_funil_tem_blocos_executivos(self):
+        self.client.force_login(self.focal_at)
+        r = self.client.get(reverse("crm_at:funil"))
+        self.assertContains(r, "Perfis de associado")
+        self.assertContains(r, "Diamante")
+        self.assertContains(r, "Pipeline em aberto")  # KPIs intactos
