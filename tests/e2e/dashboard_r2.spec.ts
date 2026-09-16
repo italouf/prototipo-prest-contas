@@ -58,6 +58,29 @@ test('destaques filtram por pilar', async ({ page }) => {
   await expect(page.getByTestId('feed-destaques')).not.toContainText('renovações');
 });
 
+test('consolidado filtra por pilar sem reload', async ({ page }) => {
+  await login(page);
+  const filtros = page.getByTestId('consolidado-filtros');
+  await expect(filtros.getByRole('button', { name: 'Todos', exact: true })).toBeVisible();
+  // default = primeiro pilar (PDI): só ele visível
+  await expect(page.getByTestId('consolidado-pdi')).toBeVisible();
+  await expect(page.getByTestId('consolidado-formacao')).not.toBeVisible();
+  await page.evaluate(() => {
+    (window as unknown as { __marcador: number }).__marcador = 77;
+  });
+  // 2º pilar = FORMACAO (pills identificadas pelo código do pilar)
+  await filtros.getByRole('button', { name: 'FORMACAO', exact: true }).click();
+  await expect(page.getByTestId('consolidado-formacao')).toBeVisible();
+  await expect(page.getByTestId('consolidado-pdi')).not.toBeVisible();
+  await filtros.getByRole('button', { name: 'Todos', exact: true }).click();
+  await expect(page.getByTestId('consolidado-pdi')).toBeVisible();
+  await expect(page.getByTestId('consolidado-formacao')).toBeVisible();
+  const marcador = await page.evaluate(
+    () => (window as unknown as { __marcador: number }).__marcador,
+  );
+  expect(marcador).toBe(77);
+});
+
 test('dashboard responde em menos de 1000ms no servidor', async ({ page }) => {
   await login(page);
   const tempos = await page.evaluate(() => {

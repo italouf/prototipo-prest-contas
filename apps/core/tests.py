@@ -303,6 +303,42 @@ class PeriodoSelecionadoTestes(TestCase):
         self.assertEqual(resposta.context["periodo"].pk, self.julho.pk)
 
 
+class ConsolidadoPilarFiltroTestes(TestCase):
+    """Consolidado por pilar filtrável via Alpine (fallback sem JS = tudo visível)."""
+
+    def setUp(self):
+        garantir_grupos()
+        self.erica = adicionar_grupo(User.objects.create_user(username="cons_master", password="x"), "Master")
+        self.pdi = Pilar.objects.create(codigo="PDI", nome="PDI / FCCT", ordem=1)
+        self.at = Pilar.objects.create(codigo="AT", nome="Associação Tecnológica", ordem=2)
+        self.ind = Indicador.objects.create(pilar=self.pdi, codigo="PDI-PROJ-INI", nome="Projetos iniciados", tipo="QTD")
+        Meta.objects.create(
+            indicador=self.ind, competencia_inicio=date(2026, 1, 1),
+            competencia_fim=date(2026, 12, 31), periodicidade="MENSAL", valor=2,
+        )
+        self.periodo = Periodo.objects.create(competencia=date(2026, 6, 1), status="ABERTO", aberto_por=self.erica)
+        self.client.force_login(self.erica)
+
+    def test_consolidado_tem_filtros_e_todos_os_pilares_no_html(self):
+        r = self.client.get(reverse("core:dashboard"))
+        self.assertContains(r, 'data-testid="consolidado-pilar"')
+        self.assertContains(r, 'data-testid="consolidado-filtros"')
+        self.assertContains(r, 'data-pilar-filtro="todos"')
+        self.assertContains(r, f'data-pilar-filtro="{self.pdi.pk}"')
+        self.assertContains(r, f'data-pilar-filtro="{self.at.pk}"')
+        self.assertContains(r, f'data-pilar-bloco="{self.pdi.pk}"')
+        self.assertContains(r, f'data-pilar-bloco="{self.at.pk}"')
+        self.assertContains(r, 'data-testid="consolidado-pdi"')
+        self.assertContains(r, 'data-testid="consolidado-at"')
+        self.assertContains(r, "PDI / FCCT")
+        self.assertContains(r, "Associação Tecnológica")
+        self.assertContains(r, "Abrir pilar")
+
+    def test_consolidado_default_primeiro_pilar(self):
+        r = self.client.get(reverse("core:dashboard"))
+        self.assertContains(r, f"pilarCons: '{self.pdi.pk}'")
+
+
 class DashboardEscopoTestes(TestCase):
     """Escopo aditivo operacional|financeiro (LOOP2 Task1+Task3)."""
 
