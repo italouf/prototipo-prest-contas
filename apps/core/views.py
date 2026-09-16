@@ -23,6 +23,9 @@ MESES_ABREV = ["", "Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set"
 @login_required
 def dashboard(request):
     periodo, periodos = periodo_selecionado(request)
+    escopo = request.GET.get("escopo", "operacional")
+    if escopo not in ("operacional", "financeiro"):
+        escopo = "operacional"
     contexto = {
         "periodo": periodo,
         "periodos": periodos,
@@ -40,6 +43,7 @@ def dashboard(request):
         "destaque_pilar": "",
         "chart_mensal_json": "[]",
         "chart_financeiro_json": "[]",
+        "escopo": escopo,
     }
     if periodo is None:
         return render(request, "home.html", contexto)

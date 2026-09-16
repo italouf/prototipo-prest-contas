@@ -301,3 +301,28 @@ class PeriodoSelecionadoTestes(TestCase):
         self.junho.save(update_fields=["status"])
         resposta = self.client.get(reverse("core:dashboard"))
         self.assertEqual(resposta.context["periodo"].pk, self.julho.pk)
+
+
+class DashboardEscopoTestes(TestCase):
+    """Escopo aditivo operacional|financeiro (LOOP2 Task1, sem asserts de template)."""
+
+    def setUp(self):
+        garantir_grupos()
+        self.erica = adicionar_grupo(User.objects.create_user(username="erica_escopo", password="x"), "Master")
+        self.pdi = Pilar.objects.create(codigo="PDI", nome="PDI / FCCT", ordem=1)
+        self.periodo = Periodo.objects.create(competencia=date(2026, 6, 1), status="ABERTO", aberto_por=self.erica)
+
+    def test_default_operacional(self):
+        self.client.force_login(self.erica)
+        r = self.client.get(reverse("core:dashboard"))
+        self.assertEqual(r.context["escopo"], "operacional")
+
+    def test_financeiro_valido(self):
+        self.client.force_login(self.erica)
+        r = self.client.get(reverse("core:dashboard"), {"escopo": "financeiro"})
+        self.assertEqual(r.context["escopo"], "financeiro")
+
+    def test_escopo_invalido_cai_para_operacional(self):
+        self.client.force_login(self.erica)
+        r = self.client.get(reverse("core:dashboard"), {"escopo": "injetado'"})
+        self.assertEqual(r.context["escopo"], "operacional")
