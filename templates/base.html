@@ -77,6 +77,14 @@
       link.classList.toggle('nav-item-ativo', ativo);
       if (ativo) { link.setAttribute('aria-current', 'page'); } else { link.removeAttribute('aria-current'); }
     });
+    document.querySelectorAll('#navbar-tabs [data-nav-pai]').forEach(function (botao) {
+      var grupo = botao.closest('li');
+      var filhoAtivo = grupo ? grupo.querySelector('[data-nav-link][aria-current="page"]') : null;
+      botao.classList.toggle('tabnav-pai-ativo', !!filhoAtivo);
+      botao.classList.toggle('nav-item-ativo', !!filhoAtivo);
+      if (filhoAtivo) { botao.setAttribute('data-pai-ativo', 'true'); }
+      else { botao.removeAttribute('data-pai-ativo'); }
+    });
   }
   document.addEventListener('DOMContentLoaded', quiinAtivarNav);
   document.addEventListener('htmx:afterSwap', quiinAtivarNav);

@@ -55,6 +55,21 @@ test('navega 5 abas principais com boost', async ({ page }) => {
   await expect(page.getByTestId('page-auditoria').getByRole('heading', { name: /auditoria/i })).toBeVisible();
 });
 
+test('tabnav: aba Geral ativa em /', async ({ page }) => {
+  await login(page);
+  await page.goto('/');
+  const geral = page.getByTestId('navbar').getByRole('link', { name: /^Geral/ });
+  await expect(geral).toHaveAttribute('aria-current', 'page');
+});
+
+test('tabnav: pai Pilares ativo em /pilar/1/', async ({ page }) => {
+  await login(page);
+  await page.goto('/pilar/1/');
+  const pilares = page.getByTestId('navbar').getByRole('button', { name: /pilares/i });
+  await expect(pilares).toHaveClass(/tabnav-pai-ativo/);
+  await expect(pilares).toHaveAttribute('data-pai-ativo', 'true');
+});
+
 test('navbar mobile abre, navega e fecha', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await login(page);

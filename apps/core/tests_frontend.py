@@ -162,6 +162,26 @@ class ShellTestes(TestCase):
         self.assertContains(resposta, 'data-testid="breadcrumbs"')
         self.assertContains(resposta, "Auditoria")
 
+    def test_tabnav_sublinhada_com_grupos_primario_e_operacional(self):
+        self.client.force_login(self.erica)
+        resposta = self.client.get("/")
+        self.assertContains(resposta, 'id="navbar-tabs"')
+        self.assertContains(resposta, "tabnav-link")
+        self.assertContains(resposta, 'aria-label="Navegação primária"')
+        self.assertContains(resposta, 'aria-label="Navegação operacional"')
+        for rotulo in ("Geral", "Pilares do QuIIN", "Talentos", "Gestão de Associados", "Sistema"):
+            self.assertContains(resposta, rotulo)
+        self.assertContains(resposta, "border-l border-white/15")
+
+    def test_ativador_nav_marca_link_ativo_e_pai(self):
+        self.client.force_login(self.erica)
+        resposta = self.client.get("/")
+        conteudo = resposta.content.decode("utf-8")
+        self.assertIn("quiinAtivarNav", conteudo)
+        self.assertIn("link.setAttribute('aria-current', 'page')", conteudo)
+        self.assertIn("data-nav-pai", conteudo)
+        self.assertIn("tabnav-pai-ativo", conteudo)
+
 
 class ChartsDashboardTestes(SimpleTestCase):
     def test_wrapper_e_chartjs_presentes(self):

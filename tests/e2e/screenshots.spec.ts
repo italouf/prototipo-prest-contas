@@ -17,6 +17,8 @@ test('captura evidencias visuais das paginas principais', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
 
   await page.goto('/accounts/login/');
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.waitForTimeout(300);
   await page.screenshot({ path: path.join(dir, 'login.png'), fullPage: true });
 
   await login(page);
@@ -34,6 +36,9 @@ test('captura evidencias visuais das paginas principais', async ({ page }) => {
   ];
   for (const [nome, url] of paginas) {
     await page.goto(url);
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.waitForFunction(() => window.scrollY === 0);
+    await page.waitForTimeout(300);
     await page.screenshot({ path: path.join(dir, `${nome}.png`), fullPage: true });
   }
 });

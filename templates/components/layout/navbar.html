@@ -42,40 +42,44 @@
         </form>
       </div>
     </div>
-    <nav id="navbar-tabs" aria-label="Navegação principal" class="hidden lg:block"
+    <nav id="navbar-tabs" aria-label="Navegação principal" class="tabnav hidden lg:block"
          hx-boost="true" hx-target="#main" hx-select="#main" hx-swap="innerHTML show:top" hx-push-url="true" hx-indicator="#progresso">
-      <ul class="flex items-center gap-1 pb-2">
-        <li><a href="{% url 'core:dashboard' %}" data-nav-link class="nav-item">Geral</a></li>
-        <li class="relative" @click.away="pilaresAberto = false">
-          <button type="button" @click="pilaresAberto = !pilaresAberto" :aria-expanded="pilaresAberto" aria-haspopup="true" class="nav-item">
-            Pilares do QuIIN <c-ui.icon name="chevron-down" size="14" />
-          </button>
-          <ul x-show="pilaresAberto" x-cloak role="menu" class="absolute left-0 top-full z-50 mt-1 w-64 rounded-lg border border-border bg-surface-2 p-1 text-text shadow-lg">
-            {% for pilar in pilares_nav %}
-            <li role="none"><a role="menuitem" href="{% url 'core:pilar' pilar.pk %}" data-nav-link class="flex items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-quiin-mist/40">{{ pilar.nome }}{% if pendencias_nav %}{% for pid, qtd in pendencias_nav.items %}{% if pid == pilar.pk %}<span class="ml-auto rounded-full bg-quiin-sky px-2 py-0.5 text-xs font-semibold text-white">{{ qtd }}</span>{% endif %}{% endfor %}{% endif %}</a></li>
-            {% empty %}<li class="px-3 py-2 text-sm text-text-muted">Sem pilares visíveis.</li>{% endfor %}
-          </ul>
-        </li>
-        {% if pode_lancar and periodo_aberto_nav and pilares_nav %}
-        <li><a href="{% url 'entries:formulario' periodo_aberto_nav.pk pilares_nav.0.pk %}" data-nav-link class="nav-item">Lançamentos</a></li>
-        {% endif %}
-        {% if pode_aprovar and periodo_aberto_nav %}
-        <li><a href="{% url 'entries:aprovacao' periodo_aberto_nav.pk %}" data-nav-link class="nav-item">Aprovações{% if total_pendencias %}<span class="ml-1 rounded-full bg-quiin-quantum-green px-2 py-0.5 text-xs font-semibold text-quiin-deep-purple">{{ total_pendencias }}</span>{% endif %}</a></li>
-        {% endif %}
-        {% if pode_lancar or pode_aprovar %}
-        <li><a href="{% url 'talentos:organograma' %}" data-nav-link class="nav-item">Talentos</a></li>
-        <li><a href="{% url 'crm_at:funil' %}" data-nav-link class="nav-item">Gestão de Associados</a></li>
-        {% endif %}
-        <li class="relative" @click.away="sistemaAberto = false">
-          <button type="button" @click="sistemaAberto = !sistemaAberto" :aria-expanded="sistemaAberto" aria-haspopup="true" class="nav-item">Sistema <c-ui.icon name="chevron-down" size="14" /></button>
-          <ul x-show="sistemaAberto" x-cloak role="menu" class="absolute left-0 top-full z-50 mt-1 w-56 rounded-lg border border-border bg-surface-2 p-1 text-text shadow-lg">
-            {% if ultimo_periodo_nav %}<li role="none"><a role="menuitem" href="{% url 'reports:mensal' ultimo_periodo_nav.pk %}" data-nav-link class="block rounded-md px-3 py-2 text-sm hover:bg-quiin-mist/40">Relatório Mensal</a></li>{% endif %}
-            {% if pode_importar_financeiro %}<li role="none"><a role="menuitem" href="{% url 'finance:consolidado' %}" data-nav-link class="block rounded-md px-3 py-2 text-sm hover:bg-quiin-mist/40">Financeiro</a></li>{% endif %}
-            {% if pode_ver_auditoria %}<li role="none"><a role="menuitem" href="{% url 'audit:lista' %}" data-nav-link class="block rounded-md px-3 py-2 text-sm hover:bg-quiin-mist/40">Auditoria</a></li>{% endif %}
-            {% if papel == 'Master' or papel == 'Admin' %}<li role="none"><a role="menuitem" href="/admin/" data-nav-link class="block rounded-md px-3 py-2 text-sm hover:bg-quiin-mist/40">Admin</a></li>{% endif %}
-          </ul>
-        </li>
-      </ul>
+      <div class="flex items-end">
+        <ul class="flex items-end gap-1" aria-label="Navegação primária">
+          <li><a href="{% url 'core:dashboard' %}" data-nav-link class="tabnav-link">Geral</a></li>
+          <li class="relative" @click.away="pilaresAberto = false">
+            <button type="button" @click="pilaresAberto = !pilaresAberto" :aria-expanded="pilaresAberto" aria-haspopup="true" class="tabnav-link" data-nav-pai="pilares">
+              Pilares do QuIIN <c-ui.icon name="chevron-down" size="14" />
+            </button>
+            <ul x-show="pilaresAberto" x-cloak role="menu" class="absolute left-0 top-full z-50 mt-1 w-64 rounded-lg border border-border bg-surface-2 p-1 text-text shadow-lg">
+              {% for pilar in pilares_nav %}
+              <li role="none"><a role="menuitem" href="{% url 'core:pilar' pilar.pk %}" data-nav-link class="flex items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-quiin-mist/40">{{ pilar.nome }}{% if pendencias_nav %}{% for pid, qtd in pendencias_nav.items %}{% if pid == pilar.pk %}<span class="ml-auto rounded-full bg-quiin-sky px-2 py-0.5 text-xs font-semibold text-white">{{ qtd }}</span>{% endif %}{% endfor %}{% endif %}</a></li>
+              {% empty %}<li class="px-3 py-2 text-sm text-text-muted">Sem pilares visíveis.</li>{% endfor %}
+            </ul>
+          </li>
+          {% if pode_lancar or pode_aprovar %}
+          <li><a href="{% url 'talentos:organograma' %}" data-nav-link class="tabnav-link">Talentos</a></li>
+          <li><a href="{% url 'crm_at:funil' %}" data-nav-link class="tabnav-link">Gestão de Associados</a></li>
+          {% endif %}
+        </ul>
+        <ul class="ml-auto flex items-end gap-1 border-l border-white/15 pl-2" aria-label="Navegação operacional">
+          {% if pode_lancar and periodo_aberto_nav and pilares_nav %}
+          <li><a href="{% url 'entries:formulario' periodo_aberto_nav.pk pilares_nav.0.pk %}" data-nav-link class="tabnav-link">Lançamentos</a></li>
+          {% endif %}
+          {% if pode_aprovar and periodo_aberto_nav %}
+          <li><a href="{% url 'entries:aprovacao' periodo_aberto_nav.pk %}" data-nav-link class="tabnav-link">Aprovações{% if total_pendencias %}<span class="ml-1 rounded-full bg-quiin-quantum-green px-2 py-0.5 text-xs font-semibold text-quiin-deep-purple">{{ total_pendencias }}</span>{% endif %}</a></li>
+          {% endif %}
+          <li class="relative" @click.away="sistemaAberto = false">
+            <button type="button" @click="sistemaAberto = !sistemaAberto" :aria-expanded="sistemaAberto" aria-haspopup="true" class="tabnav-link" data-nav-pai="sistema">Sistema <c-ui.icon name="chevron-down" size="14" /></button>
+            <ul x-show="sistemaAberto" x-cloak role="menu" class="absolute left-0 top-full z-50 mt-1 w-56 rounded-lg border border-border bg-surface-2 p-1 text-text shadow-lg">
+              {% if ultimo_periodo_nav %}<li role="none"><a role="menuitem" href="{% url 'reports:mensal' ultimo_periodo_nav.pk %}" data-nav-link class="block rounded-md px-3 py-2 text-sm hover:bg-quiin-mist/40">Relatório Mensal</a></li>{% endif %}
+              {% if pode_importar_financeiro %}<li role="none"><a role="menuitem" href="{% url 'finance:consolidado' %}" data-nav-link class="block rounded-md px-3 py-2 text-sm hover:bg-quiin-mist/40">Financeiro</a></li>{% endif %}
+              {% if pode_ver_auditoria %}<li role="none"><a role="menuitem" href="{% url 'audit:lista' %}" data-nav-link class="block rounded-md px-3 py-2 text-sm hover:bg-quiin-mist/40">Auditoria</a></li>{% endif %}
+              {% if papel == 'Master' or papel == 'Admin' %}<li role="none"><a role="menuitem" href="/admin/" data-nav-link class="block rounded-md px-3 py-2 text-sm hover:bg-quiin-mist/40">Admin</a></li>{% endif %}
+            </ul>
+          </li>
+        </ul>
+      </div>
     </nav>
     <div x-show="mobileAberto" x-cloak id="navbar-mobile" class="pb-3 lg:hidden"
          hx-boost="true" hx-target="#main" hx-select="#main" hx-swap="innerHTML show:top" hx-push-url="true" hx-indicator="#progresso" @click="mobileAberto = false">
