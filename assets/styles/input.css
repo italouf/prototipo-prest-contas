@@ -154,10 +154,9 @@
 @media print {
   .no-print,
   .topbar,
-  .sidebar,
+  [data-testid="navbar"],
   .footer,
   [data-testid="topbar"],
-  [data-testid="sidebar"],
   [data-testid="progresso"] {
     display: none !important;
   }
@@ -181,32 +180,9 @@
   }
 }
 
-/* Colapso da sidebar (desktop): o Alpine controla [data-recolhida] no wrapper. */
-@media (min-width: 1024px) {
-  [data-recolhida="true"] .sidebar {
-    width: 4.5rem;
-  }
-  [data-recolhida="true"] .sidebar .nav-rotulo,
-  [data-recolhida="true"] .sidebar .nav-secao,
-  [data-recolhida="true"] .sidebar .sidebar-marca-texto,
-  [data-recolhida="true"] .sidebar .sidebar-badge {
-    display: none;
-  }
-  [data-recolhida="true"] .sidebar .nav-item {
-    justify-content: center;
-  }
-}
-
-/* Drawer mobile: controlado por [data-aberto] no wrapper (CSS puro evita flash). */
-.sidebar {
-  transform: translateX(-100%);
-  transition: transform 0.2s ease-out;
-}
-@media (min-width: 1024px) {
-  .sidebar {
-    transform: none;
-  }
-}
-[data-aberto="true"] .sidebar {
-  transform: none;
+/* Navbar executiva (LOOP 1): header escuro sticky; dropdowns usam x-cloak + bg-surface-2. */
+#navbar-tabs .nav-item[aria-current="page"],
+#navbar-mobile .nav-item[aria-current="page"] {
+  background-color: rgb(255 255 255 / 0.14);
+  color: #fff;
 }
