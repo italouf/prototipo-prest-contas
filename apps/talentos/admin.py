@@ -38,8 +38,8 @@ class CompetenciaAdmin(_PermissaoPorGrupoMixin, admin.ModelAdmin):
 
 @admin.register(Colaborador)
 class ColaboradorAdmin(_PermissaoPorGrupoMixin, admin.ModelAdmin):
-    list_display = ("nome", "cargo", "pilar_principal")
-    list_filter = ("pilar_principal",)
+    list_display = ("nome", "cargo", "pilar_principal", "vinculo")
+    list_filter = ("pilar_principal", "vinculo")
     search_fields = ("nome", "cargo")
 
 

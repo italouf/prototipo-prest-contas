@@ -255,6 +255,7 @@ class CadastroTalentosTestes(TestCase):
         dados = {
             "nome": "Carla Nova",
             "cargo": "Produtora",
+            "vinculo": "CLT",
             "pilar_principal": str(self.pilar_at.pk),
             "lattes_url": "",
             "competencias": [str(self.comp.pk)],
@@ -278,6 +279,7 @@ class CadastroTalentosTestes(TestCase):
         dados = {
             "nome": "Ana Emprestável",
             "cargo": "Coordenadora de Eventos",
+            "vinculo": "CLT",
             "pilar_principal": str(self.pilar_at.pk),
             "lattes_url": "",
             "competencias": [],
@@ -420,6 +422,7 @@ class ColaboradorPilarRestritoTestes(TestCase):
         dados = {
             "nome": "Diana PDI",
             "cargo": "Pesquisadora",
+            "vinculo": "CLT",
             "pilar_principal": str(self.pilar_pdi.pk),
             "lattes_url": "",
             "competencias": [],
@@ -439,6 +442,7 @@ class ColaboradorPilarRestritoTestes(TestCase):
         dados = {
             "nome": "Invasor AT",
             "cargo": "Analista",
+            "vinculo": "CLT",
             "pilar_principal": str(self.pilar_at.pk),
             "lattes_url": "",
             "competencias": [],
@@ -519,6 +523,7 @@ class ColaboradorPilarRestritoTestes(TestCase):
         dados = {
             "nome": "Alvo AT",
             "cargo": "Coordenador",
+            "vinculo": "CLT",
             "pilar_principal": str(self.pilar_pdi.pk),
             "lattes_url": "",
             "competencias": [],
@@ -545,6 +550,7 @@ class NovasCompetenciasTestes(TestCase):
         return {
             "nome": "Eva Livre",
             "cargo": "Analista",
+            "vinculo": "OUTRO",
             "pilar_principal": str(self.pilar_at.pk),
             "lattes_url": "",
             "competencias": [],
@@ -612,3 +618,26 @@ class OrganogramaR4Testes(TalentosBaseTestes):
         )
         self.assertTemplateUsed(resposta, "talentos/organograma.html")
         self.assertContains(resposta, "Organograma")
+
+
+class VinculoTestes(TestCase):
+    def setUp(self):
+        garantir_grupos()
+        self.erica = adicionar_grupo(
+            User.objects.create_user(username="erica", password="x"), "Master"
+        )
+
+    def test_filtra_por_vinculo(self):
+        from apps.talentos.models import Colaborador
+        Colaborador.objects.create(nome="Ana CLT", cargo="Dev", vinculo="CLT")
+        Colaborador.objects.create(nome="Bia Bol", cargo="Est", vinculo="BOLSISTA")
+        self.client.force_login(self.erica)
+        r = self.client.get(reverse("talentos:organograma"), {"vinculo": "CLT"})
+        self.assertContains(r, "Ana CLT")
+        self.assertNotContains(r, "Bia Bol")
+        self.assertEqual(r.context["vinculo_selecionado"], "CLT")
+
+    def test_vinculo_invalido_mostra_todos(self):
+        self.client.force_login(self.erica)
+        r = self.client.get(reverse("talentos:organograma"), {"vinculo": "X"})
+        self.assertEqual(r.context["vinculo_selecionado"], "")

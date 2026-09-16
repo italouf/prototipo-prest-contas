@@ -16,8 +16,11 @@ class Competencia(models.Model):
 
 
 class Colaborador(models.Model):
+    VINCULOS = [("CLT", "CLT"), ("BOLSISTA", "Bolsista"), ("OUTRO", "Outro")]
+
     nome = models.CharField("Nome", max_length=150)
     cargo = models.CharField("Cargo", max_length=120)
+    vinculo = models.CharField("Vínculo", max_length=10, choices=VINCULOS, default="OUTRO")
     pilar_principal = models.ForeignKey(
         "pillars.Pilar",
         on_delete=models.SET_NULL,

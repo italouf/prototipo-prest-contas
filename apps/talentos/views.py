@@ -19,6 +19,9 @@ class OrganogramaView(LoginRequiredMixin, View):
     def get(self, request):
         pilar_selecionado = request.GET.get("pilar", "") or ""
         competencia_selecionada = request.GET.get("competencia", "") or ""
+        vinculo = request.GET.get("vinculo", "") or ""
+        if vinculo not in ("CLT", "BOLSISTA"):
+            vinculo = ""
         hoje = timezone.localdate()
         vigentes = Alocacao.objects.filter(
             Q(data_fim__isnull=True) | Q(data_fim__gte=hoje)
@@ -39,6 +42,8 @@ class OrganogramaView(LoginRequiredMixin, View):
                 competencia_id = None
             if competencia_id is not None and Competencia.objects.filter(pk=competencia_id).exists():
                 qs = qs.filter(competencias__pk=competencia_id)
+        if vinculo:
+            qs = qs.filter(vinculo=vinculo)
         colaboradores = list(qs)
         for colaborador in colaboradores:
             vigentes_colab = getattr(colaborador, "alocacoes_vigentes", [])
@@ -50,6 +55,7 @@ class OrganogramaView(LoginRequiredMixin, View):
             "competencias": Competencia.objects.all(),
             "pilar_selecionado": pilar_selecionado,
             "competencia_selecionada": competencia_selecionada,
+            "vinculo_selecionado": vinculo,
             "pode_editar_talentos": pode_lancar(request.user),
         }
         if getattr(request, "htmx", False) and getattr(request.htmx, "target", "") == "talentos-lista":

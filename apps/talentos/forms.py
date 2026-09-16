@@ -14,7 +14,7 @@ class ColaboradorForm(forms.ModelForm):
 
     class Meta:
         model = Colaborador
-        fields = ["nome", "cargo", "pilar_principal", "foto", "lattes_url", "competencias"]
+        fields = ["nome", "cargo", "vinculo", "pilar_principal", "foto", "lattes_url", "competencias"]
         widgets = {
             "competencias": forms.CheckboxSelectMultiple,
         }
