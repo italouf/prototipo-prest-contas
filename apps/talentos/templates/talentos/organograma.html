@@ -13,6 +13,12 @@
     {% endif %}
   </div>
 
+  <div data-testid="vinculo-tabs" role="tablist" aria-label="Vínculo" class="mt-4 flex flex-wrap gap-1.5">
+    <a role="tab" aria-selected="{% if not vinculo_selecionado %}true{% else %}false{% endif %}" data-testid="tab-todos" href="{% url 'talentos:organograma' %}" hx-get="{% url 'talentos:organograma' %}" hx-target="#talentos-lista" hx-select="#talentos-lista" hx-swap="outerHTML" hx-push-url="true" hx-indicator="#progresso" class="rounded-full border px-3 py-1 text-xs {% if not vinculo_selecionado %}bg-quiin-navy text-white border-quiin-navy{% else %}border-border{% endif %}">Todos</a>
+    <a role="tab" aria-selected="{% if vinculo_selecionado == 'CLT' %}true{% else %}false{% endif %}" data-testid="tab-clt" href="{% url 'talentos:organograma' %}?vinculo=CLT" hx-get="{% url 'talentos:organograma' %}?vinculo=CLT" hx-target="#talentos-lista" hx-select="#talentos-lista" hx-swap="outerHTML" hx-push-url="true" hx-indicator="#progresso" class="rounded-full border px-3 py-1 text-xs {% if vinculo_selecionado == 'CLT' %}bg-quiin-navy text-white border-quiin-navy{% else %}border-border{% endif %}">CLT</a>
+    <a role="tab" aria-selected="{% if vinculo_selecionado == 'BOLSISTA' %}true{% else %}false{% endif %}" data-testid="tab-bolsista" href="{% url 'talentos:organograma' %}?vinculo=BOLSISTA" hx-get="{% url 'talentos:organograma' %}?vinculo=BOLSISTA" hx-target="#talentos-lista" hx-select="#talentos-lista" hx-swap="outerHTML" hx-push-url="true" hx-indicator="#progresso" class="rounded-full border px-3 py-1 text-xs {% if vinculo_selecionado == 'BOLSISTA' %}bg-quiin-navy text-white border-quiin-navy{% else %}border-border{% endif %}">Bolsistas</a>
+  </div>
+
   <form method="get" action="{% url 'talentos:organograma' %}"
         hx-get="{% url 'talentos:organograma' %}" hx-target="#talentos-lista" hx-select="#talentos-lista"
         hx-swap="outerHTML" hx-push-url="true" hx-indicator="#progresso"

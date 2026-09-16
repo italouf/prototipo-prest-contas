@@ -39,6 +39,13 @@ test('organograma filtra por pilar via HTMX sem reload', async ({ page }) => {
   expect(marcador).toBe(7);
 });
 
+test('abas CLT/Bolsistas filtram sem reload', async ({ page }) => {
+  await login(page); await page.goto('/talentos/organograma/');
+  await page.getByTestId('tab-clt').click();
+  await expect(page).toHaveURL(/vinculo=CLT/);
+  await expect(page.getByTestId('talentos-lista')).toBeVisible();
+});
+
 test('busca por skill esconde cards sem correspondencia', async ({ page }) => {
   await login(page);
   await page.goto('/talentos/organograma/');

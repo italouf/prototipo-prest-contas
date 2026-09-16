@@ -15,6 +15,7 @@
         <h3 class="truncate font-semibold">{{ c.nome }}</h3>
         <p class="text-xs text-text-muted">{{ c.cargo }}</p>
         {% if c.pilar_principal %}<c-ui.badge pillar="{{ c.pilar_principal.codigo }}">{{ c.pilar_principal.codigo }}</c-ui.badge>{% endif %}
+        {% if c.vinculo != 'OUTRO' %}<span class="rounded-full bg-quiin-mist/50 px-2 py-0.5 text-xs">{{ c.get_vinculo_display }}</span>{% endif %}
       </div>
     </div>
     <div class="mt-3 flex flex-wrap gap-1">
