@@ -25,6 +25,36 @@ test('navega entre 3 paginas pela navbar com boost', async ({ page }) => {
   await expect(page.getByRole('heading', { name: /auditoria/i })).toBeVisible();
 });
 
+test('navega 5 abas principais com boost', async ({ page }) => {
+  await login(page);
+  const navbar = page.getByTestId('navbar');
+  await expect(navbar).toBeVisible();
+  // 1. Geral (link direto)
+  await navbar.getByRole('link', { name: /^Geral/ }).click();
+  await expect(page).toHaveURL(/\/?(\?.*)?$/);
+  await expect(page.getByTestId('page-dashboard').getByRole('heading', { name: /dashboard executivo/i })).toBeVisible();
+  // 2. Pilares (dropdown) — primeiro pilar, sem PK hardcoded
+  await navbar.getByRole('button', { name: /pilares/i }).click();
+  await navbar.getByRole('menuitem').first().click();
+  await expect(page).toHaveURL(/\/pilar\/\d+\//);
+  await expect(page.getByTestId('page-pilar')).toBeVisible();
+  await expect(page.getByTestId('page-pilar').getByRole('heading').first()).toBeVisible();
+  await expect(page.getByTestId('breadcrumbs')).toBeVisible();
+  // 3. Talentos (link direto)
+  await navbar.getByRole('link', { name: /talentos/i }).click();
+  await expect(page).toHaveURL(/\/talentos\/organograma\//);
+  await expect(page.getByTestId('page-talentos').getByRole('heading', { name: /organograma/i })).toBeVisible();
+  // 4. Gestão de Associados (link direto)
+  await navbar.getByRole('link', { name: /gestão de associados/i }).click();
+  await expect(page).toHaveURL(/\/crm-at\/funil\//);
+  await expect(page.getByTestId('page-funil').getByRole('heading', { name: /funil at/i })).toBeVisible();
+  // 5. Sistema -> Auditoria (dropdown)
+  await navbar.getByRole('button', { name: /^sistema/i }).click();
+  await navbar.getByRole('menuitem', { name: /auditoria/i }).click();
+  await expect(page).toHaveURL(/\/auditoria\//);
+  await expect(page.getByTestId('page-auditoria').getByRole('heading', { name: /auditoria/i })).toBeVisible();
+});
+
 test('navbar mobile abre, navega e fecha', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await login(page);
