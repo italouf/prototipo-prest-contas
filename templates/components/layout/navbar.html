@@ -21,20 +21,10 @@
         <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-white/60"><c-ui.icon name="search" size="16" /></span>
         <div id="busca-resultados" x-show="focado" x-cloak class="absolute left-0 right-0 top-full z-40 mt-1 max-h-80 overflow-y-auto rounded-lg border border-border bg-surface-2 text-text shadow-lg"></div>
       </form>
-      <form method="get" action="{{ request.path }}" class="ml-auto flex items-center gap-2 md:ml-0">
-        <label for="periodo-global" class="sr-only">Período de competência</label>
-        <select id="periodo-global" name="periodo" data-testid="period-selector" onchange="this.form.submit()"
-                class="w-[6rem] rounded-md border border-white/20 bg-white/10 px-1.5 py-2 text-xs text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-focus/60 sm:w-[7rem] sm:px-2 sm:text-sm">
-          {% for p in periodos_nav %}
-          <option value="{{ p.competencia|date:'Y-m-d' }}" class="text-text" {% if request.GET.periodo == p.competencia|date:'Y-m-d' %}selected{% elif not request.GET.periodo and periodo_aberto_nav and p.pk == periodo_aberto_nav.pk %}selected{% elif not request.GET.periodo and not periodo_aberto_nav and p.pk == ultimo_periodo_nav.pk %}selected{% endif %}>
-            {{ p.rotulo }} — {{ p.get_status_display }}
-          </option>
-          {% endfor %}
-        </select>
-      </form>
+      <c-ui.scope_toggle escopo="{{ escopo|default:'operacional' }}" periodo="{{ request.GET.periodo }}" />
+      <c-ui.period_selector :periodos="periodos_nav" :periodo_aberto="periodo_aberto_nav" :ultimo_periodo="ultimo_periodo_nav" atual="{{ request.GET.periodo }}" action="{{ request.path }}" />
       <div class="flex items-center gap-1.5 sm:gap-2">
-        <span data-testid="papel-badge" title="Papel ativo: {{ papel }}" class="hidden items-center gap-1 rounded-full border border-white/25 bg-white/10 px-2.5 py-0.5 text-xs font-semibold text-white sm:inline-flex">{{ papel }}</span>
-        <span class="hidden text-sm font-medium xl:inline">{{ user.nome_exibicao }}</span>
+        <c-ui.user_profile papel="{{ papel }}" nome="{{ user.nome_exibicao }}" />
         <button type="button" data-testid="dark-toggle" aria-label="Alternar tema" title="Alternar tema"
                 class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-white/20 bg-white/10 text-white sm:h-9 sm:w-9"
                 x-data="{ escuro: document.documentElement.classList.contains('dark') }"

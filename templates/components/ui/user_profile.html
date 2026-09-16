@@ -1,0 +1,9 @@
+<c-vars papel="" nome="" />
+<span data-testid="user-profile" title="{{ nome }} • {{ papel }}" class="hidden items-center gap-2 sm:flex">
+  <span aria-hidden="true" class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/15 text-xs font-bold text-white">{{ nome|default:"?"|slice:":1"|upper }}</span>
+  <span class="hidden leading-tight xl:block">
+    <span class="block max-w-[10rem] truncate text-sm font-semibold text-white">{{ nome }}</span>
+    <span data-testid="papel-badge" class="block text-[11px] font-medium uppercase tracking-wide text-white/70">{{ papel }}</span>
+  </span>
+  <span data-testid="papel-badge-mobile" class="sr-only">{{ papel }}</span>
+</span>

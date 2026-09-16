@@ -230,3 +230,29 @@ class BundleTestes(SimpleTestCase):
             )
         )
         self.assertLess(total, 200)
+
+
+class NavbarControlesTestes(TestCase):
+    def setUp(self):
+        from datetime import date
+
+        from django.contrib.auth.models import Group
+
+        from apps.accounts.models import User
+        from apps.periods.models import Periodo
+
+        grupo, _ = Group.objects.get_or_create(name="Master")
+        self.erica = User.objects.create_user(username="erica_nav", password="x", nome="Erica")
+        self.erica.groups.add(grupo)
+        Periodo.objects.create(competencia=date(2026, 6, 1), status="ABERTO", aberto_por=self.erica)
+
+    def test_navbar_tem_toggle_periodo_perfil(self):
+        self.client.force_login(self.erica)
+        r = self.client.get("/")
+        self.assertContains(r, 'data-testid="scope-toggle"')
+        self.assertContains(r, 'data-testid="scope-operacional"')
+        self.assertContains(r, 'data-testid="scope-financeiro"')
+        self.assertContains(r, 'data-testid="period-selector"', count=1)
+        self.assertContains(r, 'data-testid="user-profile"')
+        self.assertContains(r, 'data-testid="papel-badge"', count=1)
+        self.assertContains(r, "Erica")

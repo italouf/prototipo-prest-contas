@@ -1,0 +1,14 @@
+<c-vars escopo="operacional" periodo="" />
+<div data-testid="scope-toggle" role="group" aria-label="Tipo de visão"
+     class="inline-flex items-center gap-0.5 rounded-full border border-white/20 bg-white/10 p-0.5">
+  <a href="{% url 'core:dashboard' %}?{% if periodo %}periodo={{ periodo }}&{% endif %}escopo=operacional"
+     data-testid="scope-operacional" aria-pressed="{% if escopo == 'operacional' %}true{% else %}false{% endif %}"
+     hx-get="{% url 'core:dashboard' %}?{% if periodo %}periodo={{ periodo }}&{% endif %}escopo=operacional"
+     hx-target="#dashboard-conteudo" hx-select="#dashboard-conteudo" hx-swap="outerHTML" hx-push-url="true" hx-indicator="#progresso"
+     class="rounded-full px-3 py-1 text-xs font-semibold {% if escopo == 'operacional' %}bg-white text-quiin-navy{% else %}text-white/70 hover:text-white{% endif %}">Operacional</a>
+  <a href="{% url 'core:dashboard' %}?{% if periodo %}periodo={{ periodo }}&{% endif %}escopo=financeiro"
+     data-testid="scope-financeiro" aria-pressed="{% if escopo == 'financeiro' %}true{% else %}false{% endif %}"
+     hx-get="{% url 'core:dashboard' %}?{% if periodo %}periodo={{ periodo }}&{% endif %}escopo=financeiro"
+     hx-target="#dashboard-conteudo" hx-select="#dashboard-conteudo" hx-swap="outerHTML" hx-push-url="true" hx-indicator="#progresso"
+     class="rounded-full px-3 py-1 text-xs font-semibold {% if escopo == 'financeiro' %}bg-white text-quiin-navy{% else %}text-white/70 hover:text-white{% endif %}">Financeiro</a>
+</div>
