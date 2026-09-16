@@ -142,18 +142,19 @@ class ShellTestes(TestCase):
         self.erica = User.objects.create_user(username="erica_shell_ui", password="x")
         self.erica.groups.add(grupo)
 
-    def test_shell_autenticado_tem_sidebar_e_topbar(self):
+    def test_shell_autenticado_tem_navbar_sem_sidebar(self):
         self.client.force_login(self.erica)
         resposta = self.client.get("/")
-        self.assertContains(resposta, 'data-testid="sidebar"')
-        self.assertContains(resposta, 'data-testid="topbar"')
+        self.assertContains(resposta, 'data-testid="navbar"')
+        self.assertContains(resposta, 'data-testid="navbar-toggle"')
         self.assertContains(resposta, 'data-testid="dark-toggle"')
+        self.assertNotContains(resposta, 'data-testid="sidebar"')
         self.assertNotContains(resposta, 'data-testid="login-shell"')
 
     def test_pagina_publica_nao_tem_sidebar(self):
         resposta = self.client.get("/accounts/login/")
         self.assertContains(resposta, 'data-testid="login-shell"')
-        self.assertNotContains(resposta, 'data-testid="sidebar"')
+        self.assertNotContains(resposta, 'data-testid="navbar"')
 
     def test_breadcrumbs_em_paginas_internas(self):
         self.client.force_login(self.erica)
