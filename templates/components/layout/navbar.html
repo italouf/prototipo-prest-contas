@@ -1,0 +1,101 @@
+<header data-testid="navbar" class="sticky top-0 z-40 bg-quiin-navy text-white shadow-md"
+        x-data="{ mobileAberto: false, pilaresAberto: false, sistemaAberto: false }"
+        @keydown.escape.window="mobileAberto = false; pilaresAberto = false; sistemaAberto = false">
+  <div class="mx-auto w-full max-w-[1440px] px-4 lg:px-8">
+    <div class="flex items-center gap-3 py-2.5">
+      <a href="{% url 'core:dashboard' %}" data-nav-link class="flex items-center gap-2 text-white">
+        <span class="brand-mark">Q</span>
+        <span class="font-display text-base font-bold">Gestão QuIIN</span>
+      </a>
+      <span class="hidden text-[11px] uppercase tracking-widest text-white/60 xl:inline">Portal QuIIN</span>
+      <button type="button" data-testid="navbar-toggle" class="ml-auto rounded-md p-2 text-white/80 hover:bg-white/10 hover:text-white lg:hidden"
+              @click="mobileAberto = !mobileAberto" :aria-expanded="mobileAberto" aria-controls="navbar-tabs" aria-label="Abrir menu">
+        <c-ui.icon name="menu" size="18" />
+      </button>
+      <form method="get" action="{% url 'core:busca' %}" hx-get="{% url 'core:busca' %}" hx-target="#busca-resultados" hx-trigger="input changed delay:300ms, submit"
+            class="relative ml-auto hidden w-full max-w-sm md:block" x-data="{ focado: false }" @focusin="focado = true" @focusout="setTimeout(() => focado = false, 200)">
+        <label for="busca-global" class="sr-only">Busca global</label>
+        <input id="busca-global" type="search" name="q" data-testid="busca-global" placeholder="Buscar indicador, empresa, talento…"
+               class="w-full rounded-md border border-white/20 bg-white/10 px-3 py-2 pl-9 text-sm text-white placeholder:text-white/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus/60">
+        <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-white/60"><c-ui.icon name="search" size="16" /></span>
+        <div id="busca-resultados" x-show="focado" x-cloak class="absolute left-0 right-0 top-full z-40 mt-1 max-h-80 overflow-y-auto rounded-lg border border-border bg-surface-2 text-text shadow-lg"></div>
+      </form>
+      <form method="get" action="{{ request.path }}" class="hidden items-center gap-2 md:flex">
+        <label for="periodo-global" class="sr-only">Período de competência</label>
+        <select id="periodo-global" name="periodo" data-testid="period-selector" onchange="this.form.submit()"
+                class="rounded-md border border-white/20 bg-white/10 px-2 py-2 text-sm text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-focus/60">
+          {% for p in periodos_nav %}
+          <option value="{{ p.competencia|date:'Y-m-d' }}" class="text-text" {% if request.GET.periodo == p.competencia|date:'Y-m-d' %}selected{% elif not request.GET.periodo and periodo_aberto_nav and p.pk == periodo_aberto_nav.pk %}selected{% elif not request.GET.periodo and not periodo_aberto_nav and p.pk == ultimo_periodo_nav.pk %}selected{% endif %}>
+            {{ p.rotulo }} — {{ p.get_status_display }}
+          </option>
+          {% endfor %}
+        </select>
+      </form>
+      <div class="hidden items-center gap-2 lg:flex">
+        <c-ui.badge papel="{{ papel }}" class="hidden sm:inline-flex" data-testid="papel-badge">{{ papel }}</c-ui.badge>
+        <span class="hidden text-sm font-medium xl:inline">{{ user.nome_exibicao }}</span>
+        <button type="button" data-testid="dark-toggle" aria-label="Alternar tema" title="Alternar tema"
+                class="inline-flex h-9 w-9 items-center justify-center rounded-md border border-white/20 bg-white/10 text-white"
+                x-data="{ escuro: document.documentElement.classList.contains('dark') }"
+                @click="escuro = !escuro; document.documentElement.classList.toggle('dark', escuro); localStorage.setItem('quiin-theme', escuro ? 'dark' : 'light')" :aria-pressed="escuro">
+          <span x-show="!escuro"><c-ui.icon name="sun" size="18" /></span>
+          <span x-show="escuro" x-cloak><c-ui.icon name="moon" size="18" /></span>
+        </button>
+        <form method="post" action="{% url 'accounts:logout' %}">
+          {% csrf_token %}
+          <button type="submit" aria-label="Sair" title="Sair" class="inline-flex h-9 w-9 items-center justify-center rounded-md border border-white/20 bg-white/10 text-white hover:bg-white/20">
+            <c-ui.icon name="log-out" size="18" />
+          </button>
+        </form>
+      </div>
+    </div>
+    <nav id="navbar-tabs" aria-label="Navegação principal" class="hidden lg:block"
+         hx-boost="true" hx-target="#main" hx-select="#main" hx-swap="innerHTML show:top" hx-push-url="true" hx-indicator="#progresso">
+      <ul class="flex items-center gap-1 pb-2">
+        <li><a href="{% url 'core:dashboard' %}" data-nav-link class="nav-item">Geral</a></li>
+        <li class="relative" @click.away="pilaresAberto = false">
+          <button type="button" @click="pilaresAberto = !pilaresAberto" :aria-expanded="pilaresAberto" aria-haspopup="true" class="nav-item">
+            Pilares do QuIIN <c-ui.icon name="chevron-down" size="14" />
+          </button>
+          <ul x-show="pilaresAberto" x-cloak role="menu" class="absolute left-0 top-full z-50 mt-1 w-64 rounded-lg border border-border bg-surface-2 p-1 text-text shadow-lg">
+            {% for pilar in pilares_nav %}
+            <li role="none"><a role="menuitem" href="{% url 'core:pilar' pilar.pk %}" data-nav-link class="flex items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-quiin-mist/40">{{ pilar.nome }}{% if pendencias_nav %}{% for pid, qtd in pendencias_nav.items %}{% if pid == pilar.pk %}<span class="ml-auto rounded-full bg-quiin-sky px-2 py-0.5 text-xs font-semibold text-white">{{ qtd }}</span>{% endif %}{% endfor %}{% endif %}</a></li>
+            {% empty %}<li class="px-3 py-2 text-sm text-text-muted">Sem pilares visíveis.</li>{% endfor %}
+          </ul>
+        </li>
+        {% if pode_lancar and periodo_aberto_nav and pilares_nav %}
+        <li><a href="{% url 'entries:formulario' periodo_aberto_nav.pk pilares_nav.0.pk %}" data-nav-link class="nav-item">Lançamentos</a></li>
+        {% endif %}
+        {% if pode_aprovar and periodo_aberto_nav %}
+        <li><a href="{% url 'entries:aprovacao' periodo_aberto_nav.pk %}" data-nav-link class="nav-item">Aprovações{% if total_pendencias %}<span class="ml-1 rounded-full bg-quiin-quantum-green px-2 py-0.5 text-xs font-semibold text-quiin-deep-purple">{{ total_pendencias }}</span>{% endif %}</a></li>
+        {% endif %}
+        {% if pode_lancar or pode_aprovar %}
+        <li><a href="{% url 'talentos:organograma' %}" data-nav-link class="nav-item">Talentos</a></li>
+        <li><a href="{% url 'crm_at:funil' %}" data-nav-link class="nav-item">Gestão de Associados</a></li>
+        {% endif %}
+        <li class="relative" @click.away="sistemaAberto = false">
+          <button type="button" @click="sistemaAberto = !sistemaAberto" :aria-expanded="sistemaAberto" aria-haspopup="true" class="nav-item">Sistema <c-ui.icon name="chevron-down" size="14" /></button>
+          <ul x-show="sistemaAberto" x-cloak role="menu" class="absolute left-0 top-full z-50 mt-1 w-56 rounded-lg border border-border bg-surface-2 p-1 text-text shadow-lg">
+            {% if ultimo_periodo_nav %}<li role="none"><a role="menuitem" href="{% url 'reports:mensal' ultimo_periodo_nav.pk %}" data-nav-link class="block rounded-md px-3 py-2 text-sm hover:bg-quiin-mist/40">Relatório Mensal</a></li>{% endif %}
+            {% if pode_importar_financeiro %}<li role="none"><a role="menuitem" href="{% url 'finance:consolidado' %}" data-nav-link class="block rounded-md px-3 py-2 text-sm hover:bg-quiin-mist/40">Financeiro</a></li>{% endif %}
+            {% if pode_ver_auditoria %}<li role="none"><a role="menuitem" href="{% url 'audit:lista' %}" data-nav-link class="block rounded-md px-3 py-2 text-sm hover:bg-quiin-mist/40">Auditoria</a></li>{% endif %}
+            {% if papel == 'Master' or papel == 'Admin' %}<li role="none"><a role="menuitem" href="/admin/" data-nav-link class="block rounded-md px-3 py-2 text-sm hover:bg-quiin-mist/40">Admin</a></li>{% endif %}
+          </ul>
+        </li>
+      </ul>
+    </nav>
+    <div x-show="mobileAberto" x-cloak id="navbar-mobile" class="pb-3 lg:hidden"
+         hx-boost="true" hx-target="#main" hx-select="#main" hx-swap="innerHTML show:top" hx-push-url="true" hx-indicator="#progresso" @click="mobileAberto = false">
+      <ul class="space-y-1">
+        <li><a href="{% url 'core:dashboard' %}" data-nav-link class="nav-item">Geral</a></li>
+        {% for pilar in pilares_nav %}<li><a href="{% url 'core:pilar' pilar.pk %}" data-nav-link class="nav-item">{{ pilar.nome }}</a></li>{% endfor %}
+        {% if pode_lancar and periodo_aberto_nav and pilares_nav %}<li><a href="{% url 'entries:formulario' periodo_aberto_nav.pk pilares_nav.0.pk %}" data-nav-link class="nav-item">Lançamentos</a></li>{% endif %}
+        {% if pode_aprovar and periodo_aberto_nav %}<li><a href="{% url 'entries:aprovacao' periodo_aberto_nav.pk %}" data-nav-link class="nav-item">Aprovações</a></li>{% endif %}
+        {% if pode_lancar or pode_aprovar %}<li><a href="{% url 'talentos:organograma' %}" data-nav-link class="nav-item">Talentos</a></li><li><a href="{% url 'crm_at:funil' %}" data-nav-link class="nav-item">Gestão de Associados</a></li>{% endif %}
+        {% if ultimo_periodo_nav %}<li><a href="{% url 'reports:mensal' ultimo_periodo_nav.pk %}" data-nav-link class="nav-item">Relatório Mensal</a></li>{% endif %}
+        {% if pode_ver_auditoria %}<li><a href="{% url 'audit:lista' %}" data-nav-link class="nav-item">Auditoria</a></li>{% endif %}
+        {% if papel == 'Master' or papel == 'Admin' %}<li><a href="/admin/" data-nav-link class="nav-item">Admin</a></li>{% endif %}
+      </ul>
+    </div>
+  </div>
+</header>
