@@ -175,10 +175,10 @@
 
     <section class="mt-4 rounded-xl border border-border bg-surface-2" aria-label="Consolidado por pilar" data-testid="consolidado-pilar" x-data="{ pilarCons: '{% if linhas %}{{ linhas.0.pilar.pk }}{% else %}todos{% endif %}' }">
       <h2 class="px-5 pt-5 font-display text-lg font-semibold">Consolidado por pilar — {{ periodo.rotulo }}</h2>
-      <div class="flex flex-wrap gap-1.5 px-5 pt-4" data-testid="consolidado-filtros">
-        <button type="button" data-pilar-filtro="todos" @click="pilarCons = 'todos'" :class="pilarCons === 'todos' ? 'bg-quiin-navy text-white' : ''" class="rounded-full border border-border px-3 py-1 text-xs">Todos</button>
+      <div class="flex flex-wrap gap-1.5 px-5 pt-4" data-testid="consolidado-filtros" role="group" aria-label="Filtrar consolidado por pilar">
+        <button type="button" data-pilar-filtro="todos" @click="pilarCons = 'todos'" :class="pilarCons === 'todos' ? 'bg-quiin-navy text-white' : ''" :aria-pressed="pilarCons === 'todos'" class="rounded-full border border-border px-3 py-1 text-xs">Todos</button>
         {% for linha in linhas %}
-        <button type="button" data-pilar-filtro="{{ linha.pilar.pk }}" @click="pilarCons = '{{ linha.pilar.pk }}'" :class="pilarCons === '{{ linha.pilar.pk }}' ? 'bg-quiin-navy text-white' : ''" class="rounded-full border border-border px-3 py-1 text-xs">{{ linha.pilar.codigo }}</button>
+        <button type="button" data-pilar-filtro="{{ linha.pilar.pk }}" @click="pilarCons = '{{ linha.pilar.pk }}'" :class="pilarCons === '{{ linha.pilar.pk }}' ? 'bg-quiin-navy text-white' : ''" :aria-pressed="pilarCons === '{{ linha.pilar.pk }}'" class="rounded-full border border-border px-3 py-1 text-xs">{{ linha.pilar.codigo }}</button>
         {% endfor %}
       </div>
       {% for linha in linhas %}
