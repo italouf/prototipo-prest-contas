@@ -304,7 +304,7 @@ class PeriodoSelecionadoTestes(TestCase):
 
 
 class DashboardEscopoTestes(TestCase):
-    """Escopo aditivo operacional|financeiro (LOOP2 Task1, sem asserts de template)."""
+    """Escopo aditivo operacional|financeiro (LOOP2 Task1+Task3)."""
 
     def setUp(self):
         garantir_grupos()
@@ -316,11 +316,13 @@ class DashboardEscopoTestes(TestCase):
         self.client.force_login(self.erica)
         r = self.client.get(reverse("core:dashboard"))
         self.assertEqual(r.context["escopo"], "operacional")
+        self.assertContains(r, 'data-testid="escopo-operacional"')
 
     def test_financeiro_valido(self):
         self.client.force_login(self.erica)
         r = self.client.get(reverse("core:dashboard"), {"escopo": "financeiro"})
         self.assertEqual(r.context["escopo"], "financeiro")
+        self.assertContains(r, 'data-testid="escopo-financeiro"')
 
     def test_escopo_invalido_cai_para_operacional(self):
         self.client.force_login(self.erica)

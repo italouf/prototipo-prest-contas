@@ -17,12 +17,13 @@
     </div>
   </div>
 
-  <div id="dashboard-conteudo" class="mt-4">
+  <div id="dashboard-conteudo" data-escopo="{{ escopo|default:'operacional' }}" class="mt-4">
     <div class="flex flex-wrap items-center gap-3">
       <form method="get" action="{% url 'core:dashboard' %}"
             hx-get="{% url 'core:dashboard' %}" hx-target="#dashboard-conteudo" hx-select="#dashboard-conteudo"
             hx-swap="outerHTML" hx-push-url="true" hx-indicator="#progresso, #skeleton-global">
         <label for="periodo-dash" class="sr-only">Período de competência</label>
+        <input type="hidden" name="escopo" value="{{ escopo|default:'operacional' }}">
         <select id="periodo-dash" name="periodo" data-testid="period-selector-dashboard" onchange="this.form.requestSubmit()"
                 class="rounded-md border border-border bg-surface-2 px-3 py-2 text-sm">
           {% for p in periodos %}
@@ -69,6 +70,7 @@
     </section>
     {% endif %}
 
+    <div data-testid="escopo-operacional" {% if escopo == 'financeiro' %}hidden{% endif %}>
     <section class="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3" aria-label="Indicadores-chave por pilar">
       {% for k in kpis %}
       <a href="{% url 'core:pilar' k.pilar.pk %}" data-testid="kpi-{{ k.pilar.codigo|lower }}" data-kpi-card
@@ -86,24 +88,6 @@
         </div>
       </a>
       {% endfor %}
-    </section>
-
-    <section class="mt-4 grid gap-4 sm:grid-cols-3" aria-label="Execução financeira consolidada">
-      <c-ui.card>
-        <p class="text-xs font-semibold uppercase tracking-wide text-text-muted">Execução acumulada {{ periodo.competencia|date:'Y' }}</p>
-        <p class="numerico mt-1 text-2xl font-bold">{{ cards.execucao|escala_ptbr }}</p>
-        <p class="text-xs text-text-muted">{{ cards.execucao|moeda_ptbr }} executado</p>
-      </c-ui.card>
-      <c-ui.card>
-        <p class="text-xs font-semibold uppercase tracking-wide text-text-muted">Captação AT</p>
-        <p class="numerico mt-1 text-2xl font-bold">{{ cards.captacao_at|escala_ptbr }}</p>
-        <p class="text-xs text-text-muted">{{ cards.captacao_at|moeda_ptbr }} junto a empresas privadas</p>
-      </c-ui.card>
-      <c-ui.card>
-        <p class="text-xs font-semibold uppercase tracking-wide text-text-muted">Outras fontes</p>
-        <p class="numerico mt-1 text-2xl font-bold">{{ cards.outras_fontes|escala_ptbr }}</p>
-        <p class="text-xs text-text-muted">{{ cards.outras_fontes|moeda_ptbr }} captado no ano</p>
-      </c-ui.card>
     </section>
 
     <div class="mt-4 grid gap-4 lg:grid-cols-2">
@@ -163,17 +147,6 @@
       </section>
     </div>
 
-    <div class="mt-4 grid gap-4 lg:grid-cols-2">
-      <section class="rounded-xl border border-border bg-surface-2 p-5">
-        <h2 class="font-display text-lg font-semibold">Evolução financeira mensal — {{ periodo.competencia|date:'Y' }}</h2>
-        <div class="mt-4 h-72"><canvas id="grafico-mensal" data-testid="chart-mensal" aria-label="Gráfico de captação e execução mensal" role="img"></canvas></div>
-      </section>
-      <section class="rounded-xl border border-border bg-surface-2 p-5">
-        <h2 class="font-display text-lg font-semibold">Captação × execução por pilar — acumulado {{ periodo.competencia|date:'Y' }}</h2>
-        <div class="mt-4 h-72"><canvas id="grafico-financeiro" data-testid="chart-financeiro" aria-label="Gráfico de captação e execução por pilar" role="img"></canvas></div>
-      </section>
-    </div>
-
     <section class="mt-4 rounded-xl border border-border bg-surface-2 p-5" data-testid="status-distribuicao" aria-label="Distribuição de lançamentos por status">
       <h2 class="font-display text-lg font-semibold">Lançamentos — {{ periodo.rotulo }}</h2>
       <div class="mt-3 flex h-3 overflow-hidden rounded-full bg-quiin-mist/60" role="img" aria-label="Distribuição de lançamentos por status">
@@ -228,6 +201,38 @@
       {% endfor %}
       <div class="h-5"></div>
     </section>
+    </div>
+
+    <div data-testid="escopo-financeiro" {% if escopo == 'operacional' %}hidden{% endif %}>
+    <section class="mt-4 grid gap-4 sm:grid-cols-3" aria-label="Execução financeira consolidada">
+      <c-ui.card>
+        <p class="text-xs font-semibold uppercase tracking-wide text-text-muted">Execução acumulada {{ periodo.competencia|date:'Y' }}</p>
+        <p class="numerico mt-1 text-2xl font-bold">{{ cards.execucao|escala_ptbr }}</p>
+        <p class="text-xs text-text-muted">{{ cards.execucao|moeda_ptbr }} executado</p>
+      </c-ui.card>
+      <c-ui.card>
+        <p class="text-xs font-semibold uppercase tracking-wide text-text-muted">Captação AT</p>
+        <p class="numerico mt-1 text-2xl font-bold">{{ cards.captacao_at|escala_ptbr }}</p>
+        <p class="text-xs text-text-muted">{{ cards.captacao_at|moeda_ptbr }} junto a empresas privadas</p>
+      </c-ui.card>
+      <c-ui.card>
+        <p class="text-xs font-semibold uppercase tracking-wide text-text-muted">Outras fontes</p>
+        <p class="numerico mt-1 text-2xl font-bold">{{ cards.outras_fontes|escala_ptbr }}</p>
+        <p class="text-xs text-text-muted">{{ cards.outras_fontes|moeda_ptbr }} captado no ano</p>
+      </c-ui.card>
+    </section>
+
+    <div class="mt-4 grid gap-4 lg:grid-cols-2">
+      <section class="rounded-xl border border-border bg-surface-2 p-5">
+        <h2 class="font-display text-lg font-semibold">Evolução financeira mensal — {{ periodo.competencia|date:'Y' }}</h2>
+        <div class="mt-4 h-72"><canvas id="grafico-mensal" data-testid="chart-mensal" aria-label="Gráfico de captação e execução mensal" role="img"></canvas></div>
+      </section>
+      <section class="rounded-xl border border-border bg-surface-2 p-5">
+        <h2 class="font-display text-lg font-semibold">Captação × execução por pilar — acumulado {{ periodo.competencia|date:'Y' }}</h2>
+        <div class="mt-4 h-72"><canvas id="grafico-financeiro" data-testid="chart-financeiro" aria-label="Gráfico de captação e execução por pilar" role="img"></canvas></div>
+      </section>
+    </div>
+    </div>
 
     <script type="application/json" id="dados-mensal">{{ chart_mensal_json|safe }}</script>
     <script type="application/json" id="dados-financeiro">{{ chart_financeiro_json|safe }}</script>

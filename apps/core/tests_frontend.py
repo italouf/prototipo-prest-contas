@@ -256,3 +256,4 @@ class NavbarControlesTestes(TestCase):
         self.assertContains(r, 'data-testid="user-profile"')
         self.assertContains(r, 'data-testid="papel-badge"', count=1)
         self.assertContains(r, "Erica")
+        self.assertContains(r, "Master")

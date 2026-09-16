@@ -63,3 +63,15 @@ test('papel ativo aparece na navbar', async ({ page }) => {
   await login(page);
   await expect(page.getByTestId('papel-badge')).toHaveText('Master');
 });
+
+test('toggle operacional|financeiro troca secoes sem reload', async ({ page }) => {
+  await login(page);
+  await page.goto('/?escopo=operacional');
+  await expect(page.getByTestId('escopo-operacional')).toBeVisible();
+  await page.getByTestId('scope-financeiro').click();
+  await expect(page).toHaveURL(/escopo=financeiro/);
+  await expect(page.getByTestId('escopo-financeiro')).toBeVisible();
+  await expect(page.getByTestId('escopo-operacional')).toBeHidden();
+  await page.getByTestId('scope-operacional').click();
+  await expect(page.getByTestId('escopo-operacional')).toBeVisible();
+});
