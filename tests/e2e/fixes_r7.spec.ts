@@ -35,7 +35,7 @@ async function arrastar(page: Page, card: Locator, destino: string) {
 
 test('timeline abre apos navegacao por boost e mostra eventos', async ({ page }) => {
   await login(page);
-  await page.getByTestId('sidebar').getByRole('link', { name: /^Aprovação/ }).click();
+  await page.getByTestId('navbar').getByRole('link', { name: /^Aprovaç/ }).click();
   await expect(page.getByRole('heading', { name: /painel de aprovação/i })).toBeVisible();
 
   const cartao = page.locator('[data-testid^="kanban-card-"]').first();
@@ -58,7 +58,7 @@ test('modal de devolucao abre apos navegacao por boost', async ({ page }) => {
   await logout(page);
 
   await login(page);
-  await page.getByTestId('sidebar').getByRole('link', { name: /^Aprovação/ }).click();
+  await page.getByTestId('navbar').getByRole('link', { name: /^Aprovaç/ }).click();
   const cartao = page
     .getByTestId('kanban-coluna-ENVIADO')
     .locator('article', { hasText: 'Projetos iniciados' })
@@ -70,9 +70,9 @@ test('modal de devolucao abre apos navegacao por boost', async ({ page }) => {
   await expect(page.getByTestId('modal-devolucao')).not.toBeVisible();
 });
 
-test('talentos renderiza no primeiro clique pela sidebar', async ({ page }) => {
+test('talentos renderiza no primeiro clique pela navbar', async ({ page }) => {
   await login(page);
-  await page.getByTestId('sidebar').getByRole('link', { name: /^Talentos/ }).click();
+  await page.getByTestId('navbar').getByRole('link', { name: /^Talentos/ }).click();
   await expect(page.getByRole('heading', { name: /organograma/i })).toBeVisible();
   await expect(page.getByTestId('talento-card').first()).toBeVisible();
   await expect(page.getByTestId('busca-talento')).toBeVisible();

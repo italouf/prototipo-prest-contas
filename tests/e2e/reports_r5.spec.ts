@@ -17,8 +17,9 @@ test('relatorio A4 com capa, secoes, assinatura e graficos', async ({ page }) =>
   await expect(page.getByTestId('report-grafico-captacao')).toBeVisible();
 
   await page.emulateMedia({ media: 'print' });
-  await expect(page.getByTestId('topbar')).toBeHidden();
-  await expect(page.getByTestId('sidebar')).toBeHidden();
+  await expect(page.getByTestId('navbar')).toBeHidden();
+  await expect(page.locator('[data-testid="sidebar"]')).toHaveCount(0);
+  await expect(page.locator('[data-testid="topbar"]')).toHaveCount(0);
   await expect(page.getByTestId('report-capa')).toBeVisible();
   await expect(page.getByRole('button', { name: /imprimir/i })).toBeHidden();
 });

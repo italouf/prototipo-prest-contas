@@ -1,15 +1,16 @@
 <header data-testid="navbar" class="sticky top-0 z-40 bg-quiin-navy text-white shadow-md"
         x-data="{ mobileAberto: false, pilaresAberto: false, sistemaAberto: false }"
-        @keydown.escape.window="mobileAberto = false; pilaresAberto = false; sistemaAberto = false">
+        @keydown.escape.window="mobileAberto = false; pilaresAberto = false; sistemaAberto = false"
+        @htmx:afterSwap.window="mobileAberto=false;pilaresAberto=false;sistemaAberto=false">
   <div class="mx-auto w-full max-w-[1440px] px-4 lg:px-8">
-    <div class="flex items-center gap-3 py-2.5">
-      <a href="{% url 'core:dashboard' %}" data-nav-link class="flex items-center gap-2 text-white">
+    <div class="flex items-center gap-2 py-2.5 sm:gap-3">
+      <a href="{% url 'core:dashboard' %}" data-nav-link class="flex shrink-0 items-center gap-2 text-white">
         <span class="brand-mark">Q</span>
-        <span class="font-display text-base font-bold">Gestão QuIIN</span>
+        <span class="font-display text-sm font-bold sm:text-base"><span class="sm:hidden">QuIIN</span><span class="hidden sm:inline">Gestão QuIIN</span></span>
       </a>
       <span class="hidden text-[11px] uppercase tracking-widest text-white/60 xl:inline">Portal QuIIN</span>
-      <button type="button" data-testid="navbar-toggle" class="ml-auto rounded-md p-2 text-white/80 hover:bg-white/10 hover:text-white lg:hidden"
-              @click="mobileAberto = !mobileAberto" :aria-expanded="mobileAberto" aria-controls="navbar-tabs" aria-label="Abrir menu">
+      <button type="button" data-testid="navbar-toggle" class="rounded-md p-2 text-white/80 hover:bg-white/10 hover:text-white lg:hidden"
+              @click="mobileAberto = !mobileAberto" :aria-expanded="mobileAberto" aria-controls="navbar-mobile" :aria-label="mobileAberto ? 'Fechar menu' : 'Abrir menu'">
         <c-ui.icon name="menu" size="18" />
       </button>
       <form method="get" action="{% url 'core:busca' %}" hx-get="{% url 'core:busca' %}" hx-target="#busca-resultados" hx-trigger="input changed delay:300ms, submit"
@@ -20,10 +21,10 @@
         <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-white/60"><c-ui.icon name="search" size="16" /></span>
         <div id="busca-resultados" x-show="focado" x-cloak class="absolute left-0 right-0 top-full z-40 mt-1 max-h-80 overflow-y-auto rounded-lg border border-border bg-surface-2 text-text shadow-lg"></div>
       </form>
-      <form method="get" action="{{ request.path }}" class="hidden items-center gap-2 md:flex">
+      <form method="get" action="{{ request.path }}" class="ml-auto flex items-center gap-2 md:ml-0">
         <label for="periodo-global" class="sr-only">Período de competência</label>
         <select id="periodo-global" name="periodo" data-testid="period-selector" onchange="this.form.submit()"
-                class="rounded-md border border-white/20 bg-white/10 px-2 py-2 text-sm text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-focus/60">
+                class="w-[6rem] rounded-md border border-white/20 bg-white/10 px-1.5 py-2 text-xs text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-focus/60 sm:w-[7rem] sm:px-2 sm:text-sm">
           {% for p in periodos_nav %}
           <option value="{{ p.competencia|date:'Y-m-d' }}" class="text-text" {% if request.GET.periodo == p.competencia|date:'Y-m-d' %}selected{% elif not request.GET.periodo and periodo_aberto_nav and p.pk == periodo_aberto_nav.pk %}selected{% elif not request.GET.periodo and not periodo_aberto_nav and p.pk == ultimo_periodo_nav.pk %}selected{% endif %}>
             {{ p.rotulo }} — {{ p.get_status_display }}
@@ -31,11 +32,11 @@
           {% endfor %}
         </select>
       </form>
-      <div class="hidden items-center gap-2 lg:flex">
+      <div class="flex items-center gap-1.5 sm:gap-2">
         <span data-testid="papel-badge" title="Papel ativo: {{ papel }}" class="hidden items-center gap-1 rounded-full border border-white/25 bg-white/10 px-2.5 py-0.5 text-xs font-semibold text-white sm:inline-flex">{{ papel }}</span>
         <span class="hidden text-sm font-medium xl:inline">{{ user.nome_exibicao }}</span>
         <button type="button" data-testid="dark-toggle" aria-label="Alternar tema" title="Alternar tema"
-                class="inline-flex h-9 w-9 items-center justify-center rounded-md border border-white/20 bg-white/10 text-white"
+                class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-white/20 bg-white/10 text-white sm:h-9 sm:w-9"
                 x-data="{ escuro: document.documentElement.classList.contains('dark') }"
                 @click="escuro = !escuro; document.documentElement.classList.toggle('dark', escuro); localStorage.setItem('quiin-theme', escuro ? 'dark' : 'light')" :aria-pressed="escuro">
           <span x-show="!escuro"><c-ui.icon name="sun" size="18" /></span>
@@ -43,7 +44,7 @@
         </button>
         <form method="post" action="{% url 'accounts:logout' %}">
           {% csrf_token %}
-          <button type="submit" aria-label="Sair" title="Sair" class="inline-flex h-9 w-9 items-center justify-center rounded-md border border-white/20 bg-white/10 text-white hover:bg-white/20">
+          <button type="submit" aria-label="Sair" title="Sair" class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-white/20 bg-white/10 text-white hover:bg-white/20 sm:h-9 sm:w-9">
             <c-ui.icon name="log-out" size="18" />
           </button>
         </form>
@@ -86,6 +87,10 @@
     </nav>
     <div x-show="mobileAberto" x-cloak id="navbar-mobile" class="pb-3 lg:hidden"
          hx-boost="true" hx-target="#main" hx-select="#main" hx-swap="innerHTML show:top" hx-push-url="true" hx-indicator="#progresso" @click="mobileAberto = false">
+      <div class="mb-2 flex items-center gap-2 px-1 text-sm text-white/80">
+        <span title="Papel ativo: {{ papel }}" class="inline-flex items-center gap-1 rounded-full border border-white/25 bg-white/10 px-2.5 py-0.5 text-xs font-semibold text-white">{{ papel }}</span>
+        <span class="truncate">{{ user.nome_exibicao }}</span>
+      </div>
       <ul class="space-y-1">
         <li><a href="{% url 'core:dashboard' %}" data-nav-link class="nav-item">Geral</a></li>
         {% for pilar in pilares_nav %}<li><a href="{% url 'core:pilar' pilar.pk %}" data-nav-link class="nav-item">{{ pilar.nome }}</a></li>{% endfor %}
@@ -93,9 +98,11 @@
         {% if pode_aprovar and periodo_aberto_nav %}<li><a href="{% url 'entries:aprovacao' periodo_aberto_nav.pk %}" data-nav-link class="nav-item">Aprovações</a></li>{% endif %}
         {% if pode_lancar or pode_aprovar %}<li><a href="{% url 'talentos:organograma' %}" data-nav-link class="nav-item">Talentos</a></li><li><a href="{% url 'crm_at:funil' %}" data-nav-link class="nav-item">Gestão de Associados</a></li>{% endif %}
         {% if ultimo_periodo_nav %}<li><a href="{% url 'reports:mensal' ultimo_periodo_nav.pk %}" data-nav-link class="nav-item">Relatório Mensal</a></li>{% endif %}
+        {% if pode_importar_financeiro %}<li><a href="{% url 'finance:consolidado' %}" data-nav-link class="nav-item">Financeiro</a></li>{% endif %}
         {% if pode_ver_auditoria %}<li><a href="{% url 'audit:lista' %}" data-nav-link class="nav-item">Auditoria</a></li>{% endif %}
         {% if papel == 'Master' or papel == 'Admin' %}<li><a href="/admin/" data-nav-link class="nav-item">Admin</a></li>{% endif %}
       </ul>
+      {% if periodo_aberto_nav %}<p class="mt-2 px-3 text-xs text-white/60">Período aberto: {{ periodo_aberto_nav.rotulo }}</p>{% elif ultimo_periodo_nav %}<p class="mt-2 px-3 text-xs text-white/60">Último período: {{ ultimo_periodo_nav.rotulo }}</p>{% endif %}
     </div>
   </div>
 </header>

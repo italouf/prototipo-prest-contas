@@ -7,12 +7,22 @@ async function login(page: Page, username = 'erica', password = 'erica123') {
   await page.getByRole('button', { name: /entrar/i }).click();
 }
 
-test('navega entre 5 paginas pela navbar com boost', async ({ page }) => {
+test('navega entre 3 paginas pela navbar com boost', async ({ page }) => {
   await login(page);
-  await expect(page.getByTestId('navbar')).toBeVisible();
-  // Lançamentos/Aprovações podem estar em dropdown mobile; usar navbar como escopo:
-  await page.getByTestId('navbar').getByRole('link', { name: /^Geral/ }).click();
+  const navbar = page.getByTestId('navbar');
+  await expect(navbar).toBeVisible();
+  // 1. Geral (link direto)
+  await navbar.getByRole('link', { name: /^Geral/ }).click();
   await expect(page.getByRole('heading', { name: /dashboard executivo/i })).toBeVisible();
+  // 2. Pilares (dropdown) — primeiro pilar, sem fixar PK
+  await navbar.getByRole('button', { name: /pilares/i }).click();
+  await navbar.getByRole('menuitem').first().click();
+  await expect(page).toHaveURL(/\/pilar\/\d+\//);
+  await expect(page.getByTestId('breadcrumbs')).toBeVisible();
+  // 3. Sistema -> Auditoria (dropdown)
+  await navbar.getByRole('button', { name: /^sistema/i }).click();
+  await navbar.getByRole('menuitem', { name: /auditoria/i }).click();
+  await expect(page.getByRole('heading', { name: /auditoria/i })).toBeVisible();
 });
 
 test('navbar mobile abre, navega e fecha', async ({ page }) => {
@@ -49,7 +59,7 @@ test('seletor de periodo muda o dashboard', async ({ page }) => {
   await expect(page.getByText(/Lançamentos — 2026-05/)).toBeVisible();
 });
 
-test('papel ativo aparece no topbar', async ({ page }) => {
+test('papel ativo aparece na navbar', async ({ page }) => {
   await login(page);
   await expect(page.getByTestId('papel-badge')).toHaveText('Master');
 });
