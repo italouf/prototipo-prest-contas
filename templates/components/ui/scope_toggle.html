@@ -1,14 +1,16 @@
 <c-vars escopo="operacional" periodo="" />
 <div data-testid="scope-toggle" role="group" aria-label="Tipo de visão"
      class="inline-flex items-center gap-0.5 rounded-full border border-white/20 bg-white/10 p-0.5">
-  <a href="{% url 'core:dashboard' %}?{% if periodo %}periodo={{ periodo }}&{% endif %}escopo=operacional"
-     data-testid="scope-operacional" aria-current="{% if escopo == 'operacional' %}page{% else %}false{% endif %}"
-     hx-get="{% url 'core:dashboard' %}?{% if periodo %}periodo={{ periodo }}&{% endif %}escopo=operacional"
+  <a href="{% url 'core:dashboard' %}?{% if periodo %}periodo={{ periodo|urlencode }}&{% endif %}escopo=operacional"
+     data-testid="scope-operacional"{% if escopo == 'operacional' %} aria-current="page"{% endif %}
+     hx-get="{% url 'core:dashboard' %}?{% if periodo %}periodo={{ periodo|urlencode }}&{% endif %}escopo=operacional"
      hx-target="#dashboard-conteudo" hx-select="#dashboard-conteudo" hx-swap="outerHTML" hx-push-url="true" hx-indicator="#progresso"
+     onclick="if(!document.getElementById('dashboard-conteudo')){window.location=this.href;return false;}"
      class="rounded-full px-3 py-1 text-xs font-semibold {% if escopo == 'operacional' %}bg-white text-quiin-navy{% else %}text-white/70 hover:text-white{% endif %}">Operacional</a>
-  <a href="{% url 'core:dashboard' %}?{% if periodo %}periodo={{ periodo }}&{% endif %}escopo=financeiro"
-     data-testid="scope-financeiro" aria-current="{% if escopo == 'financeiro' %}page{% else %}false{% endif %}"
-     hx-get="{% url 'core:dashboard' %}?{% if periodo %}periodo={{ periodo }}&{% endif %}escopo=financeiro"
+  <a href="{% url 'core:dashboard' %}?{% if periodo %}periodo={{ periodo|urlencode }}&{% endif %}escopo=financeiro"
+     data-testid="scope-financeiro"{% if escopo == 'financeiro' %} aria-current="page"{% endif %}
+     hx-get="{% url 'core:dashboard' %}?{% if periodo %}periodo={{ periodo|urlencode }}&{% endif %}escopo=financeiro"
      hx-target="#dashboard-conteudo" hx-select="#dashboard-conteudo" hx-swap="outerHTML" hx-push-url="true" hx-indicator="#progresso"
+     onclick="if(!document.getElementById('dashboard-conteudo')){window.location=this.href;return false;}"
      class="rounded-full px-3 py-1 text-xs font-semibold {% if escopo == 'financeiro' %}bg-white text-quiin-navy{% else %}text-white/70 hover:text-white{% endif %}">Financeiro</a>
 </div>

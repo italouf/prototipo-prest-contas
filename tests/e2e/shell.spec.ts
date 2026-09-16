@@ -72,6 +72,17 @@ test('toggle operacional|financeiro troca secoes sem reload', async ({ page }) =
   await expect(page).toHaveURL(/escopo=financeiro/);
   await expect(page.getByTestId('escopo-financeiro')).toBeVisible();
   await expect(page.getByTestId('escopo-operacional')).toBeHidden();
+  await expect(page.getByTestId('scope-financeiro')).toHaveAttribute('aria-current', 'page');
   await page.getByTestId('scope-operacional').click();
   await expect(page.getByTestId('escopo-operacional')).toBeVisible();
+  await expect(page.getByTestId('scope-operacional')).toHaveAttribute('aria-current', 'page');
+});
+
+test('toggle fora do dashboard navega para dashboard com escopo', async ({ page }) => {
+  await login(page);
+  await page.goto('/auditoria/');
+  await expect(page.getByRole('heading', { name: /auditoria/i })).toBeVisible();
+  await page.getByTestId('scope-financeiro').click();
+  await expect(page).toHaveURL(/escopo=financeiro/);
+  await expect(page.getByTestId('page-dashboard')).toBeVisible();
 });
