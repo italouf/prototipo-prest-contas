@@ -98,6 +98,50 @@ const ESTADOS_L5 = [
 
 const IDS_CARDS = ['kpi-ppi', 'kpi-at', 'kpi-outras', 'kpi-total'] as const;
 
+test('T09 farol por faixa no acumulado financeiro', async ({ page }) => {
+  await login(page);
+  const tabela = page.getByTestId('pilares-table');
+  await expect(tabela.getByRole('row', { name: /Infraestrutura/ })).toContainText('Meta atingida');
+  await expect(tabela.getByRole('row', { name: /PDI/ }).first()).toContainText('Execução parcial');
+  await expect(tabela.getByRole('row', { name: /ACS/ })).toContainText('Execução crítica');
+});
+
+test('T09 farol reage ao estado (acumulado físico, FCRH 47%)', async ({ page }) => {
+  await login(page);
+  await page.goto('/?ano=todos&base=fis');
+  const tabela = page.getByTestId('pilares-table');
+  await expect(tabela.getByRole('row', { name: /Formação FCRH/ })).toContainText('Execução crítica');
+  await expect(page.getByTestId('farol-legenda')).toContainText('Meta atingida:');
+});
+
+test('T11 modal abre com foco, fecha por ESC devolvendo o foco', async ({ page }) => {
+  await login(page);
+  const gatilho = page.getByTestId('farol-abrir');
+  await gatilho.click();
+  const modal = page.getByTestId('farol-modal');
+  await expect(modal).toBeVisible();
+  await expect(modal.getByRole('dialog')).toBeVisible();
+  await expect(modal).toContainText('Farol de execução: metodologia e leitura');
+  const focado = await page.evaluate(() => document.activeElement?.getAttribute('data-fechar'));
+  expect(focado).not.toBeNull();
+  await page.keyboard.press('Escape');
+  await expect(modal).toBeHidden();
+  await expect(gatilho).toBeFocused();
+});
+
+test('T11 modal fecha pelo X e pelo backdrop', async ({ page }) => {
+  await login(page);
+  await page.getByTestId('farol-abrir').click();
+  const modal = page.getByTestId('farol-modal');
+  await expect(modal).toBeVisible();
+  await modal.getByRole('button', { name: /fechar/i }).click();
+  await expect(modal).toBeHidden();
+  await page.getByTestId('farol-abrir').click();
+  await expect(modal).toBeVisible();
+  await page.mouse.click(30, 300);
+  await expect(modal).toBeHidden();
+});
+
 for (const estado of ESTADOS_L5) {
   test(`L5 paridade ${estado.chave} com o Anexo A`, async ({ page }) => {
     await login(page);

@@ -1,0 +1,58 @@
+{# Modal "Farol de execução: metodologia e leitura" (Anexo B). Autocontido: gatilho + diálogo com foco gerenciado. #}
+<div x-data="{ aberto: false, ultimoFoco: null,
+    abrir() { this.ultimoFoco = document.activeElement; this.aberto = true; this.$nextTick(() => this.$refs.dialogo.querySelector('[data-fechar]').focus()); },
+    fechar() { this.aberto = false; if (this.ultimoFoco) this.ultimoFoco.focus(); },
+    prender(e) { if (e.key !== 'Tab') return; const f = [...this.$refs.dialogo.querySelectorAll('button, a[href]')]; if (!f.length) return; const i = f.indexOf(document.activeElement); if (e.shiftKey && i <= 0) { f[f.length - 1].focus(); e.preventDefault(); } else if (!e.shiftKey && i === f.length - 1) { f[0].focus(); e.preventDefault(); } }
+  }">
+  <button type="button" data-testid="farol-abrir" aria-haspopup="dialog" aria-label="Metodologia do farol" title="Metodologia do farol"
+          @click="abrir()"
+          class="ml-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-quiin-navy align-middle text-xs font-bold italic text-white">i</button>
+  <div x-show="aberto" x-cloak class="fixed inset-0 z-[80] flex items-center justify-center p-4" data-testid="farol-modal">
+    <div class="absolute inset-0 bg-black/50" @click="fechar()" aria-hidden="true"></div>
+    <div x-ref="dialogo" role="dialog" aria-modal="true" aria-labelledby="farol-titulo"
+         @keydown.escape.window="fechar()" @keydown="prender($event)"
+         class="relative max-h-[86vh] w-full max-w-2xl overflow-y-auto rounded-xl border border-border bg-surface-2 p-6 shadow-2xl">
+      <div class="flex items-start justify-between gap-3">
+        <h3 id="farol-titulo" class="font-display text-lg font-semibold">Farol de execução: metodologia e leitura</h3>
+        <button type="button" data-fechar @click="fechar()" aria-label="Fechar metodologia do farol"
+                class="rounded-md border border-border p-1.5 text-text-muted hover:text-text">
+          <c-ui.icon name="x" size="16" />
+        </button>
+      </div>
+      <div class="mt-4 space-y-4 text-sm">
+        <section aria-label="Como o indicador é calculado">
+          <h4 class="font-display text-sm font-bold">Como o indicador é calculado</h4>
+          <p class="mt-1 text-text-muted">O farol mede a taxa de execução de cada pilar em relação à meta pactuada no período selecionado.</p>
+          <p class="numerico mt-2 rounded-md border border-border bg-quiin-mist/40 px-3 py-2 text-center font-semibold">% Executado = (Valor executado ÷ Valor projetado) × 100</p>
+          <p class="mt-2 text-text-muted">Nos blocos de captação de recursos e de outras fontes, o denominador é o valor captado, e não o projetado, porque a execução só pode ocorrer sobre recursos efetivamente ingressados.</p>
+          <p class="numerico mt-2 rounded-md border border-border bg-quiin-mist/40 px-3 py-2 text-center font-semibold">% Executado = (Valor executado ÷ Valor captado) × 100</p>
+        </section>
+        <section aria-label="Faixas de classificação">
+          <h4 class="font-display text-sm font-bold">Faixas de classificação</h4>
+          <ul class="mt-2 space-y-2">
+            <li class="flex flex-wrap items-center gap-2">
+              <c-dashboard.farol-badge faixa="ok" rotulo="Meta atingida" />
+              <span class="text-text-muted">Execução igual ou superior a 90% da meta. Situação regular, meta atingida ou em vias de conclusão. Não requer decisão.</span>
+            </li>
+            <li class="flex flex-wrap items-center gap-2">
+              <c-dashboard.farol-badge faixa="parcial" rotulo="Execução parcial" />
+              <span class="text-text-muted">Execução entre 50% e 90%. Exige acompanhamento e replanejamento do cronograma de desembolso no trimestre seguinte.</span>
+            </li>
+            <li class="flex flex-wrap items-center gap-2">
+              <c-dashboard.farol-badge faixa="critica" rotulo="Execução crítica" />
+              <span class="text-text-muted">Execução inferior a 50%. Exige ação corretiva imediata, com revisão da meta, do prazo ou da alocação de recursos.</span>
+            </li>
+          </ul>
+        </section>
+        <section aria-label="Como ler o painel">
+          <h4 class="font-display text-sm font-bold">Como ler o painel</h4>
+          <div class="mt-1 space-y-2 text-text-muted">
+            <p>O farol responde aos dois filtros do cabeçalho. Ao selecionar um ano, a taxa considera apenas a meta e a execução daquele exercício. Ao selecionar todos os anos, a taxa considera o acumulado de 2024 a 2027, que é a leitura adequada para prestação de contas do plano como um todo.</p>
+            <p>Na base financeira os valores estão em R$ milhões. Na base física os valores correspondem à quantidade de metas físicas pactuadas e realizadas.</p>
+            <p>As cores mantêm a convenção de semáforo pactuada, verde, amarelo e laranja, e o rótulo traduz cada faixa na decisão que ela exige. Um pilar com percentual alto e valor absoluto baixo indica meta pouco ambiciosa, e não desempenho superior. A leitura do farol deve sempre ser acompanhada da coluna de saldo a executar.</p>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+</div>

@@ -88,3 +88,14 @@ class PainelAnualViewTestes(TestCase):
         resposta = self.client.get(reverse("core:mensal"))
         self.assertEqual(resposta.status_code, 200)
         self.assertContains(resposta, "Dashboard Executivo")
+
+    def test_tabela_farol_e_modal_metodologia(self):
+        self.client.force_login(self.master)
+        resposta = self.client.get(reverse("core:dashboard"))
+        self.assertContains(resposta, 'data-testid="pilares-table"')
+        self.assertContains(resposta, "4.1 PPI: projetado x executado")
+        self.assertContains(resposta, "Meta atingida")
+        self.assertContains(resposta, "Execução parcial")
+        self.assertContains(resposta, "Execução crítica")
+        self.assertContains(resposta, "Farol de execução: metodologia e leitura")
+        self.assertContains(resposta, "% Executado = (Valor executado")
