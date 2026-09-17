@@ -1,32 +1,28 @@
-{# Painel anual — L3 provisório: valores corretos com testids finais; L5/L6 trocam pelos componentes visuais. #}
+{# Painel anual (L5): cards + gráficos finais; tabela vira componente no L6. #}
 {% load core_extras %}
-<div id="dashboard-panel" data-testid="dashboard-panel" class="mt-4 space-y-4">
+<div id="dashboard-panel" data-testid="dashboard-panel" class="mt-4">
   <section aria-label="Visão geral">
     <h2 class="font-display text-lg font-semibold">Visão geral</h2>
-    <div class="mt-2 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      {% for card in painel.cards %}
-      <article data-testid="kpi-{{ card.chave }}" class="rounded-xl border border-border bg-surface-2 p-5">
-        <h3 class="text-xs font-semibold uppercase tracking-wide text-text-muted">{{ card.titulo }}</h3>
-        <p class="numerico mt-2 text-2xl font-bold">{% if painel.base == 'financeiro' %}R$ {{ card.executado|numero_ptbr }} mi{% else %}{{ card.executado|numero_ptbr }} metas{% endif %}</p>
-        <p class="text-xs text-text-muted">de {% if painel.base == 'financeiro' %}R$ {{ card.previsto|numero_ptbr }} mi{% else %}{{ card.previsto|numero_ptbr }} metas{% endif %} {{ card.denominador }}</p>
-        <p class="numerico mt-1 text-sm font-bold">{% if card.pct is not None %}{{ card.pct }}%{% else %}—{% endif %}</p>
-      </article>
-      {% endfor %}
+    <p class="text-xs text-text-muted">Resultados agregados do Centro de Competência. Os indicadores, os gráficos e a tabela respondem aos filtros de ano e de base de análise. {{ painel.rotulo_periodo }}.</p>
+    <div class="mt-3 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <c-dashboard.kpi-card :card="painel.cards.0" base="{{ base_param }}" borda="kpi-borda-1" />
+      <c-dashboard.kpi-card :card="painel.cards.1" base="{{ base_param }}" borda="kpi-borda-2" />
+      <c-dashboard.kpi-card :card="painel.cards.2" base="{{ base_param }}" borda="kpi-borda-3" />
+      <c-dashboard.kpi-card :card="painel.cards.3" base="{{ base_param }}" borda="kpi-borda-4" />
     </div>
   </section>
 
-  <section aria-label="Execução por fonte de recursos">
+  <section class="mt-6 rounded-xl border border-border bg-surface-2 p-5" aria-label="Execução por fonte de recursos">
     <h2 class="font-display text-lg font-semibold">Execução por fonte de recursos</h2>
-    {% for chave, grafico in painel.graficos.items %}
-    <div class="mt-2 rounded-xl border border-border bg-surface-2 p-5" data-testid="chart-fonte-{{ chave }}">
-      <h3 class="font-semibold">{{ grafico.nome_previsto }} × {{ grafico.nome_executado }}</h3>
-      <p class="text-xs text-text-muted">Por ano: {{ grafico.serie_previsto|join:", " }} · executado: {{ grafico.serie_executado|join:", " }}</p>
-      <p data-testid="chart-rodape-{{ chave }}" class="mt-1 text-sm">Execução no período selecionado: <strong>{% if grafico.rodape_pct is not None %}{{ grafico.rodape_pct }}%{% else %}—{% endif %}</strong></p>
+    <p class="text-xs text-text-muted">Evolução anual de 2024 a 2027 e acumulado do plano, {% if base_param == 'fin' %}em R$ milhões{% else %}em quantidade de metas físicas{% endif %}. O ano selecionado no filtro aparece em destaque.</p>
+    <div class="mt-4 grid gap-6 lg:grid-cols-3">
+      <c-dashboard.chart-fonte chave="ppi" titulo="Recursos PPI: projetado x executado" hint="Inclui PDI, Formação FCRH, ACS e Infraestrutura." :bloco="painel.graficos.ppi" :geo="geo_fonte.ppi" unidade="{{ painel.unidade }}" />
+      <c-dashboard.chart-fonte chave="at" titulo="Recursos captados (AT): captado x executado" hint="Recursos captados a partir de novos associados." :bloco="painel.graficos.at" :geo="geo_fonte.at" unidade="{{ painel.unidade }}" />
+      <c-dashboard.chart-fonte chave="outras" titulo="Outras fontes: captado x executado" hint="Recursos captados a partir de outras fontes." :bloco="painel.graficos.outras" :geo="geo_fonte.outras" unidade="{{ painel.unidade }}" />
     </div>
-    {% endfor %}
   </section>
 
-  <section aria-label="Visão gerencial dos pilares">
+  <section class="mt-4 rounded-xl border border-border bg-surface-2 p-5" aria-label="Visão gerencial dos pilares">
     <h2 class="font-display text-lg font-semibold">Visão gerencial dos pilares</h2>
     <div class="mt-2 overflow-x-auto" data-testid="pilares-table">
       <table class="w-full border-collapse text-sm">
@@ -46,9 +42,9 @@
           {% for linha in grupo.linhas %}
           <tr class="border-b border-border/60">
             <td class="py-2 pr-3">{{ linha.rotulo }}</td>
-            <td class="numerico py-2 pr-3">{{ linha.previsto|numero_ptbr }}</td>
-            <td class="numerico py-2 pr-3">{{ linha.executado|numero_ptbr }}</td>
-            <td class="numerico py-2 pr-3">{{ linha.saldo|numero_ptbr }}</td>
+            <td class="numerico py-2 pr-3">{{ linha.previsto|numero_curto }}</td>
+            <td class="numerico py-2 pr-3">{{ linha.executado|numero_curto }}</td>
+            <td class="numerico py-2 pr-3">{{ linha.saldo|numero_curto }}</td>
             <td class="numerico py-2 pr-3">{% if linha.pct is not None %}{{ linha.pct }}%{% else %}—{% endif %}</td>
             <td class="py-2">{{ linha.faixa }}</td>
           </tr>
@@ -59,12 +55,9 @@
     </div>
   </section>
 
-  <section aria-label="Consolidado por fonte e por ano">
+  <section class="mt-4 rounded-xl border border-border bg-surface-2 p-5" aria-label="Consolidado por fonte e por ano">
     <h2 class="font-display text-lg font-semibold">Consolidado por fonte e por ano</h2>
-    <div class="mt-2 rounded-xl border border-border bg-surface-2 p-5" data-testid="chart-consolidado">
-      {% for serie in painel.consolidado.series %}
-      <p class="text-sm">{{ serie.nome }}: {{ serie.valores|join:", " }}</p>
-      {% endfor %}
-    </div>
+    <p class="text-xs text-text-muted">Execução de PPI, captação AT e outras fontes por ano, {% if base_param == 'fin' %}em R$ milhões{% else %}em quantidade de metas físicas{% endif %}.</p>
+    <c-dashboard.chart-consolidado :consolidado="painel.consolidado" :geo="geo_consolidado" unidade="{{ painel.unidade }}" />
   </section>
 </div>

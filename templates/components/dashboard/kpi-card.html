@@ -1,0 +1,14 @@
+{% load core_extras %}
+{# Card KPI do painel anual. Props: card (DTO), base, borda (classe kpi-borda-*). #}
+<c-vars card="" base="financeiro" borda="kpi-borda-1" />
+<article data-testid="kpi-{{ card.chave }}" class="rounded-xl border border-border bg-surface-2 p-5 {{ borda }}">
+  <h3 class="text-xs font-semibold uppercase tracking-wide text-text-muted">{{ card.titulo }}</h3>
+  <p class="numerico mt-3 text-3xl font-bold">{% if base == 'fin' %}<span class="text-base font-semibold text-text-muted">R$ </span>{{ card.executado|numero_curto }}<span class="text-base font-semibold text-text-muted"> mi</span>{% else %}{{ card.executado|numero_curto }}<span class="text-base font-semibold text-text-muted"> metas</span>{% endif %}</p>
+  <p class="mt-1 text-xs text-text-muted">de {% if base == 'fin' %}R$ {{ card.previsto|numero_curto }} mi{% else %}{{ card.previsto|numero_curto }} metas{% endif %} {{ card.denominador }}</p>
+  <div class="mt-3 flex items-center gap-2">
+    <div class="h-1.5 flex-1 overflow-hidden rounded-full bg-quiin-mist/60" role="img" aria-label="{% if card.pct is not None %}{{ card.pct }}{% else %}—{% endif %}% executado">
+      <div class="h-full rounded-full {% if card.faixa == 'ok' %}bg-quiin-quantum-green{% elif card.faixa == 'parcial' %}bg-amber-400{% elif card.faixa == 'critica' %}bg-red-500{% else %}bg-quiin-mist{% endif %}" style="width: {{ card.barra }}%"></div>
+    </div>
+    <c-dashboard.farol-badge faixa="{{ card.faixa }}" rotulo="{% if card.pct is not None %}{{ card.pct }}%{% else %}—{% endif %}" />
+  </div>
+</article>

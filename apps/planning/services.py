@@ -131,6 +131,7 @@ def painel(ano, base):
             "chave": chave, "titulo": titulo, "executado": executado,
             "previsto": previsto, "denominador": denominador,
             "pct": pct, "faixa": faixa(percentual(executado, previsto)),
+            "barra": min(pct or 0, 100) if pct is not None else 0,
         }
 
     cards = [

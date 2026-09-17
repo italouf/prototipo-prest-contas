@@ -15,6 +15,7 @@ from apps.pillars.models import Pilar
 from apps.periods.models import Periodo
 from apps.planning.forms import ALIASES_BASE, BASE_FIN, PainelFiltroForm
 from apps.planning.services import ANOS, painel as painel_anual, rotulo_periodo
+from apps.planning.charts import geometria_consolidado, geometria_fonte
 
 from .calculos import itens_do_periodo
 from .dashboard import avisos_do_dashboard, graficos_dados, heatmap_por_pilar, kpi_por_pilar
@@ -54,10 +55,27 @@ def dashboard(request):
         return redirect(URL_PADRAO_PAINEL)
     ano_param = form.cleaned_data["ano"] if params else "todos"
     base_param = form.cleaned_data["base"] if params else BASE_FIN
+    ano = None if ano_param == "todos" else int(ano_param)
+    painel = painel_anual(ano, base_param)
+    destaque_fonte = None if ano is None else ANOS.index(ano)
+    geo_fonte = {
+        chave: geometria_fonte(
+            [float(v) for v in bloco["serie_previsto"]],
+            [float(v) for v in bloco["serie_executado"]],
+            destaque_fonte,
+        )
+        for chave, bloco in painel["graficos"].items()
+    }
+    geo_consolidado = geometria_consolidado(
+        {serie["nome"]: [float(v) for v in serie["valores"]] for serie in painel["consolidado"]["series"]},
+        destaque_fonte,
+    )
     contexto = {
-        "painel": painel_anual(None if ano_param == "todos" else int(ano_param), base_param),
+        "painel": painel,
         "ano_param": ano_param,
         "base_param": base_param,
+        "geo_fonte": geo_fonte,
+        "geo_consolidado": geo_consolidado,
         "pode_editar_painel": pode_editar_painel(request.user),
     }
     if request.headers.get("HX-Request"):

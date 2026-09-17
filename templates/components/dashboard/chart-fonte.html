@@ -1,0 +1,34 @@
+{% load core_extras %}
+{# Gráfico de barras agrupadas por fonte (SVG server-side). Props: chave, titulo, hint, bloco (DTO), geo, unidade ("R$ mi"|"metas"). #}
+<c-vars chave="" titulo="" hint="" bloco="" geo="" unidade="R$ mi" />
+<section aria-label="{{ titulo }}">
+  <h3 class="font-display text-base font-semibold">{{ titulo }}</h3>
+  <p class="text-xs text-text-muted">{{ hint }}</p>
+  <div class="mt-1 flex flex-wrap gap-4 text-xs text-text-muted" aria-hidden="true">
+    <span class="inline-flex items-center gap-1.5"><i class="inline-block h-2.5 w-2.5 rounded-sm bg-quiin-royal"></i>Projetado ou captado</span>
+    <span class="inline-flex items-center gap-1.5"><i class="inline-block h-2.5 w-2.5 rounded-sm bg-quiin-sky"></i>Executado</span>
+  </div>
+  <div data-testid="chart-fonte-{{ chave }}">
+    <svg viewBox="0 0 {{ geo.largura }} {{ geo.altura }}" class="mt-2 h-auto w-full" role="img" aria-label="{{ titulo }} por ano">
+      {% for gr in geo.grupos %}
+      <g opacity="{{ gr.opacidade }}"{% if gr.destaque %} data-destaque="true"{% endif %} data-categoria="{{ gr.eixo.0 }} {{ gr.eixo.1 }}">
+        {% if gr.divisor %}<line x1="{{ gr.divisor_x }}" y1="{{ geo.divisor_y1 }}" x2="{{ gr.divisor_x }}" y2="{{ geo.base_y }}" class="stroke-border" stroke-width="1" stroke-dasharray="3 3" />{% endif %}
+        <rect x="{{ gr.a.x }}" y="{{ gr.a.y }}" width="{{ gr.a.w }}" height="{{ gr.a.h }}" rx="3" class="fill-quiin-royal">
+          <title>{{ gr.eixo.0 }} ({{ gr.eixo.1 }}) · {{ bloco.nome_previsto }}: {{ gr.a.valor|numero_curto }} {{ unidade }}</title>
+        </rect>
+        <text x="{{ gr.a.cx }}" y="{{ gr.a.ry }}" text-anchor="middle" font-size="10.5" font-weight="700" class="fill-current text-text">{{ gr.a.valor|numero_curto }}</text>
+        <rect x="{{ gr.b.x }}" y="{{ gr.b.y }}" width="{{ gr.b.w }}" height="{{ gr.b.h }}" rx="3" class="fill-quiin-sky">
+          <title>{{ gr.eixo.0 }} ({{ gr.eixo.1 }}) · {{ bloco.nome_executado }}: {{ gr.b.valor|numero_curto }} {{ unidade }}</title>
+        </rect>
+        <text x="{{ gr.b.cx }}" y="{{ gr.b.ry }}" text-anchor="middle" font-size="10.5" font-weight="700" class="fill-current text-text">{{ gr.b.valor|numero_curto }}</text>
+        <text x="{{ gr.cx_eixo }}" y="{{ geo.eixo_y1 }}" text-anchor="middle" font-size="10" class="fill-current {% if gr.destaque %}font-bold text-text{% else %}text-text-muted{% endif %}">{{ gr.eixo.0 }}</text>
+        <text x="{{ gr.cx_eixo }}" y="{{ geo.eixo_y2 }}" text-anchor="middle" font-size="9.5" class="fill-current {% if gr.destaque %}font-bold text-text{% else %}text-text-muted{% endif %}">{{ gr.eixo.1 }}</text>
+      </g>
+      {% endfor %}
+      <line x1="{{ geo.base_x1 }}" y1="{{ geo.base_y }}" x2="{{ geo.base_x2 }}" y2="{{ geo.base_y }}" class="stroke-border" stroke-width="1" />
+    </svg>
+  </div>
+  <p data-testid="chart-rodape-{{ chave }}" class="mt-1 text-sm text-text-muted">Execução no período selecionado
+    <c-dashboard.farol-badge faixa="{{ bloco.rodape_faixa }}" rotulo="{% if bloco.rodape_pct is not None %}{{ bloco.rodape_pct }}%{% else %}—{% endif %}" />
+  </p>
+</section>

@@ -73,6 +73,18 @@
   [aria-expanded="true"] .nav-grupo-chev {
     transform: rotate(180deg);
   }
+  .kpi-borda-1 {
+    border-top: 3px solid var(--color-quiin-blue);
+  }
+  .kpi-borda-2 {
+    border-top: 3px solid var(--color-quiin-sky);
+  }
+  .kpi-borda-3 {
+    border-top: 3px solid var(--color-quiin-violet);
+  }
+  .kpi-borda-4 {
+    border-top: 3px solid var(--color-quiin-deep-purple);
+  }
   .alert {
     @apply rounded-lg border px-3 py-2 text-sm;
   }

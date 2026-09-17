@@ -33,10 +33,12 @@ def geometria_fonte(serie_previsto, serie_executado, destaque):
     larg_grupo = plot_w / 5
     larg_barra = min(LARGURA_BARRA_MAX, larg_grupo * 0.3)
 
-    def barra(x_centro, valor):
+    def barra(x_esq, valor):
         h = max(ALTURA_MINIMA, valor / teto * plot_h) if valor > 0 else ALTURA_MINIMA
-        return {"x": round(x_centro, 2), "y": round(base_y - h, 2),
-                "w": round(larg_barra, 2), "h": round(h, 2), "valor": valor}
+        y = base_y - h
+        return {"x": round(x_esq, 2), "y": round(y, 2),
+                "w": round(larg_barra, 2), "h": round(h, 2), "valor": valor,
+                "cx": round(x_esq + larg_barra / 2, 2), "ry": round(y - 4, 2)}
 
     eixos = [("Ano 1", "2024"), ("Ano 2", "2025"), ("Ano 3", "2026"),
              ("Ano 4", "2027"), ("Todos os anos", "2024 a 2027")]
@@ -46,8 +48,9 @@ def geometria_fonte(serie_previsto, serie_executado, destaque):
         sel = destaque is not None and i == destaque
         grupos.append({
             "eixo": eixos[i],
-            "a": barra(centro - larg_barra / 2 - ESPACO_BARRAS / 2, vals_a[i]),
-            "b": barra(centro + larg_barra / 2 + ESPACO_BARRAS / 2, vals_b[i]),
+            "cx_eixo": round(centro, 2),
+            "a": barra(centro - ESPACO_BARRAS / 2 - larg_barra, vals_a[i]),
+            "b": barra(centro + ESPACO_BARRAS / 2, vals_b[i]),
             "opacidade": 1 if (destaque is None or sel) else OPACIDADE_DIM,
             "destaque": sel,
             "divisor": i == 4,
@@ -55,7 +58,11 @@ def geometria_fonte(serie_previsto, serie_executado, destaque):
         })
     return {
         "largura": LARGURA_FONTE, "altura": ALTURA_FONTE, "base_y": round(base_y, 2),
-        "topo_y": PAD_FONTE["topo"], "grupos": grupos,
+        "topo_y": PAD_FONTE["topo"], "divisor_y1": PAD_FONTE["topo"] - 6,
+        "eixo_y1": ALTURA_FONTE - PAD_FONTE["base"] + 18,
+        "eixo_y2": ALTURA_FONTE - PAD_FONTE["base"] + 31,
+        "base_x1": PAD_FONTE["esq"], "base_x2": LARGURA_FONTE - PAD_FONTE["dir"],
+        "grupos": grupos,
     }
 
 
@@ -78,13 +85,19 @@ def geometria_consolidado(series, destaque):
         for j, nome in enumerate(nomes):
             v = vals[nome][i]
             h = max(ALTURA_MINIMA, v / teto * plot_h) if v > 0 else ALTURA_MINIMA
+            x_barra = x0 + j * (LARGURA_BARRA_CONSOL + ESPACO_CONSOL)
+            y_barra = base_y - h
             barras.append({"serie": nome, "valor": v,
-                           "x": round(x0 + j * (LARGURA_BARRA_CONSOL + ESPACO_CONSOL), 2),
-                           "y": round(base_y - h, 2),
+                           "x": round(x_barra, 2),
+                           "y": round(y_barra, 2),
+                           "cx": round(x_barra + LARGURA_BARRA_CONSOL / 2, 2),
+                           "ry": round(y_barra - 4, 2),
                            "w": LARGURA_BARRA_CONSOL, "h": round(h, 2)})
         sel = destaque is not None and i == destaque
         grupos.append({
             "eixo": f"Ano {i + 1}: {2024 + i}",
+            "categoria": f"Ano {i + 1} {2024 + i}",
+            "cx_eixo": round(centro, 2),
             "barras": barras,
             "fundo": sel,
             "x0": round(centro - larg_grupo / 2 + 6, 2),
@@ -92,9 +105,14 @@ def geometria_consolidado(series, destaque):
             "opacidade": 1 if (destaque is None or sel) else OPACIDADE_DIM,
         })
     passo = teto / 4
-    linhas_grade = [{"valor": round(passo * s, 2), "y": round(base_y - passo * s / teto * plot_h, 2)}
+    linhas_grade = [{"valor": round(passo * s, 2), "y": round(base_y - passo * s / teto * plot_h, 2),
+                    "lx": PAD_CONSOL["esq"] - 8 - 4,
+                    "ly": round(base_y - passo * s / teto * plot_h + 4, 2)}
                    for s in range(5)]
     return {
         "largura": LARGURA_CONSOL, "altura": ALTURA_CONSOL, "base_y": round(base_y, 2),
+        "eixo_y": round(base_y + 22, 2), "grade_x": PAD_CONSOL["esq"] - 8,
+        "grade_x2": LARGURA_CONSOL - PAD_CONSOL["dir"],
+        "topo_y": PAD_CONSOL["topo"], "fundo_h": round(base_y - PAD_CONSOL["topo"], 2),
         "grupos": grupos, "linhas_grade": linhas_grade, "series": nomes,
     }

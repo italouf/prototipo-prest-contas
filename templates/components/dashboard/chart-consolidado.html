@@ -1,0 +1,32 @@
+{% load core_extras %}
+{# Gráfico consolidado por fonte e por ano (SVG server-side). Props: consolidado (DTO), geo, unidade. #}
+<c-vars consolidado="" geo="" unidade="R$ mi" />
+<section aria-label="Consolidado por fonte e por ano">
+  <h3 class="font-display text-base font-semibold">Consolidado por fonte e por ano</h3>
+  <div class="mt-1 flex flex-wrap gap-4 text-xs text-text-muted" aria-hidden="true" data-testid="consol-legenda">
+    <span class="inline-flex items-center gap-1.5"><i class="inline-block h-2.5 w-2.5 rounded-sm bg-quiin-royal"></i>PPI executado</span>
+    <span class="inline-flex items-center gap-1.5"><i class="inline-block h-2.5 w-2.5 rounded-sm bg-quiin-sky"></i>Captação AT executada</span>
+    <span class="inline-flex items-center gap-1.5"><i class="inline-block h-2.5 w-2.5 rounded-sm bg-quiin-violet"></i>Outras fontes executadas</span>
+  </div>
+  <div data-testid="chart-consolidado">
+    <svg viewBox="0 0 {{ geo.largura }} {{ geo.altura }}" class="mt-2 h-auto w-full" role="img" aria-label="Execução de PPI, captação AT e outras fontes por ano">
+      {% for linha in geo.linhas_grade %}
+      <line x1="{{ geo.grade_x }}" y1="{{ linha.y }}" x2="{{ geo.grade_x2 }}" y2="{{ linha.y }}" class="stroke-quiin-mist" stroke-width="1" />
+      <text x="{{ linha.lx }}" y="{{ linha.ly }}" text-anchor="end" font-size="10" class="fill-current text-text-muted">{{ linha.valor|numero_curto }}</text>
+      {% endfor %}
+      {% for gr in geo.grupos %}
+      <g opacity="{{ gr.opacidade }}"{% if gr.fundo %} data-destaque="true"{% endif %} data-categoria="{{ gr.categoria }}">
+        {% if gr.fundo %}<rect x="{{ gr.x0 }}" y="{{ geo.topo_y }}" width="{{ gr.largura_fundo }}" height="{{ geo.fundo_h }}" rx="8" class="fill-quiin-royal/10" />{% endif %}
+        {% for barra in gr.barras %}
+        <rect x="{{ barra.x }}" y="{{ barra.y }}" width="{{ barra.w }}" height="{{ barra.h }}" rx="3" class="{% if forloop.counter0 == 0 %}fill-quiin-royal{% elif forloop.counter0 == 1 %}fill-quiin-sky{% else %}fill-quiin-violet{% endif %}">
+          <title>{{ gr.eixo }} · {{ barra.serie }}: {{ barra.valor|numero_curto }} {{ unidade }}</title>
+        </rect>
+        <text x="{{ barra.cx }}" y="{{ barra.ry }}" text-anchor="middle" font-size="11" font-weight="700" class="fill-current text-text">{{ barra.valor|numero_curto }}</text>
+        {% endfor %}
+        <text x="{{ gr.cx_eixo }}" y="{{ geo.eixo_y }}" text-anchor="middle" font-size="11" class="fill-current {% if gr.fundo %}font-bold text-text{% else %}text-text-muted{% endif %}">{{ gr.eixo }}</text>
+      </g>
+      {% endfor %}
+      <line x1="{{ geo.grade_x }}" y1="{{ geo.base_y }}" x2="{{ geo.grade_x2 }}" y2="{{ geo.base_y }}" class="stroke-border" stroke-width="1" />
+    </svg>
+  </div>
+</section>

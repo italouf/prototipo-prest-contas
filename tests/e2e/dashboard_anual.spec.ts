@@ -1,4 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 
 /**
  * E2E do Painel Anual QuIIN (L3+; estendida nos loops L5–L7).
@@ -69,3 +71,64 @@ test('T08 URL mensal antiga redireciona 301 para o ano equivalente', async ({ pa
   await expect(page).toHaveURL('/?ano=2026&base=fin');
   await expect(page.getByTestId('context-chips')).toContainText('Período: Ano 3: 2026');
 });
+
+const MATRIZ_L0 = JSON.parse(
+  fs.readFileSync(
+    path.join(process.cwd(), 'docs/retrofit/evidencias/dashboard-anual/loop-0/matriz-estados.json'),
+    'utf8',
+  ),
+) as Record<string, {
+  chips: string[];
+  cards: Array<{ val: string; sub: string; badge: string }>;
+  rodapePpi: { badge: string }; rodapeAt: { badge: string }; rodapeOutras: { badge: string };
+}>;
+
+const ESTADOS_L5 = [
+  { chave: 'ano-todos_base-fin', ano: 'todos', base: 'fin', destaque: null as string | null },
+  { chave: 'ano-2024_base-fin', ano: '2024', base: 'fin', destaque: 'Ano 1 2024' },
+  { chave: 'ano-2025_base-fin', ano: '2025', base: 'fin', destaque: 'Ano 2 2025' },
+  { chave: 'ano-2026_base-fin', ano: '2026', base: 'fin', destaque: 'Ano 3 2026' },
+  { chave: 'ano-2027_base-fin', ano: '2027', base: 'fin', destaque: 'Ano 4 2027' },
+  { chave: 'ano-todos_base-fis', ano: 'todos', base: 'fis', destaque: null as string | null },
+  { chave: 'ano-2024_base-fis', ano: '2024', base: 'fis', destaque: 'Ano 1 2024' },
+  { chave: 'ano-2025_base-fis', ano: '2025', base: 'fis', destaque: 'Ano 2 2025' },
+  { chave: 'ano-2026_base-fis', ano: '2026', base: 'fis', destaque: 'Ano 3 2026' },
+  { chave: 'ano-2027_base-fis', ano: '2027', base: 'fis', destaque: 'Ano 4 2027' },
+];
+
+const IDS_CARDS = ['kpi-ppi', 'kpi-at', 'kpi-outras', 'kpi-total'] as const;
+
+for (const estado of ESTADOS_L5) {
+  test(`L5 paridade ${estado.chave} com o Anexo A`, async ({ page }) => {
+    await login(page);
+    await page.goto(`/?ano=${estado.ano}&base=${estado.base}`);
+    const esperado = MATRIZ_L0[estado.chave];
+    const chips = page.getByTestId('context-chips');
+    for (const chip of esperado.chips) {
+      await expect(chips).toContainText(chip);
+    }
+    for (let i = 0; i < 4; i++) {
+      const card = page.getByTestId(IDS_CARDS[i]);
+      await expect(card).toContainText(esperado.cards[i].val);
+      await expect(card).toContainText(esperado.cards[i].sub);
+      await expect(card).toContainText(esperado.cards[i].badge);
+    }
+    await expect(page.getByTestId('chart-rodape-ppi')).toContainText(esperado.rodapePpi.badge);
+    await expect(page.getByTestId('chart-rodape-at')).toContainText(esperado.rodapeAt.badge);
+    await expect(page.getByTestId('chart-rodape-outras')).toContainText(esperado.rodapeOutras.badge);
+    for (const grafico of ['chart-fonte-ppi', 'chart-fonte-at', 'chart-fonte-outras']) {
+      const bloco = page.getByTestId(grafico);
+      if (estado.destaque === null) {
+        await expect(bloco.locator('g[data-destaque="true"]')).toHaveCount(0);
+      } else {
+        await expect(bloco.locator(`g[data-categoria="${estado.destaque}"]`)).toHaveAttribute('data-destaque', 'true');
+      }
+    }
+    const consol = page.getByTestId('chart-consolidado');
+    if (estado.destaque === null) {
+      await expect(consol.locator('g[data-destaque="true"]')).toHaveCount(0);
+    } else {
+      await expect(consol.locator(`g[data-categoria="${estado.destaque}"]`)).toHaveAttribute('data-destaque', 'true');
+    }
+  });
+}

@@ -38,6 +38,21 @@ def numero_ptbr(valor):
 
 
 @register.filter
+def numero_curto(valor):
+    """Número pt-BR com até 2 decimais, sem zeros à direita (7,75 · 75,5 · 40)."""
+    if valor is None:
+        return "—"
+    try:
+        v = Decimal(str(valor))
+    except (InvalidOperation, ValueError):
+        return valor
+    texto = _numero_brl(v, 2)
+    if "," in texto:
+        texto = texto.rstrip("0").rstrip(",")
+    return texto
+
+
+@register.filter
 def moeda_ptbr(valor):
     """Formata moeda completa: R$ 75.000.000,00."""
     if valor is None:

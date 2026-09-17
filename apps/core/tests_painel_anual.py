@@ -26,7 +26,8 @@ class PainelAnualViewTestes(TestCase):
         self.assertIsNone(resposta.context["painel"]["ano"])
         self.assertEqual(resposta.context["painel"]["base"], "financeiro")
         self.assertContains(resposta, "Acumulado 2024 a 2027")
-        self.assertContains(resposta, "R$ 40 mi")
+        self.assertRegex(resposta.content.decode(), r"R\$\s*</span>\s*40\s*<span")
+        self.assertContains(resposta, "67%")
 
     def test_deep_link_ano_e_base(self):
         self.client.force_login(self.master)
