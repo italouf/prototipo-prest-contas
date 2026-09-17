@@ -1,0 +1,967 @@
+{
+  "chips": [
+    "Período: Ano 4: 2027",
+    "Base: Físico",
+    "Unidade: quantidade de metas"
+  ],
+  "legendaProj": "Projetado ou captado",
+  "cards": [
+    {
+      "rot": "Recursos PPI executados",
+      "val": "0 metas",
+      "sub": "de 6 metas projetados",
+      "badge": "0%",
+      "badgeClasse": "badge crit",
+      "barraLargura": "0%",
+      "barraCor": "var(--crit-dot)"
+    },
+    {
+      "rot": "Captação AT executada",
+      "val": "0 metas",
+      "sub": "de 2 metas captados",
+      "badge": "0%",
+      "badgeClasse": "badge crit",
+      "barraLargura": "0%",
+      "barraCor": "var(--crit-dot)"
+    },
+    {
+      "rot": "Outras fontes executadas",
+      "val": "0 metas",
+      "sub": "de 2 metas captados",
+      "badge": "0%",
+      "badgeClasse": "badge crit",
+      "barraLargura": "0%",
+      "barraCor": "var(--crit-dot)"
+    },
+    {
+      "rot": "Execução consolidada",
+      "val": "0 metas",
+      "sub": "de 10 metas previstos",
+      "badge": "0%",
+      "badgeClasse": "badge crit",
+      "barraLargura": "0%",
+      "barraCor": "var(--crit-dot)"
+    }
+  ],
+  "ppi": {
+    "barras": [
+      {
+        "tip": "Ano 1 (2024) · Projetado: 11 metas",
+        "opacidade": "0.3",
+        "cor": "var(--serie-proj)"
+      },
+      {
+        "tip": "Ano 1 (2024) · Executado: 8 metas",
+        "opacidade": "0.3",
+        "cor": "var(--serie-exec)"
+      },
+      {
+        "tip": "Ano 2 (2025) · Projetado: 17 metas",
+        "opacidade": "0.3",
+        "cor": "var(--serie-proj)"
+      },
+      {
+        "tip": "Ano 2 (2025) · Executado: 12 metas",
+        "opacidade": "0.3",
+        "cor": "var(--serie-exec)"
+      },
+      {
+        "tip": "Ano 3 (2026) · Projetado: 18 metas",
+        "opacidade": "0.3",
+        "cor": "var(--serie-proj)"
+      },
+      {
+        "tip": "Ano 3 (2026) · Executado: 12 metas",
+        "opacidade": "0.3",
+        "cor": "var(--serie-exec)"
+      },
+      {
+        "tip": "Ano 4 (2027) · Projetado: 6 metas",
+        "opacidade": "1",
+        "cor": "var(--serie-proj)"
+      },
+      {
+        "tip": "Ano 4 (2027) · Executado: 0 metas",
+        "opacidade": "1",
+        "cor": "var(--serie-exec)"
+      },
+      {
+        "tip": "Todos os anos (2024 a 2027) · Projetado: 52 metas",
+        "opacidade": "0.3",
+        "cor": "var(--serie-proj)"
+      },
+      {
+        "tip": "Todos os anos (2024 a 2027) · Executado: 32 metas",
+        "opacidade": "0.3",
+        "cor": "var(--serie-exec)"
+      }
+    ],
+    "rotulos": [
+      {
+        "texto": "11",
+        "tamanho": "10.5",
+        "peso": "700",
+        "cor": "#0f172a",
+        "opacidade": "0.3"
+      },
+      {
+        "texto": "8",
+        "tamanho": "10.5",
+        "peso": "700",
+        "cor": "#0f172a",
+        "opacidade": "0.3"
+      },
+      {
+        "texto": "Ano 1",
+        "tamanho": "10",
+        "peso": "500",
+        "cor": "#64748b",
+        "opacidade": null
+      },
+      {
+        "texto": "2024",
+        "tamanho": "9.5",
+        "peso": "500",
+        "cor": "#64748b",
+        "opacidade": null
+      },
+      {
+        "texto": "17",
+        "tamanho": "10.5",
+        "peso": "700",
+        "cor": "#0f172a",
+        "opacidade": "0.3"
+      },
+      {
+        "texto": "12",
+        "tamanho": "10.5",
+        "peso": "700",
+        "cor": "#0f172a",
+        "opacidade": "0.3"
+      },
+      {
+        "texto": "Ano 2",
+        "tamanho": "10",
+        "peso": "500",
+        "cor": "#64748b",
+        "opacidade": null
+      },
+      {
+        "texto": "2025",
+        "tamanho": "9.5",
+        "peso": "500",
+        "cor": "#64748b",
+        "opacidade": null
+      },
+      {
+        "texto": "18",
+        "tamanho": "10.5",
+        "peso": "700",
+        "cor": "#0f172a",
+        "opacidade": "0.3"
+      },
+      {
+        "texto": "12",
+        "tamanho": "10.5",
+        "peso": "700",
+        "cor": "#0f172a",
+        "opacidade": "0.3"
+      },
+      {
+        "texto": "Ano 3",
+        "tamanho": "10",
+        "peso": "500",
+        "cor": "#64748b",
+        "opacidade": null
+      },
+      {
+        "texto": "2026",
+        "tamanho": "9.5",
+        "peso": "500",
+        "cor": "#64748b",
+        "opacidade": null
+      },
+      {
+        "texto": "6",
+        "tamanho": "10.5",
+        "peso": "700",
+        "cor": "#0f172a",
+        "opacidade": "1"
+      },
+      {
+        "texto": "0",
+        "tamanho": "10.5",
+        "peso": "700",
+        "cor": "#0f172a",
+        "opacidade": "1"
+      },
+      {
+        "texto": "Ano 4",
+        "tamanho": "10",
+        "peso": "700",
+        "cor": "#0f172a",
+        "opacidade": null
+      },
+      {
+        "texto": "2027",
+        "tamanho": "9.5",
+        "peso": "700",
+        "cor": "#0f172a",
+        "opacidade": null
+      },
+      {
+        "texto": "52",
+        "tamanho": "10.5",
+        "peso": "700",
+        "cor": "#0f172a",
+        "opacidade": "0.3"
+      },
+      {
+        "texto": "32",
+        "tamanho": "10.5",
+        "peso": "700",
+        "cor": "#0f172a",
+        "opacidade": "0.3"
+      },
+      {
+        "texto": "Todos os anos",
+        "tamanho": "10",
+        "peso": "500",
+        "cor": "#64748b",
+        "opacidade": null
+      },
+      {
+        "texto": "2024 a 2027",
+        "tamanho": "9.5",
+        "peso": "500",
+        "cor": "#64748b",
+        "opacidade": null
+      }
+    ]
+  },
+  "rodapePpi": {
+    "texto": "Execução no período selecionado0%",
+    "badge": "0%",
+    "badgeClasse": "badge crit"
+  },
+  "at": {
+    "barras": [
+      {
+        "tip": "Ano 1 (2024) · Captado: 1 metas",
+        "opacidade": "0.3",
+        "cor": "var(--serie-proj)"
+      },
+      {
+        "tip": "Ano 1 (2024) · Executado: 0 metas",
+        "opacidade": "0.3",
+        "cor": "var(--serie-exec)"
+      },
+      {
+        "tip": "Ano 2 (2025) · Captado: 2 metas",
+        "opacidade": "0.3",
+        "cor": "var(--serie-proj)"
+      },
+      {
+        "tip": "Ano 2 (2025) · Executado: 1 metas",
+        "opacidade": "0.3",
+        "cor": "var(--serie-exec)"
+      },
+      {
+        "tip": "Ano 3 (2026) · Captado: 3 metas",
+        "opacidade": "0.3",
+        "cor": "var(--serie-proj)"
+      },
+      {
+        "tip": "Ano 3 (2026) · Executado: 1 metas",
+        "opacidade": "0.3",
+        "cor": "var(--serie-exec)"
+      },
+      {
+        "tip": "Ano 4 (2027) · Captado: 2 metas",
+        "opacidade": "1",
+        "cor": "var(--serie-proj)"
+      },
+      {
+        "tip": "Ano 4 (2027) · Executado: 0 metas",
+        "opacidade": "1",
+        "cor": "var(--serie-exec)"
+      },
+      {
+        "tip": "Todos os anos (2024 a 2027) · Captado: 8 metas",
+        "opacidade": "0.3",
+        "cor": "var(--serie-proj)"
+      },
+      {
+        "tip": "Todos os anos (2024 a 2027) · Executado: 2 metas",
+        "opacidade": "0.3",
+        "cor": "var(--serie-exec)"
+      }
+    ],
+    "rotulos": [
+      {
+        "texto": "1",
+        "tamanho": "10.5",
+        "peso": "700",
+        "cor": "#0f172a",
+        "opacidade": "0.3"
+      },
+      {
+        "texto": "0",
+        "tamanho": "10.5",
+        "peso": "700",
+        "cor": "#0f172a",
+        "opacidade": "0.3"
+      },
+      {
+        "texto": "Ano 1",
+        "tamanho": "10",
+        "peso": "500",
+        "cor": "#64748b",
+        "opacidade": null
+      },
+      {
+        "texto": "2024",
+        "tamanho": "9.5",
+        "peso": "500",
+        "cor": "#64748b",
+        "opacidade": null
+      },
+      {
+        "texto": "2",
+        "tamanho": "10.5",
+        "peso": "700",
+        "cor": "#0f172a",
+        "opacidade": "0.3"
+      },
+      {
+        "texto": "1",
+        "tamanho": "10.5",
+        "peso": "700",
+        "cor": "#0f172a",
+        "opacidade": "0.3"
+      },
+      {
+        "texto": "Ano 2",
+        "tamanho": "10",
+        "peso": "500",
+        "cor": "#64748b",
+        "opacidade": null
+      },
+      {
+        "texto": "2025",
+        "tamanho": "9.5",
+        "peso": "500",
+        "cor": "#64748b",
+        "opacidade": null
+      },
+      {
+        "texto": "3",
+        "tamanho": "10.5",
+        "peso": "700",
+        "cor": "#0f172a",
+        "opacidade": "0.3"
+      },
+      {
+        "texto": "1",
+        "tamanho": "10.5",
+        "peso": "700",
+        "cor": "#0f172a",
+        "opacidade": "0.3"
+      },
+      {
+        "texto": "Ano 3",
+        "tamanho": "10",
+        "peso": "500",
+        "cor": "#64748b",
+        "opacidade": null
+      },
+      {
+        "texto": "2026",
+        "tamanho": "9.5",
+        "peso": "500",
+        "cor": "#64748b",
+        "opacidade": null
+      },
+      {
+        "texto": "2",
+        "tamanho": "10.5",
+        "peso": "700",
+        "cor": "#0f172a",
+        "opacidade": "1"
+      },
+      {
+        "texto": "0",
+        "tamanho": "10.5",
+        "peso": "700",
+        "cor": "#0f172a",
+        "opacidade": "1"
+      },
+      {
+        "texto": "Ano 4",
+        "tamanho": "10",
+        "peso": "700",
+        "cor": "#0f172a",
+        "opacidade": null
+      },
+      {
+        "texto": "2027",
+        "tamanho": "9.5",
+        "peso": "700",
+        "cor": "#0f172a",
+        "opacidade": null
+      },
+      {
+        "texto": "8",
+        "tamanho": "10.5",
+        "peso": "700",
+        "cor": "#0f172a",
+        "opacidade": "0.3"
+      },
+      {
+        "texto": "2",
+        "tamanho": "10.5",
+        "peso": "700",
+        "cor": "#0f172a",
+        "opacidade": "0.3"
+      },
+      {
+        "texto": "Todos os anos",
+        "tamanho": "10",
+        "peso": "500",
+        "cor": "#64748b",
+        "opacidade": null
+      },
+      {
+        "texto": "2024 a 2027",
+        "tamanho": "9.5",
+        "peso": "500",
+        "cor": "#64748b",
+        "opacidade": null
+      }
+    ]
+  },
+  "rodapeAt": {
+    "texto": "Execução no período selecionado0%",
+    "badge": "0%",
+    "badgeClasse": "badge crit"
+  },
+  "outras": {
+    "barras": [
+      {
+        "tip": "Ano 1 (2024) · Captado: 1 metas",
+        "opacidade": "0.3",
+        "cor": "var(--serie-proj)"
+      },
+      {
+        "tip": "Ano 1 (2024) · Executado: 0 metas",
+        "opacidade": "0.3",
+        "cor": "var(--serie-exec)"
+      },
+      {
+        "tip": "Ano 2 (2025) · Captado: 2 metas",
+        "opacidade": "0.3",
+        "cor": "var(--serie-proj)"
+      },
+      {
+        "tip": "Ano 2 (2025) · Executado: 0 metas",
+        "opacidade": "0.3",
+        "cor": "var(--serie-exec)"
+      },
+      {
+        "tip": "Ano 3 (2026) · Captado: 3 metas",
+        "opacidade": "0.3",
+        "cor": "var(--serie-proj)"
+      },
+      {
+        "tip": "Ano 3 (2026) · Executado: 0 metas",
+        "opacidade": "0.3",
+        "cor": "var(--serie-exec)"
+      },
+      {
+        "tip": "Ano 4 (2027) · Captado: 2 metas",
+        "opacidade": "1",
+        "cor": "var(--serie-proj)"
+      },
+      {
+        "tip": "Ano 4 (2027) · Executado: 0 metas",
+        "opacidade": "1",
+        "cor": "var(--serie-exec)"
+      },
+      {
+        "tip": "Todos os anos (2024 a 2027) · Captado: 8 metas",
+        "opacidade": "0.3",
+        "cor": "var(--serie-proj)"
+      },
+      {
+        "tip": "Todos os anos (2024 a 2027) · Executado: 0 metas",
+        "opacidade": "0.3",
+        "cor": "var(--serie-exec)"
+      }
+    ],
+    "rotulos": [
+      {
+        "texto": "1",
+        "tamanho": "10.5",
+        "peso": "700",
+        "cor": "#0f172a",
+        "opacidade": "0.3"
+      },
+      {
+        "texto": "0",
+        "tamanho": "10.5",
+        "peso": "700",
+        "cor": "#0f172a",
+        "opacidade": "0.3"
+      },
+      {
+        "texto": "Ano 1",
+        "tamanho": "10",
+        "peso": "500",
+        "cor": "#64748b",
+        "opacidade": null
+      },
+      {
+        "texto": "2024",
+        "tamanho": "9.5",
+        "peso": "500",
+        "cor": "#64748b",
+        "opacidade": null
+      },
+      {
+        "texto": "2",
+        "tamanho": "10.5",
+        "peso": "700",
+        "cor": "#0f172a",
+        "opacidade": "0.3"
+      },
+      {
+        "texto": "0",
+        "tamanho": "10.5",
+        "peso": "700",
+        "cor": "#0f172a",
+        "opacidade": "0.3"
+      },
+      {
+        "texto": "Ano 2",
+        "tamanho": "10",
+        "peso": "500",
+        "cor": "#64748b",
+        "opacidade": null
+      },
+      {
+        "texto": "2025",
+        "tamanho": "9.5",
+        "peso": "500",
+        "cor": "#64748b",
+        "opacidade": null
+      },
+      {
+        "texto": "3",
+        "tamanho": "10.5",
+        "peso": "700",
+        "cor": "#0f172a",
+        "opacidade": "0.3"
+      },
+      {
+        "texto": "0",
+        "tamanho": "10.5",
+        "peso": "700",
+        "cor": "#0f172a",
+        "opacidade": "0.3"
+      },
+      {
+        "texto": "Ano 3",
+        "tamanho": "10",
+        "peso": "500",
+        "cor": "#64748b",
+        "opacidade": null
+      },
+      {
+        "texto": "2026",
+        "tamanho": "9.5",
+        "peso": "500",
+        "cor": "#64748b",
+        "opacidade": null
+      },
+      {
+        "texto": "2",
+        "tamanho": "10.5",
+        "peso": "700",
+        "cor": "#0f172a",
+        "opacidade": "1"
+      },
+      {
+        "texto": "0",
+        "tamanho": "10.5",
+        "peso": "700",
+        "cor": "#0f172a",
+        "opacidade": "1"
+      },
+      {
+        "texto": "Ano 4",
+        "tamanho": "10",
+        "peso": "700",
+        "cor": "#0f172a",
+        "opacidade": null
+      },
+      {
+        "texto": "2027",
+        "tamanho": "9.5",
+        "peso": "700",
+        "cor": "#0f172a",
+        "opacidade": null
+      },
+      {
+        "texto": "8",
+        "tamanho": "10.5",
+        "peso": "700",
+        "cor": "#0f172a",
+        "opacidade": "0.3"
+      },
+      {
+        "texto": "0",
+        "tamanho": "10.5",
+        "peso": "700",
+        "cor": "#0f172a",
+        "opacidade": "0.3"
+      },
+      {
+        "texto": "Todos os anos",
+        "tamanho": "10",
+        "peso": "500",
+        "cor": "#64748b",
+        "opacidade": null
+      },
+      {
+        "texto": "2024 a 2027",
+        "tamanho": "9.5",
+        "peso": "500",
+        "cor": "#64748b",
+        "opacidade": null
+      }
+    ]
+  },
+  "rodapeOutras": {
+    "texto": "Execução no período selecionado0%",
+    "badge": "0%",
+    "badgeClasse": "badge crit"
+  },
+  "th1": "Projetado (metas)",
+  "th2": "Executado (metas)",
+  "tabela": [
+    {
+      "tipo": "grupo",
+      "texto": "4.1 PPI: projetado x executado"
+    },
+    {
+      "tipo": "dado",
+      "total": false,
+      "pilar": "PDI",
+      "previsto": "2",
+      "executado": "0",
+      "saldo": "2",
+      "pct": "0%",
+      "farol": "Execução crítica",
+      "farolClasse": "badge crit"
+    },
+    {
+      "tipo": "dado",
+      "total": false,
+      "pilar": "Formação FCRH",
+      "previsto": "2",
+      "executado": "0",
+      "saldo": "2",
+      "pct": "0%",
+      "farol": "Execução crítica",
+      "farolClasse": "badge crit"
+    },
+    {
+      "tipo": "dado",
+      "total": false,
+      "pilar": "ACS",
+      "previsto": "1",
+      "executado": "0",
+      "saldo": "1",
+      "pct": "0%",
+      "farol": "Execução crítica",
+      "farolClasse": "badge crit"
+    },
+    {
+      "tipo": "dado",
+      "total": false,
+      "pilar": "Infraestrutura",
+      "previsto": "1",
+      "executado": "0",
+      "saldo": "1",
+      "pct": "0%",
+      "farol": "Execução crítica",
+      "farolClasse": "badge crit"
+    },
+    {
+      "tipo": "dado",
+      "total": true,
+      "pilar": "Total PPI",
+      "previsto": "6",
+      "executado": "0",
+      "saldo": "6",
+      "pct": "0%",
+      "farol": "Execução crítica",
+      "farolClasse": "badge crit"
+    },
+    {
+      "tipo": "grupo",
+      "texto": "4.2 Captação de recursos: captado x executado"
+    },
+    {
+      "tipo": "dado",
+      "total": false,
+      "pilar": "Associação Tecnológica (AT)",
+      "previsto": "2",
+      "executado": "0",
+      "saldo": "2",
+      "pct": "0%",
+      "farol": "Execução crítica",
+      "farolClasse": "badge crit"
+    },
+    {
+      "tipo": "grupo",
+      "texto": "4.3 Outras fontes: captado x executado"
+    },
+    {
+      "tipo": "dado",
+      "total": false,
+      "pilar": "Outras fontes",
+      "previsto": "2",
+      "executado": "0",
+      "saldo": "2",
+      "pct": "0%",
+      "farol": "Execução crítica",
+      "farolClasse": "badge crit"
+    }
+  ],
+  "consolidado": {
+    "barras": [
+      {
+        "tip": "2024 · PPI executado: 8 metas",
+        "opacidade": "0.3",
+        "cor": "var(--serie-c1)"
+      },
+      {
+        "tip": "2024 · Captação AT executada: 0 metas",
+        "opacidade": "0.3",
+        "cor": "var(--serie-c2)"
+      },
+      {
+        "tip": "2024 · Outras fontes executadas: 0 metas",
+        "opacidade": "0.3",
+        "cor": "var(--serie-c3)"
+      },
+      {
+        "tip": "2025 · PPI executado: 12 metas",
+        "opacidade": "0.3",
+        "cor": "var(--serie-c1)"
+      },
+      {
+        "tip": "2025 · Captação AT executada: 1 metas",
+        "opacidade": "0.3",
+        "cor": "var(--serie-c2)"
+      },
+      {
+        "tip": "2025 · Outras fontes executadas: 0 metas",
+        "opacidade": "0.3",
+        "cor": "var(--serie-c3)"
+      },
+      {
+        "tip": "2026 · PPI executado: 12 metas",
+        "opacidade": "0.3",
+        "cor": "var(--serie-c1)"
+      },
+      {
+        "tip": "2026 · Captação AT executada: 1 metas",
+        "opacidade": "0.3",
+        "cor": "var(--serie-c2)"
+      },
+      {
+        "tip": "2026 · Outras fontes executadas: 0 metas",
+        "opacidade": "0.3",
+        "cor": "var(--serie-c3)"
+      },
+      {
+        "tip": "2027 · PPI executado: 0 metas",
+        "opacidade": "1",
+        "cor": "var(--serie-c1)"
+      },
+      {
+        "tip": "2027 · Captação AT executada: 0 metas",
+        "opacidade": "1",
+        "cor": "var(--serie-c2)"
+      },
+      {
+        "tip": "2027 · Outras fontes executadas: 0 metas",
+        "opacidade": "1",
+        "cor": "var(--serie-c3)"
+      }
+    ],
+    "rotulos": [
+      {
+        "texto": "0",
+        "tamanho": "11",
+        "peso": null,
+        "cor": "#94a3b8",
+        "opacidade": null
+      },
+      {
+        "texto": "5",
+        "tamanho": "11",
+        "peso": null,
+        "cor": "#94a3b8",
+        "opacidade": null
+      },
+      {
+        "texto": "10",
+        "tamanho": "11",
+        "peso": null,
+        "cor": "#94a3b8",
+        "opacidade": null
+      },
+      {
+        "texto": "15",
+        "tamanho": "11",
+        "peso": null,
+        "cor": "#94a3b8",
+        "opacidade": null
+      },
+      {
+        "texto": "20",
+        "tamanho": "11",
+        "peso": null,
+        "cor": "#94a3b8",
+        "opacidade": null
+      },
+      {
+        "texto": "8",
+        "tamanho": "11",
+        "peso": "700",
+        "cor": "#0f172a",
+        "opacidade": "0.3"
+      },
+      {
+        "texto": "0",
+        "tamanho": "11",
+        "peso": "700",
+        "cor": "#94a3b8",
+        "opacidade": "0.3"
+      },
+      {
+        "texto": "0",
+        "tamanho": "11",
+        "peso": "700",
+        "cor": "#94a3b8",
+        "opacidade": "0.3"
+      },
+      {
+        "texto": "Ano 1: 2024",
+        "tamanho": "11.5",
+        "peso": "600",
+        "cor": "#475569",
+        "opacidade": null
+      },
+      {
+        "texto": "12",
+        "tamanho": "11",
+        "peso": "700",
+        "cor": "#0f172a",
+        "opacidade": "0.3"
+      },
+      {
+        "texto": "1",
+        "tamanho": "11",
+        "peso": "700",
+        "cor": "#0f172a",
+        "opacidade": "0.3"
+      },
+      {
+        "texto": "0",
+        "tamanho": "11",
+        "peso": "700",
+        "cor": "#94a3b8",
+        "opacidade": "0.3"
+      },
+      {
+        "texto": "Ano 2: 2025",
+        "tamanho": "11.5",
+        "peso": "600",
+        "cor": "#475569",
+        "opacidade": null
+      },
+      {
+        "texto": "12",
+        "tamanho": "11",
+        "peso": "700",
+        "cor": "#0f172a",
+        "opacidade": "0.3"
+      },
+      {
+        "texto": "1",
+        "tamanho": "11",
+        "peso": "700",
+        "cor": "#0f172a",
+        "opacidade": "0.3"
+      },
+      {
+        "texto": "0",
+        "tamanho": "11",
+        "peso": "700",
+        "cor": "#94a3b8",
+        "opacidade": "0.3"
+      },
+      {
+        "texto": "Ano 3: 2026",
+        "tamanho": "11.5",
+        "peso": "600",
+        "cor": "#475569",
+        "opacidade": null
+      },
+      {
+        "texto": "0",
+        "tamanho": "11",
+        "peso": "700",
+        "cor": "#94a3b8",
+        "opacidade": "1"
+      },
+      {
+        "texto": "0",
+        "tamanho": "11",
+        "peso": "700",
+        "cor": "#94a3b8",
+        "opacidade": "1"
+      },
+      {
+        "texto": "0",
+        "tamanho": "11",
+        "peso": "700",
+        "cor": "#94a3b8",
+        "opacidade": "1"
+      },
+      {
+        "texto": "Ano 4: 2027",
+        "tamanho": "11.5",
+        "peso": "700",
+        "cor": "#0f172a",
+        "opacidade": null
+      },
+      {
+        "texto": "Acumulado 2024 a 2027: 34 metas",
+        "tamanho": "11",
+        "peso": "600",
+        "cor": "#64748b",
+        "opacidade": null
+      }
+    ]
+  },
+  "consolLegenda": "PPI executadoCaptação AT executadaOutras fontes executadas",
+  "descSecao": "Resultados agregados do Centro de Competência. Os indicadores, os gráficos e a tabela respondem aos filtros de ano e de base de análise. Ano 4: 2027.",
+  "descGraficos": "Evolução anual de 2024 a 2027 e acumulado do plano, em quantidade de metas físicas. O ano selecionado no filtro aparece em destaque.",
+  "descTabela": "Detalhamento por pilar no período selecionado, em quantidade de metas físicas.",
+  "descConsol": "Execução de PPI, captação AT e outras fontes por ano, em quantidade de metas físicas."
+}

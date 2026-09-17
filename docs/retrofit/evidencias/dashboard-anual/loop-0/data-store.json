@@ -1,0 +1,25 @@
+{
+  "anos": ["2024", "2025", "2026", "2027"],
+  "financeiro": {
+    "unidade": "R$ mi",
+    "ppi": {
+      "PDI":            { "proj": [7, 10, 10, 2],   "exec": [5, 8, 8, 0] },
+      "Formação FCRH":  { "proj": [4, 5, 4, 1],     "exec": [2, 3, 2, 0] },
+      "ACS":            { "proj": [2, 2, 2, 1],     "exec": [1, 1, 1, 0] },
+      "Infraestrutura": { "proj": [2, 3, 4, 1],     "exec": [2, 3, 4, 0] }
+    },
+    "at":     { "proj": [1, 2, 3, 1.75], "exec": [0, 1, 1, 0] },
+    "outras": { "proj": [1, 2, 3, 1.75], "exec": [0, 0, 0, 0] }
+  },
+  "fisico": {
+    "unidade": "metas",
+    "ppi": {
+      "PDI":            { "proj": [4, 6, 6, 2],  "exec": [3, 5, 5, 0] },
+      "Formação FCRH":  { "proj": [3, 5, 5, 2],  "exec": [2, 3, 2, 0] },
+      "ACS":            { "proj": [2, 3, 3, 1],  "exec": [1, 1, 1, 0] },
+      "Infraestrutura": { "proj": [2, 3, 4, 1],  "exec": [2, 3, 4, 0] }
+    },
+    "at":     { "proj": [1, 2, 3, 2], "exec": [0, 1, 1, 0] },
+    "outras": { "proj": [1, 2, 3, 2], "exec": [0, 0, 0, 0] }
+  }
+}
