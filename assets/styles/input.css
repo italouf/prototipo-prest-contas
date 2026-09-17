@@ -154,9 +154,11 @@
 @media print {
   .no-print,
   .topbar,
+  .app-header,
   .sidebar,
   .footer,
   [data-testid="topbar"],
+  [data-testid="app-header"],
   [data-testid="sidebar"],
   [data-testid="progresso"] {
     display: none !important;

@@ -1,0 +1,70 @@
+{# Painel anual — L3 provisório: valores corretos com testids finais; L5/L6 trocam pelos componentes visuais. #}
+{% load core_extras %}
+<div id="dashboard-panel" data-testid="dashboard-panel" class="mt-4 space-y-4">
+  <section aria-label="Visão geral">
+    <h2 class="font-display text-lg font-semibold">Visão geral</h2>
+    <div class="mt-2 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      {% for card in painel.cards %}
+      <article data-testid="kpi-{{ card.chave }}" class="rounded-xl border border-border bg-surface-2 p-5">
+        <h3 class="text-xs font-semibold uppercase tracking-wide text-text-muted">{{ card.titulo }}</h3>
+        <p class="numerico mt-2 text-2xl font-bold">{% if painel.base == 'financeiro' %}R$ {{ card.executado|numero_ptbr }} mi{% else %}{{ card.executado|numero_ptbr }} metas{% endif %}</p>
+        <p class="text-xs text-text-muted">de {% if painel.base == 'financeiro' %}R$ {{ card.previsto|numero_ptbr }} mi{% else %}{{ card.previsto|numero_ptbr }} metas{% endif %} {{ card.denominador }}</p>
+        <p class="numerico mt-1 text-sm font-bold">{% if card.pct is not None %}{{ card.pct }}%{% else %}—{% endif %}</p>
+      </article>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section aria-label="Execução por fonte de recursos">
+    <h2 class="font-display text-lg font-semibold">Execução por fonte de recursos</h2>
+    {% for chave, grafico in painel.graficos.items %}
+    <div class="mt-2 rounded-xl border border-border bg-surface-2 p-5" data-testid="chart-fonte-{{ chave }}">
+      <h3 class="font-semibold">{{ grafico.nome_previsto }} × {{ grafico.nome_executado }}</h3>
+      <p class="text-xs text-text-muted">Por ano: {{ grafico.serie_previsto|join:", " }} · executado: {{ grafico.serie_executado|join:", " }}</p>
+      <p data-testid="chart-rodape-{{ chave }}" class="mt-1 text-sm">Execução no período selecionado: <strong>{% if grafico.rodape_pct is not None %}{{ grafico.rodape_pct }}%{% else %}—{% endif %}</strong></p>
+    </div>
+    {% endfor %}
+  </section>
+
+  <section aria-label="Visão gerencial dos pilares">
+    <h2 class="font-display text-lg font-semibold">Visão gerencial dos pilares</h2>
+    <div class="mt-2 overflow-x-auto" data-testid="pilares-table">
+      <table class="w-full border-collapse text-sm">
+        <thead>
+          <tr class="border-b border-border text-left text-xs uppercase tracking-wide text-text-muted">
+            <th class="py-2 pr-3">Pilar</th>
+            <th class="py-2 pr-3">{% if painel.base == 'financeiro' %}Projetado (R$ mi){% else %}Projetado (metas){% endif %}</th>
+            <th class="py-2 pr-3">{% if painel.base == 'financeiro' %}Executado (R$ mi){% else %}Executado (metas){% endif %}</th>
+            <th class="py-2 pr-3">Saldo a executar</th>
+            <th class="py-2 pr-3">% Executado</th>
+            <th class="py-2">Farol</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for grupo in painel.tabela.grupos %}
+          <tr class="bg-quiin-mist/50"><td colspan="6" class="py-2 font-semibold">{{ grupo.titulo }}</td></tr>
+          {% for linha in grupo.linhas %}
+          <tr class="border-b border-border/60">
+            <td class="py-2 pr-3">{{ linha.rotulo }}</td>
+            <td class="numerico py-2 pr-3">{{ linha.previsto|numero_ptbr }}</td>
+            <td class="numerico py-2 pr-3">{{ linha.executado|numero_ptbr }}</td>
+            <td class="numerico py-2 pr-3">{{ linha.saldo|numero_ptbr }}</td>
+            <td class="numerico py-2 pr-3">{% if linha.pct is not None %}{{ linha.pct }}%{% else %}—{% endif %}</td>
+            <td class="py-2">{{ linha.faixa }}</td>
+          </tr>
+          {% endfor %}
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section aria-label="Consolidado por fonte e por ano">
+    <h2 class="font-display text-lg font-semibold">Consolidado por fonte e por ano</h2>
+    <div class="mt-2 rounded-xl border border-border bg-surface-2 p-5" data-testid="chart-consolidado">
+      {% for serie in painel.consolidado.series %}
+      <p class="text-sm">{{ serie.nome }}: {{ serie.valores|join:", " }}</p>
+      {% endfor %}
+    </div>
+  </section>
+</div>

@@ -32,7 +32,7 @@
   {% endif %}
   <div class="{% if user.is_authenticated %}min-w-0 flex-1{% endif %}">
     {% if user.is_authenticated %}
-    <c-layout.topbar />
+    <c-layout.app_header />
     <div id="progresso" class="htmx-indicator fixed inset-x-0 top-0 z-50 h-0.5 bg-quiin-sky"></div>
     <div id="toasts" class="messages pointer-events-none fixed right-4 top-4 z-[80] w-80 space-y-2" role="status" aria-live="polite"></div>
     <div id="skeleton-global" class="htmx-indicator fixed inset-x-0 top-14 bottom-0 z-30 bg-surface/95 p-6" aria-hidden="true">

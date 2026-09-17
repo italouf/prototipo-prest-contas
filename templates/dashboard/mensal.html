@@ -19,8 +19,8 @@
 
   <div id="dashboard-conteudo" class="mt-4">
     <div class="flex flex-wrap items-center gap-3">
-      <form method="get" action="{% url 'core:dashboard' %}"
-            hx-get="{% url 'core:dashboard' %}" hx-target="#dashboard-conteudo" hx-select="#dashboard-conteudo"
+      <form method="get" action="{% url 'core:mensal' %}"
+            hx-get="{% url 'core:mensal' %}" hx-target="#dashboard-conteudo" hx-select="#dashboard-conteudo"
             hx-swap="outerHTML" hx-push-url="true" hx-indicator="#progresso, #skeleton-global">
         <label for="periodo-dash" class="sr-only">Período de competência</label>
         <select id="periodo-dash" name="periodo" data-testid="period-selector-dashboard" onchange="this.form.requestSubmit()"
@@ -136,11 +136,11 @@
         <div class="flex flex-wrap items-center justify-between gap-2">
           <h2 class="font-display text-lg font-semibold">Destaques do período</h2>
           <div class="flex flex-wrap gap-1.5" data-testid="destaques-filtros">
-            <button type="button" hx-get="{% url 'core:dashboard' %}?periodo={{ periodo.competencia|date:'Y-m-d' }}"
+            <button type="button" hx-get="{% url 'core:mensal' %}?periodo={{ periodo.competencia|date:'Y-m-d' }}"
                     hx-target="#feed-destaques" hx-select="#feed-destaques" hx-swap="outerHTML"
                     class="rounded-full border border-border px-3 py-1 text-xs {% if not destaque_pilar %}bg-quiin-navy text-white{% endif %}">Todos</button>
             {% for p in pilares_nav %}
-            <button type="button" hx-get="{% url 'core:dashboard' %}?periodo={{ periodo.competencia|date:'Y-m-d' }}&destaque_pilar={{ p.pk }}"
+            <button type="button" hx-get="{% url 'core:mensal' %}?periodo={{ periodo.competencia|date:'Y-m-d' }}&destaque_pilar={{ p.pk }}"
                     hx-target="#feed-destaques" hx-select="#feed-destaques" hx-swap="outerHTML"
                     class="rounded-full border border-border px-3 py-1 text-xs {% if destaque_pilar == p.pk|stringformat:'s' %}bg-quiin-navy text-white{% endif %}">{{ p.codigo }}</button>
             {% endfor %}

@@ -82,6 +82,22 @@ def pode_ver_auditoria(usuario):
     return eh_gestor(usuario) or eh_auditor(usuario)
 
 
+def pode_editar_painel(usuario):
+    """Master/Admin/PontoFocal editam o plano anual (RN-021)."""
+    return eh_gestor(usuario) or eh_pontofocal(usuario)
+
+
+def pilares_editaveis_painel(usuario):
+    """Pilares que o usuário pode editar no plano anual (RN-012/RN-021)."""
+    from apps.pillars.models import Pilar
+
+    if eh_gestor(usuario):
+        return Pilar.objects.filter(ativo=True)
+    if eh_pontofocal(usuario):
+        return Pilar.objects.filter(ativo=True, usuario_pilares__usuario=usuario).distinct()
+    return Pilar.objects.none()
+
+
 def pilares_visiveis(usuario):
     """Pilares visíveis ao usuário (RF-004/RF-005/RF-071)."""
     from apps.pillars.models import Pilar

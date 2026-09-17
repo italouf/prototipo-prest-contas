@@ -1,27 +1,72 @@
-"""Dashboard consolidado e por pilar (RF-060 a RF-065, RF-070 a RF-073)."""
+"""Dashboard anual, mensal e por pilar (RF-060 a RF-065, RF-070 a RF-073, RF-107 a RF-119)."""
+from datetime import date
 from decimal import Decimal
 
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Q
 from django.http import HttpResponseForbidden
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404, redirect, render
 
 from apps.entries.models import Lancamento
 from apps.finance.models import FinanceiroConsolidado
 from apps.highlights.models import DestaqueMensal
 from apps.indicators.models import Indicador
 from apps.pillars.models import Pilar
+from apps.planning.forms import ALIASES_BASE, BASE_FIN, PainelFiltroForm
+from apps.planning.services import ANOS, painel as painel_anual
 
 from .calculos import itens_do_periodo
 from .dashboard import avisos_do_dashboard, graficos_dados, heatmap_por_pilar, kpi_por_pilar
-from .permissions import eh_gestor, pilares_visiveis, sem_permissao, usuario_pode_pilar
+from .permissions import (
+    eh_gestor,
+    pilares_visiveis,
+    pode_editar_painel,
+    sem_permissao,
+    usuario_pode_pilar,
+)
 from .utils import periodo_selecionado
 
 MESES_ABREV = ["", "Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"]
 
+URL_PADRAO_PAINEL = "/?ano=todos&base=fin"
+
 
 @login_required
 def dashboard(request):
+    """Painel anual (RF-107/RF-108/RF-118): `?ano=todos|2024..2027&base=fin|fis`."""
+    params = request.GET
+    if "periodo" in params and "ano" not in params and "base" not in params:
+        try:
+            ano_legado = date.fromisoformat(params.get("periodo", "")).year
+        except ValueError:
+            ano_legado = None
+        destino = f"/?ano={ano_legado}&base=fin" if ano_legado in ANOS else URL_PADRAO_PAINEL
+        return redirect(destino, permanent=True)
+    if params:
+        base_crua = (params.get("base") or "").strip().lower()
+        if base_crua in ALIASES_BASE:
+            form_previa = PainelFiltroForm({"ano": params.get("ano") or "todos"})
+            ano_previo = form_previa["ano"].value() if form_previa.is_valid() else "todos"
+            return redirect(f"/?ano={ano_previo}&base={ALIASES_BASE[base_crua]}")
+    form = PainelFiltroForm(params or None)
+    if params and not form.is_valid():
+        return redirect(URL_PADRAO_PAINEL)
+    ano_param = form.cleaned_data["ano"] if params else "todos"
+    base_param = form.cleaned_data["base"] if params else BASE_FIN
+    contexto = {
+        "painel": painel_anual(None if ano_param == "todos" else int(ano_param), base_param),
+        "ano_param": ano_param,
+        "base_param": base_param,
+        "pode_editar_painel": pode_editar_painel(request.user),
+    }
+    if request.headers.get("HX-Request"):
+        return render(request, "dashboard/_fragmento.html", contexto)
+    return render(request, "dashboard/anual.html", contexto)
+
+
+@login_required
+def mensal(request):
+    """Dashboard executivo mensal (conteúdo anterior de `/`)."""
     periodo, periodos = periodo_selecionado(request)
     contexto = {
         "periodo": periodo,
@@ -42,7 +87,7 @@ def dashboard(request):
         "chart_financeiro_json": "[]",
     }
     if periodo is None:
-        return render(request, "home.html", contexto)
+        return render(request, "dashboard/mensal.html", contexto)
 
     pilares = list(pilares_visiveis(request.user))
     ano = periodo.competencia.year
@@ -123,7 +168,7 @@ def dashboard(request):
     contexto["chart_mensal_json"], contexto["chart_financeiro_json"] = graficos_dados(
         contexto["chart_mensal"], contexto["chart_financeiro"]
     )
-    return render(request, "home.html", contexto)
+    return render(request, "dashboard/mensal.html", contexto)
 
 
 @login_required

@@ -29,6 +29,7 @@ test('logout via botão encerra a sessão', async ({ page }) => {
 
 test('dashboard executivo exibe gráficos e escala de valores', async ({ page }) => {
   await login(page, 'erica', 'erica123');
+  await page.goto('/prestacao/mensal/');
   await expect(page.getByRole('heading', { name: /dashboard executivo/i })).toBeVisible();
   await expect(page.getByText('Evolução financeira mensal')).toBeVisible();
   await expect(page.getByText('Captação × execução por pilar')).toBeVisible();

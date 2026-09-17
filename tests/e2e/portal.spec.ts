@@ -17,7 +17,7 @@ async function login(page: Page, username: string, password: string) {
 test('login com credenciais válidas redireciona para o dashboard', async ({ page }) => {
   await login(page, 'erica', 'erica123');
   await expect(page).toHaveURL(/\/$/);
-  await expect(page.getByRole('heading', { name: /dashboard executivo/i })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /gestão do quiin/i })).toBeVisible();
 });
 
 test('login com credenciais inválidas exibe erro', async ({ page }) => {

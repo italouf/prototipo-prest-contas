@@ -9,6 +9,8 @@ ANOS = [2024, 2025, 2026, 2027]
 BASE_FINANCEIRO = "financeiro"
 BASE_FISICO = "fisico"
 BASES = (BASE_FINANCEIRO, BASE_FISICO)
+# Códigos curtos da URL (?base=fin|fis) → valor armazenado.
+BASES_URL = {"fin": BASE_FINANCEIRO, "fis": BASE_FISICO}
 
 PILARES_PPI = ("PDI", "FORMACAO", "STARTUPS", "INFRA")
 
@@ -73,17 +75,19 @@ def rotulo_periodo(ano):
 
 
 def _validar(ano, base):
+    base = BASES_URL.get(base, base)
     if base not in BASES:
         raise ValueError(f"base inválida: {base!r}")
     if ano is not None and ano not in ANOS:
         raise ValueError(f"ano inválido: {ano!r}")
+    return base
 
 
 def painel(ano, base):
     """DTO completo do painel para (ano|None, base). `ano=None` = todos os anos."""
     from .models import PlanoAnual
 
-    _validar(ano, base)
+    base = _validar(ano, base)
     linhas = list(
         PlanoAnual.objects.filter(base=base).select_related("pilar").order_by("pilar__ordem")
     )
@@ -93,6 +97,8 @@ def painel(ano, base):
         por_pilar[linha.pilar.codigo]["valores"][linha.ano] = (
             Decimal(linha.previsto), Decimal(linha.executado),
         )
+    for codigo in (*PILARES_PPI, "AT", "OUTRASFONTES"):
+        por_pilar.setdefault(codigo, {"pilar": None, "valores": {}})
 
     def serie_anos(codigo, campo):
         """4 valores anuais (sem acumulado) — base dos valores do período."""

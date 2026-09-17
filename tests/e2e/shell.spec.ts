@@ -27,7 +27,7 @@ test('navega entre 5 paginas pela sidebar com boost', async ({ page }) => {
   }
 
   await page.getByTestId('sidebar').getByRole('link', { name: /^Dashboard/ }).click();
-  await expect(page.getByRole('heading', { name: /dashboard executivo/i })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /gestão do quiin/i })).toBeVisible();
 });
 
 test('sidebar mobile abre, navega e fecha', async ({ page }) => {
@@ -61,9 +61,10 @@ test('busca global encontra indicador visivel', async ({ page }) => {
   await expect(page.getByTestId('busca-lista')).toContainText('Artigos publicados');
 });
 
-test('seletor de periodo muda o dashboard', async ({ page }) => {
+test('seletor de periodo muda o dashboard mensal', async ({ page }) => {
   await login(page);
-  await page.getByTestId('period-selector').selectOption({ label: '2026-05 — Fechado' });
+  await page.goto('/prestacao/mensal/');
+  await page.getByTestId('period-selector-dashboard').selectOption({ label: '2026-05 — Fechado' });
   await expect(page).toHaveURL(/periodo=2026-05-01/);
   await expect(page.getByText(/Lançamentos — 2026-05/)).toBeVisible();
 });

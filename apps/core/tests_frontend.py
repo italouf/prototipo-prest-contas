@@ -146,7 +146,7 @@ class ShellTestes(TestCase):
         self.client.force_login(self.erica)
         resposta = self.client.get("/")
         self.assertContains(resposta, 'data-testid="sidebar"')
-        self.assertContains(resposta, 'data-testid="topbar"')
+        self.assertContains(resposta, 'data-testid="app-header"')
         self.assertContains(resposta, 'data-testid="dark-toggle"')
         self.assertNotContains(resposta, 'data-testid="login-shell"')
 

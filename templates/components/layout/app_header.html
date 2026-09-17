@@ -1,14 +1,27 @@
-<header data-testid="topbar" class="sticky top-0 z-20 border-b border-border bg-surface-2/95 backdrop-blur">
+{# Cabeçalho global do portal (L3): identidade + utilitários sempre; filtros/chips/toolbar só no painel anual. #}
+<header data-testid="app-header" class="sticky top-0 z-20 border-b border-border bg-surface-2/95 backdrop-blur">
   <div class="flex items-center gap-3 px-4 py-2.5 lg:px-8">
     <button type="button" data-testid="sidebar-toggle" aria-label="Abrir menu"
             class="rounded-md border border-border p-2 text-text lg:hidden" @click="aberto = true">
       <c-ui.icon name="menu" size="18" />
     </button>
-    <span class="hidden font-display text-sm font-bold sm:inline lg:hidden">Portal QuIIN</span>
+
+    <div class="min-w-0 flex-1">
+      {% if painel %}
+      <h1 class="truncate font-display text-lg font-bold leading-tight">
+        <a href="{% url 'core:dashboard' %}">Gestão do QuIIN</a>
+      </h1>
+      {% else %}
+      <p class="truncate font-display text-lg font-bold leading-tight">
+        <a href="{% url 'core:dashboard' %}">Gestão do QuIIN</a>
+      </p>
+      {% endif %}
+      <p class="truncate text-xs text-text-muted">Sistema de gerenciamento e monitoramento das metas do Centro de Competência EMBRAPII CIMATEC em Tecnologias Quânticas</p>
+    </div>
 
     <form method="get" action="{% url 'core:busca' %}"
           hx-get="{% url 'core:busca' %}" hx-target="#busca-resultados" hx-trigger="input changed delay:300ms, submit"
-          class="relative ml-auto hidden w-full max-w-sm md:block"
+          class="relative hidden w-full max-w-sm md:block"
           x-data="{ focado: false }" @focusin="focado = true" @focusout="setTimeout(() => focado = false, 200)">
       <label for="busca-global" class="sr-only">Busca global</label>
       <input id="busca-global" type="search" name="q" data-testid="busca-global" placeholder="Buscar indicador, empresa, talento…"
@@ -16,18 +29,6 @@
       <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-muted"><c-ui.icon name="search" size="16" /></span>
       <div id="busca-resultados" x-show="focado" x-cloak
            class="absolute left-0 right-0 top-full z-40 mt-1 max-h-80 overflow-y-auto rounded-lg border border-border bg-surface-2 shadow-lg"></div>
-    </form>
-
-    <form method="get" action="{{ request.path }}" class="ml-auto flex items-center gap-2 md:ml-0">
-      <label for="periodo-global" class="sr-only">Período de competência</label>
-      <select id="periodo-global" name="periodo" data-testid="period-selector" onchange="this.form.submit()"
-              class="w-[8.5rem] rounded-md border border-border bg-surface px-2 py-2 text-sm text-text focus:outline-none focus-visible:ring-2 focus-visible:ring-focus/60 sm:w-auto">
-        {% for p in periodos_nav %}
-        <option value="{{ p.competencia|date:'Y-m-d' }}" {% if request.GET.periodo == p.competencia|date:'Y-m-d' %}selected{% elif not request.GET.periodo and periodo_aberto_nav and p.pk == periodo_aberto_nav.pk %}selected{% elif not request.GET.periodo and not periodo_aberto_nav and p.pk == ultimo_periodo_nav.pk %}selected{% endif %}>
-          {{ p.rotulo }} — {{ p.get_status_display }}
-        </option>
-        {% endfor %}
-      </select>
     </form>
 
     <div class="flex items-center gap-2">
@@ -50,4 +51,10 @@
       </form>
     </div>
   </div>
+
+  {% if painel %}
+  <div id="dashboard-controls" class="border-t border-border px-4 py-2.5 lg:px-8" data-testid="dashboard-controls">
+    {% include 'dashboard/_controles.html' %}
+  </div>
+  {% endif %}
 </header>

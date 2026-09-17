@@ -9,6 +9,7 @@ async function login(page: Page, username = 'erica', password = 'erica123') {
 
 test('skeleton aparece durante swap HTMX do dashboard', async ({ page }) => {
   await login(page);
+  await page.goto('/prestacao/mensal/');
   await page.route('**/?periodo=2026-05-01', async (route) => {
     await new Promise((resolve) => setTimeout(resolve, 800));
     await route.continue();
@@ -22,6 +23,7 @@ test('skeleton aparece durante swap HTMX do dashboard', async ({ page }) => {
 
 test('cards usam animacao de entrada e respeitam reduced motion', async ({ page }) => {
   await login(page);
+  await page.goto('/prestacao/mensal/');
   const animacao = await page
     .getByTestId('kpi-pdi')
     .evaluate((el) => getComputedStyle(el).animationName);

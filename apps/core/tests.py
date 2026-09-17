@@ -39,7 +39,7 @@ class DashboardExecutivoTestes(TestCase):
         self.client.force_login(self.erica)
 
     def test_dashboard_carrega_dados_de_graficos(self):
-        resposta = self.client.get(reverse("core:dashboard"))
+        resposta = self.client.get(reverse("core:mensal"))
         self.assertEqual(resposta.status_code, 200)
         contexto = resposta.context
         self.assertIn("chart_financeiro", contexto)
@@ -52,12 +52,12 @@ class DashboardExecutivoTestes(TestCase):
         self.assertEqual(contexto["status_counts"]["APROVADO"]["quantidade"], 1)
 
     def test_dashboard_exibe_escala_executiva_de_valores(self):
-        resposta = self.client.get(reverse("core:dashboard"))
+        resposta = self.client.get(reverse("core:mensal"))
         self.assertContains(resposta, "R$ 500 mil")
         self.assertContains(resposta, "R$ 500.000,00")
 
     def test_dashboard_exibe_graficos_no_html(self):
-        resposta = self.client.get(reverse("core:dashboard"))
+        resposta = self.client.get(reverse("core:mensal"))
         self.assertContains(resposta, "Evolução financeira mensal")
         self.assertContains(resposta, "Captação × execução por pilar")
         self.assertContains(resposta, 'data-testid="heatmap"')
@@ -66,15 +66,15 @@ class DashboardExecutivoTestes(TestCase):
 
 
 def _contexto_dashboard(usuario):
-    """Chama dashboard via RequestFactory com render mockado (manifest quebrado)."""
-    from apps.core.views import dashboard
+    """Chama o dashboard mensal via RequestFactory com render mockado (manifest quebrado)."""
+    from apps.core.views import mensal
 
     fabrica = RequestFactory()
-    requisicao = fabrica.get("/")
+    requisicao = fabrica.get("/prestacao/mensal/")
     requisicao.user = usuario
     with mock.patch("apps.core.views.render") as mock_render:
         mock_render.return_value = HttpResponse()
-        dashboard(requisicao)
+        mensal(requisicao)
     return mock_render.call_args[0][2]
 
 
@@ -235,7 +235,7 @@ class DashboardR2ViewTestes(TestCase):
         self.client.force_login(self.erica)
 
     def test_dashboard_expoe_kpis_heatmap_e_avisos(self):
-        resposta = self.client.get(reverse("core:dashboard"))
+        resposta = self.client.get(reverse("core:mensal"))
         self.assertEqual(len(resposta.context["kpis"]), 2)
         self.assertEqual(len(resposta.context["heatmap"]), 2)
         self.assertIn("chart_mensal_json", resposta.context)
@@ -262,7 +262,7 @@ class DashboardR2ViewTestes(TestCase):
         from django.test.utils import CaptureQueriesContext
 
         with CaptureQueriesContext(connection) as capturadas:
-            self.client.get(reverse("core:dashboard"))
+            self.client.get(reverse("core:mensal"))
         self.assertLessEqual(len(capturadas.captured_queries), 30)
 
 
@@ -279,7 +279,7 @@ class DestaquesFiltroTestes(TestCase):
         self.client.force_login(self.erica)
 
     def test_filtra_destaques_por_pilar(self):
-        resposta = self.client.get(reverse("core:dashboard"), {"destaque_pilar": self.pdi.pk})
+        resposta = self.client.get(reverse("core:mensal"), {"destaque_pilar": self.pdi.pk})
         titulos = {d.titulo for d in resposta.context["destaques"]}
         self.assertEqual(titulos, {"Geral", "Só PDI"})
 
@@ -293,11 +293,11 @@ class PeriodoSelecionadoTestes(TestCase):
         self.client.force_login(self.erica)
 
     def test_default_prefere_periodo_aberto(self):
-        resposta = self.client.get(reverse("core:dashboard"))
+        resposta = self.client.get(reverse("core:mensal"))
         self.assertEqual(resposta.context["periodo"].pk, self.junho.pk)
 
     def test_default_usa_mais_recente_sem_periodo_aberto(self):
         self.junho.status = "FECHADO"
         self.junho.save(update_fields=["status"])
-        resposta = self.client.get(reverse("core:dashboard"))
+        resposta = self.client.get(reverse("core:mensal"))
         self.assertEqual(resposta.context["periodo"].pk, self.julho.pk)

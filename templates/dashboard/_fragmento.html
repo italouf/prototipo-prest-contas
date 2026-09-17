@@ -1,0 +1,5 @@
+{# Fragmento htmx do painel anual: painel + controles (OOB) para manter header e URL coerentes. #}
+{% include 'dashboard/_panel.html' %}
+<div id="dashboard-controls" hx-swap-oob="true">
+  {% include 'dashboard/_controles.html' %}
+</div>

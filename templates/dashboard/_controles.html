@@ -1,0 +1,52 @@
+{# Linha de filtros/chips/toolbar do painel anual (L3). Incluída no app_header e no fragmento htmx. #}
+<div class="flex flex-wrap items-end gap-x-6 gap-y-3">
+  <form method="get" action="{% url 'core:dashboard' %}"
+        hx-get="{% url 'core:dashboard' %}" hx-target="#dashboard-panel" hx-select="#dashboard-panel"
+        hx-swap="outerHTML" hx-push-url="true" hx-indicator="#progresso, #skeleton-global"
+        class="flex flex-wrap items-end gap-x-4 gap-y-2">
+    <input type="hidden" name="base" value="{{ base_param }}">
+    <div>
+      <label for="year-select" class="block text-[0.65rem] font-semibold uppercase tracking-widest text-text-muted">Ano</label>
+      <select id="year-select" name="ano" data-testid="year-select" onchange="this.form.requestSubmit()"
+              class="mt-1 rounded-md border border-border bg-surface px-3 py-2 text-sm text-text">
+        <option value="todos" {% if ano_param == 'todos' %}selected{% endif %}>Todos os anos</option>
+        <option value="2024" {% if ano_param == '2024' %}selected{% endif %}>Ano 1: 2024</option>
+        <option value="2025" {% if ano_param == '2025' %}selected{% endif %}>Ano 2: 2025</option>
+        <option value="2026" {% if ano_param == '2026' %}selected{% endif %}>Ano 3: 2026</option>
+        <option value="2027" {% if ano_param == '2027' %}selected{% endif %}>Ano 4: 2027</option>
+      </select>
+    </div>
+  </form>
+
+  <div>
+    <span id="base-rotulo" class="block text-[0.65rem] font-semibold uppercase tracking-widest text-text-muted">Base de análise</span>
+    <div class="mt-1 inline-flex overflow-hidden rounded-md border border-border" role="group" aria-labelledby="base-rotulo" data-testid="base-toggle">
+      <a href="{% url 'core:dashboard' %}?ano={{ ano_param }}&base=fin"
+         hx-get="{% url 'core:dashboard' %}?ano={{ ano_param }}&base=fin" hx-target="#dashboard-panel" hx-select="#dashboard-panel"
+         hx-swap="outerHTML" hx-push-url="true" hx-indicator="#progresso, #skeleton-global"
+         {% if base_param == 'fin' %}aria-current="true"{% endif %}
+         class="px-4 py-2 text-sm font-semibold {% if base_param == 'fin' %}bg-quiin-navy text-white{% else %}bg-surface-2 text-text hover:bg-quiin-mist/40{% endif %}">Financeiro</a>
+      <a href="{% url 'core:dashboard' %}?ano={{ ano_param }}&base=fis"
+         hx-get="{% url 'core:dashboard' %}?ano={{ ano_param }}&base=fis" hx-target="#dashboard-panel" hx-select="#dashboard-panel"
+         hx-swap="outerHTML" hx-push-url="true" hx-indicator="#progresso, #skeleton-global"
+         {% if base_param == 'fis' %}aria-current="true"{% endif %}
+         class="border-l border-border px-4 py-2 text-sm font-semibold {% if base_param == 'fis' %}bg-quiin-navy text-white{% else %}bg-surface-2 text-text hover:bg-quiin-mist/40{% endif %}">Físico</a>
+    </div>
+  </div>
+
+  <div class="flex flex-wrap gap-1.5" data-testid="context-chips">
+    <span class="rounded-full border border-border bg-quiin-mist/40 px-3 py-1 text-xs">Período: <strong>{{ painel.rotulo_periodo }}</strong></span>
+    <span class="rounded-full border border-border bg-quiin-mist/40 px-3 py-1 text-xs">Base: <strong>{% if base_param == 'fin' %}Financeiro{% else %}Físico{% endif %}</strong></span>
+    <span class="rounded-full border border-border bg-quiin-mist/40 px-3 py-1 text-xs">Unidade: <strong>{% if base_param == 'fin' %}R$ milhões{% else %}quantidade de metas{% endif %}</strong></span>
+  </div>
+
+  <div class="ml-auto flex flex-wrap items-center gap-2" role="toolbar" aria-label="Ações do painel">
+    {% if pode_editar_painel %}
+    <c-ui.button variant="primary" size="sm" disabled title="Edição disponível no L7">Editar dados</c-ui.button>
+    {% endif %}
+    <c-ui.button size="sm" disabled title="Download disponível no L7">Baixar dashboard</c-ui.button>
+    <c-ui.button size="sm" disabled title="CSV disponível no L7">Baixar dados (CSV)</c-ui.button>
+    <c-ui.button size="sm" onclick="window.print()">Imprimir</c-ui.button>
+    <c-ui.button size="sm" variant="ghost" href="{% url 'core:dashboard' %}">Restaurar padrão</c-ui.button>
+  </div>
+</div>
