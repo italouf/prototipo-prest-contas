@@ -1,0 +1,1017 @@
+<title>Gestão QuIIN</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    color-scheme: light;
+    --bg:#F5F6FB; --bg-plane:#EFF1F8;
+    --surface:#FFFFFF; --surface-2:#F6F7FC; --surface-raised:#FFFFFF;
+    --ink:#12162B; --ink-2:#4B5170; --ink-muted:#7B81A0;
+    --border:#DFE2EF; --border-strong:#C7CBE2;
+    --brand:#2E3192; --brand-ink:#FFFFFF; --brand-soft:#EBEBFA; --brand-soft-ink:#2E3192;
+    --accent-2:#5B4FCF;
+    --good:#0E7C3F; --good-soft:#E6F5EC;
+    --warn:#9A5B00; --warn-soft:#FCEED9;
+    --critical:#B23131; --critical-soft:#FBE8E8;
+    --p-pdi:#2a78d6; --p-fcrh:#eb6834; --p-acs:#1baf7a; --p-at:#eda100;
+    --p-pdi-soft:#E5EFFB; --p-fcrh-soft:#FDEAE1; --p-acs-soft:#E1F5ED; --p-at-soft:#FCF0D9;
+    --shadow-1: 0 1px 2px rgba(18,22,43,0.06), 0 1px 1px rgba(18,22,43,0.04);
+    --shadow-2: 0 8px 24px rgba(18,22,43,0.10), 0 2px 6px rgba(18,22,43,0.06);
+    --chart-grid:#E1E3EF; --chart-axis:#B7BBD6;
+    --radius-s:8px; --radius-m:12px; --radius-l:18px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      color-scheme: dark;
+      --bg:#0C0E1A; --bg-plane:#0A0C16;
+      --surface:#141726; --surface-2:#191D30; --surface-raised:#1B1F35;
+      --ink:#EDEEF7; --ink-2:#B7BAD6; --ink-muted:#8A8FB3;
+      --border:#2A2E48; --border-strong:#3A3F60;
+      --brand:#6C74E8; --brand-ink:#0C0E1A; --brand-soft:#232750; --brand-soft-ink:#B4B9F5;
+      --accent-2:#9C93F0;
+      --good:#3FBE77; --good-soft:#132A1E;
+      --warn:#E3A63C; --warn-soft:#2E2412;
+      --critical:#E37272; --critical-soft:#2E1717;
+      --p-pdi:#3987e5; --p-fcrh:#d95926; --p-acs:#199e70; --p-at:#c98500;
+      --p-pdi-soft:#182A45; --p-fcrh-soft:#3A2317; --p-acs-soft:#123527; --p-at-soft:#332608;
+      --shadow-1: 0 1px 2px rgba(0,0,0,0.4);
+      --shadow-2: 0 12px 28px rgba(0,0,0,0.45);
+      --chart-grid:#262A44; --chart-axis:#454A6E;
+    }
+  }
+  :root[data-theme="dark"]{
+    color-scheme: dark;
+    --bg:#0C0E1A; --bg-plane:#0A0C16;
+    --surface:#141726; --surface-2:#191D30; --surface-raised:#1B1F35;
+    --ink:#EDEEF7; --ink-2:#B7BAD6; --ink-muted:#8A8FB3;
+    --border:#2A2E48; --border-strong:#3A3F60;
+    --brand:#6C74E8; --brand-ink:#0C0E1A; --brand-soft:#232750; --brand-soft-ink:#B4B9F5;
+    --accent-2:#9C93F0;
+    --good:#3FBE77; --good-soft:#132A1E;
+    --warn:#E3A63C; --warn-soft:#2E2412;
+    --critical:#E37272; --critical-soft:#2E1717;
+    --p-pdi:#3987e5; --p-fcrh:#d95926; --p-acs:#199e70; --p-at:#c98500;
+    --p-pdi-soft:#182A45; --p-fcrh-soft:#3A2317; --p-acs-soft:#123527; --p-at-soft:#332608;
+    --shadow-1: 0 1px 2px rgba(0,0,0,0.4);
+    --shadow-2: 0 12px 28px rgba(0,0,0,0.45);
+    --chart-grid:#262A44; --chart-axis:#454A6E;
+  }
+
+  *{box-sizing:border-box;}
+  html{-webkit-text-size-adjust:100%;}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:"IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size:14px; line-height:1.5;
+    padding:0 20px; padding-block:0;
+  }
+  h1,h2,h3,h4{ font-family:"Manrope", system-ui, sans-serif; font-weight:700; margin:0; text-wrap:balance; color:var(--ink); }
+  .num, .tabular{ font-variant-numeric: tabular-nums; }
+  a{ color:var(--brand); }
+  button{ font-family:inherit; }
+  ::selection{ background:var(--brand-soft); }
+
+  .wrap{ max-width:1280px; margin:0 auto; }
+
+  /* ---------- Header ---------- */
+  .topbar{
+    position:sticky; top:0; z-index:40; background:var(--bg); padding-top:18px; padding-bottom:12px;
+    border-bottom:1px solid var(--border);
+  }
+  .topbar-row{ display:flex; align-items:flex-start; justify-content:space-between; gap:16px; flex-wrap:wrap; }
+  .brandblock{ display:flex; align-items:center; gap:12px; }
+  .logo-mark{ width:40px; height:40px; flex:none; }
+  .brand-text .eyebrow{
+    font-family:"IBM Plex Mono", monospace; font-size:10.5px; letter-spacing:.09em; text-transform:uppercase;
+    color:var(--ink-muted); margin:0 0 2px;
+  }
+  .brand-text h1{ font-size:19px; letter-spacing:-.01em; }
+  .brand-text .sub{ color:var(--ink-2); font-size:12.5px; margin-top:2px; }
+
+  .controls{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .ctrl-group{ display:flex; align-items:center; background:var(--surface); border:1px solid var(--border); border-radius:999px; padding:3px; gap:2px; box-shadow:var(--shadow-1); }
+  .ctrl-group button{
+    border:none; background:transparent; color:var(--ink-2); font-size:12.5px; font-weight:600;
+    padding:6px 12px; border-radius:999px; cursor:pointer; white-space:nowrap;
+  }
+  .ctrl-group button.active{ background:var(--brand); color:var(--brand-ink); }
+  .ctrl-group button:not(.active):hover{ background:var(--surface-2); color:var(--ink); }
+  select.yr{
+    border:1px solid var(--border); background:var(--surface); color:var(--ink); border-radius:999px;
+    padding:7px 30px 7px 14px; font-size:12.5px; font-weight:600; box-shadow:var(--shadow-1); cursor:pointer;
+    appearance:none; -webkit-appearance:none;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%237B81A0' stroke-width='1.6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position:right 12px center;
+  }
+  .role-note{ position:relative; }
+  .role-note .tip{
+    position:absolute; right:0; top:calc(100% + 8px); width:238px; background:var(--surface-raised);
+    border:1px solid var(--border); border-radius:var(--radius-m); padding:10px 12px; box-shadow:var(--shadow-2);
+    font-size:11.5px; color:var(--ink-2); display:none; z-index:50;
+  }
+  .role-note:hover .tip, .role-note:focus-within .tip{ display:block; }
+
+  .tabnav{ display:flex; gap:4px; margin-top:14px; flex-wrap:wrap; }
+  .tabnav button{
+    border:none; background:transparent; color:var(--ink-2); font-family:"Manrope",sans-serif; font-weight:700;
+    font-size:13.5px; padding:9px 16px; border-radius:var(--radius-s) var(--radius-s) 0 0; cursor:pointer;
+    border-bottom:2.5px solid transparent;
+  }
+  .tabnav button.active{ color:var(--brand); border-bottom-color:var(--brand); }
+  .tabnav button:not(.active):hover{ color:var(--ink); background:var(--surface-2); }
+
+  main{ padding-block:22px 60px; }
+  section.view[hidden]{ display:none; }
+  .view-head{ display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin-bottom:16px; flex-wrap:wrap; }
+  .view-head h2{ font-size:20px; }
+  .view-head .desc{ color:var(--ink-2); font-size:12.5px; max-width:60ch; }
+  .asof{ font-size:11.5px; color:var(--ink-muted); font-family:"IBM Plex Mono",monospace; white-space:nowrap; }
+
+  /* ---------- Generic building blocks ---------- */
+  .grid{ display:grid; gap:14px; }
+  .grid-4{ grid-template-columns:repeat(4,1fr); }
+  .grid-3{ grid-template-columns:repeat(3,1fr); }
+  .grid-2{ grid-template-columns:repeat(2,1fr); }
+  @media (max-width:980px){ .grid-4{grid-template-columns:repeat(2,1fr);} .grid-3{grid-template-columns:repeat(2,1fr);} }
+  @media (max-width:600px){ .grid-4,.grid-3,.grid-2{grid-template-columns:1fr;} }
+
+  .card{
+    background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-l);
+    padding:18px; box-shadow:var(--shadow-1);
+  }
+  .card h3{ font-size:13px; }
+  .panel-title{ display:flex; align-items:center; gap:8px; margin-bottom:14px; }
+  .panel-title h3{ font-size:14px; }
+  .panel-title .hint{ color:var(--ink-muted); font-size:11.5px; font-weight:500; }
+
+  .stat-tile{
+    background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-l); padding:18px;
+    box-shadow:var(--shadow-1); display:flex; flex-direction:column; gap:6px; min-height:132px; position:relative;
+  }
+  .stat-tile .label{ font-size:11.5px; color:var(--ink-2); font-weight:600; letter-spacing:.01em; }
+  .stat-tile .value{ font-family:"Manrope",sans-serif; font-size:32px; font-weight:800; letter-spacing:-.02em; margin-top:2px; }
+  .stat-tile .value small{ font-size:15px; font-weight:700; color:var(--ink-muted); }
+  .stat-tile .meta{ font-size:11.5px; color:var(--ink-muted); margin-top:auto; padding-top:6px; }
+  .stat-tile .delta{ display:inline-flex; align-items:center; gap:3px; font-weight:700; font-size:11.5px; padding:2px 7px; border-radius:999px; width:fit-content; }
+  .delta.good{ background:var(--good-soft); color:var(--good); }
+  .delta.warn{ background:var(--warn-soft); color:var(--warn); }
+  .delta.critical{ background:var(--critical-soft); color:var(--critical); }
+  .stat-tile .accent-bar{ position:absolute; left:0; top:16px; bottom:16px; width:3px; border-radius:3px; }
+
+  .pill{ display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:700; padding:3px 9px; border-radius:999px; }
+  .pill.good{ background:var(--good-soft); color:var(--good); }
+  .pill.warn{ background:var(--warn-soft); color:var(--warn); }
+  .pill.critical{ background:var(--critical-soft); color:var(--critical); }
+  .pill.neutral{ background:var(--surface-2); color:var(--ink-2); border:1px solid var(--border); }
+  .pill svg{ width:11px; height:11px; }
+
+  .tag{ font-family:"IBM Plex Mono",monospace; font-size:10.5px; color:var(--ink-muted); background:var(--surface-2); border:1px solid var(--border); border-radius:5px; padding:2px 6px; }
+
+  table{ width:100%; border-collapse:collapse; font-size:12.5px; }
+  th{ text-align:left; font-size:10.5px; text-transform:uppercase; letter-spacing:.04em; color:var(--ink-muted); font-weight:700; padding:8px 10px; border-bottom:1px solid var(--border); white-space:nowrap; }
+  td{ padding:9px 10px; border-bottom:1px solid var(--border); color:var(--ink); vertical-align:middle; }
+  tr:last-child td{ border-bottom:none; }
+  td.num, th.num{ text-align:right; font-variant-numeric:tabular-nums; }
+  .table-wrap{ overflow-x:auto; border:1px solid var(--border); border-radius:var(--radius-m); }
+  .table-wrap table{ min-width:640px; }
+  .table-wrap.template table{ min-width:920px; }
+  tbody tr:hover{ background:var(--surface-2); }
+  .empty-row td{ color:var(--ink-muted); font-style:italic; text-align:center; padding:22px; }
+
+  .source-note{
+    display:flex; gap:7px; align-items:flex-start; font-size:11px; color:var(--ink-muted); margin-top:16px;
+    padding-top:12px; border-top:1px dashed var(--border);
+  }
+  .source-note svg{ width:13px; height:13px; flex:none; margin-top:1px; }
+
+  .bignum-btn{
+    text-align:left; cursor:pointer; border:1.5px solid var(--border); background:var(--surface);
+    border-radius:var(--radius-l); padding:16px 18px; display:flex; flex-direction:column; gap:8px; box-shadow:var(--shadow-1);
+    transition:border-color .12s ease, box-shadow .12s ease;
+  }
+  .bignum-btn:hover{ border-color:var(--border-strong); }
+  .bignum-btn.active{ border-color:var(--pillar-color); box-shadow:0 0 0 3px var(--pillar-soft), var(--shadow-1); }
+  .bignum-btn .pname{ display:flex; align-items:center; gap:7px; font-size:12px; font-weight:700; color:var(--ink-2); }
+  .pdot{ width:9px; height:9px; border-radius:3px; flex:none; background:var(--pillar-color); }
+  .bignum-btn .bval{ font-family:"Manrope",sans-serif; font-size:26px; font-weight:800; letter-spacing:-.02em; }
+  .bignum-btn .bsub{ font-size:11px; color:var(--ink-muted); }
+  .bignum-btn .barwrap{ height:6px; border-radius:4px; background:var(--surface-2); overflow:hidden; }
+  .bignum-btn .barfill{ height:100%; border-radius:4px; background:var(--pillar-color); }
+
+  .chip{
+    display:flex; gap:9px; align-items:flex-start; background:var(--surface-2); border:1px solid var(--border);
+    border-radius:var(--radius-m); padding:11px 12px;
+  }
+  .chip .ic{ width:26px; height:26px; border-radius:7px; flex:none; display:flex; align-items:center; justify-content:center; color:#fff; }
+  .chip .tt{ font-size:12px; font-weight:700; margin-bottom:2px; }
+  .chip .dd{ font-size:11.5px; color:var(--ink-2); }
+
+  .banner{
+    display:flex; gap:10px; align-items:flex-start; background:var(--brand-soft); color:var(--brand-soft-ink);
+    border:1px solid var(--brand-soft-ink); border-radius:var(--radius-m); padding:11px 14px; font-size:12px; margin-bottom:16px;
+  }
+  .banner svg{ width:15px; height:15px; flex:none; margin-top:1px; }
+  .banner b{ font-weight:700; }
+
+  .legend-row{ display:flex; flex-wrap:wrap; gap:14px; margin-top:12px; }
+  .legend-item{ display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--ink-2); font-weight:600; }
+  .legend-sw{ width:10px; height:10px; border-radius:3px; flex:none; }
+
+  .org-tree{ display:flex; flex-direction:column; align-items:center; gap:0; }
+  .org-node{
+    background:var(--surface); border:1.5px solid var(--border); border-radius:var(--radius-m); padding:10px 16px;
+    text-align:center; box-shadow:var(--shadow-1); min-width:190px;
+  }
+  .org-node.top{ border-color:var(--brand); }
+  .org-node .role{ font-weight:700; font-size:12.5px; }
+  .org-node .who{ font-size:11px; color:var(--ink-muted); margin-top:2px; }
+  .org-connector{ width:1.5px; height:20px; background:var(--border-strong); }
+  .org-row{ display:flex; gap:22px; flex-wrap:wrap; justify-content:center; }
+  .org-branchwrap{ display:flex; flex-direction:column; align-items:center; }
+
+  .person-card{
+    background:var(--surface); border:1px dashed var(--border-strong); border-radius:var(--radius-m); padding:14px;
+    display:flex; gap:12px; align-items:flex-start;
+  }
+  .person-photo{
+    width:46px; height:46px; border-radius:50%; flex:none; background:var(--surface-2); border:1px solid var(--border);
+    display:flex; align-items:center; justify-content:center; color:var(--ink-muted);
+  }
+  .person-photo svg{ width:22px; height:22px; }
+  .person-card .pn{ font-size:12.5px; font-weight:700; color:var(--ink-muted); font-style:italic; }
+  .person-card .pf{ font-size:11px; color:var(--ink-muted); margin-top:2px; }
+  .person-card .plattes{ font-size:10.5px; margin-top:6px; display:inline-flex; align-items:center; gap:4px; color:var(--ink-muted); }
+
+  .tier-card{ border-radius:var(--radius-l); padding:16px; display:flex; flex-direction:column; gap:8px; border:1.5px solid var(--border); background:var(--surface); }
+  .tier-card .tname{ font-family:"Manrope",sans-serif; font-weight:800; font-size:14px; }
+  .tier-card .tval{ font-size:20px; font-weight:800; font-family:"Manrope",sans-serif; }
+  .tier-card .tval small{ font-size:11px; font-weight:600; color:var(--ink-muted); }
+  .tier-card ul{ margin:4px 0 0; padding-left:16px; font-size:11.5px; color:var(--ink-2); }
+  .tier-card ul li{ margin-bottom:3px; }
+  .tier-bronze{ border-color:#B5844A55; }
+  .tier-prata{ border-color:#9AA3B855; }
+  .tier-ouro{ border-color:#C79A2A55; }
+  .tier-diamante{ border-color:var(--accent-2); background:linear-gradient(180deg, var(--brand-soft), var(--surface) 60%); }
+
+  .charts-row{ display:grid; grid-template-columns:repeat(4,1fr); gap:14px; }
+  @media (max-width:980px){ .charts-row{ grid-template-columns:repeat(2,1fr);} }
+  @media (max-width:600px){ .charts-row{ grid-template-columns:1fr;} }
+  .donut-card{ display:flex; flex-direction:column; align-items:center; gap:6px; padding:14px 10px; }
+  .donut-card .dwrap{ position:relative; width:104px; height:104px; }
+  .donut-card canvas{ width:104px!important; height:104px!important; }
+  .donut-card .dcenter{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+  .donut-card .dcenter b{ font-family:"Manrope",sans-serif; font-size:17px; font-weight:800; }
+  .donut-card .dlabel{ font-size:11px; font-weight:700; color:var(--ink-2); text-align:center; }
+
+  .filter-bar{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:16px; }
+
+  footer.page-footer{
+    max-width:1280px; margin:0 auto; padding:20px 0 40px; color:var(--ink-muted); font-size:11px;
+    border-top:1px solid var(--border); margin-top:10px;
+  }
+
+  @media (max-width:640px){
+    .brand-text h1{ font-size:16.5px; }
+    .stat-tile .value{ font-size:26px; }
+  }
+</style>
+
+<div class="wrap">
+  <header class="topbar">
+    <div class="topbar-row">
+      <div class="brandblock">
+        <svg class="logo-mark" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+          <circle cx="20" cy="20" r="18.5" stroke="var(--brand)" stroke-width="1.4"/>
+          <circle cx="20" cy="20" r="3.2" fill="var(--brand)"/>
+          <circle cx="20" cy="6" r="2.4" fill="var(--p-pdi)"/>
+          <circle cx="34" cy="20" r="2.4" fill="var(--p-fcrh)"/>
+          <circle cx="20" cy="34" r="2.4" fill="var(--p-acs)"/>
+          <circle cx="6" cy="20" r="2.4" fill="var(--p-at)"/>
+          <line x1="20" y1="20" x2="20" y2="8.4" stroke="var(--p-pdi)" stroke-width="1.1"/>
+          <line x1="20" y1="20" x2="31.6" y2="20" stroke="var(--p-fcrh)" stroke-width="1.1"/>
+          <line x1="20" y1="20" x2="20" y2="31.6" stroke="var(--p-acs)" stroke-width="1.1"/>
+          <line x1="20" y1="20" x2="8.4" y2="20" stroke="var(--p-at)" stroke-width="1.1"/>
+        </svg>
+        <div class="brand-text">
+          <p class="eyebrow">Centro de Competência EMBRAPII CIMATEC em Tecnologias Quânticas</p>
+          <h1>Gestão QuIIN</h1>
+          <p class="sub">Modelo de gestão da Associação Tecnológica e dos quatro pilares do Centro de Competência</p>
+        </div>
+      </div>
+      <div class="controls">
+        <select class="yr" id="yearSelect" aria-label="Ano de referência">
+          <option value="2024">Ano 1 · 2024</option>
+          <option value="2025">Ano 2 · 2025</option>
+          <option value="2026" selected>Ano 3 · 2026</option>
+          <option value="2027">Ano 4 · 2027</option>
+          <option value="total">Total do plano (42 meses)</option>
+        </select>
+        <div class="ctrl-group" id="viewToggle" role="group" aria-label="Tipo de visão">
+          <button data-mode="operacional" class="active">Operacional</button>
+          <button data-mode="financeiro">Financeiro</button>
+        </div>
+        <div class="ctrl-group role-note" tabindex="0">
+          <button type="button" id="roleLabel" style="display:flex;align-items:center;gap:6px;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 12a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9Zm0 2c-4.2 0-8 2.1-8 5v2h16v-2c0-2.9-3.8-5-8-5Z" fill="currentColor"/></svg>
+            <span id="roleLabelText">Diretoria</span>
+          </button>
+          <div class="tip"><b>Perfil de visualização.</b> Seletor ilustrativo do nível de detalhe por perfil de acesso (Diretoria, Coordenação de pilar, Ponto focal de associada, Auditoria). Não implementa autenticação; a estrutura de permissões deve ser integrada a um provedor de identidade em versão futura.</div>
+        </div>
+      </div>
+    </div>
+    <nav class="tabnav" id="tabnav" role="tablist" aria-label="Seções do dashboard">
+      <button data-view="geral" class="active" role="tab" aria-selected="true">Geral</button>
+      <button data-view="pilares" role="tab" aria-selected="false">Pilares do QuIIN</button>
+      <button data-view="talentos" role="tab" aria-selected="false">Talentos</button>
+      <button data-view="associados" role="tab" aria-selected="false">Gestão de Associados</button>
+    </nav>
+  </header>
+
+  <main>
+    <section class="view" id="view-geral"></section>
+    <section class="view" id="view-pilares" hidden></section>
+    <section class="view" id="view-talentos" hidden></section>
+    <section class="view" id="view-associados" hidden></section>
+  </main>
+
+  <footer class="page-footer">
+    Protótipo de gestão QuIIN. Dados operacionais e financeiros consolidados a partir de registros internos do Centro de Competência (Indicadores e Metas QuIIN, Acompanhamento Financeiro, Reunião de Acompanhamento QuIIN de 20/05/2026) e do Manual de Operação EMBRAPII Centros de Competência PPI (Rev. 4.0) e do Plano de Execução do CCTQ (dezembro de 2023). Estrutura pronta para integração a fonte de dados viva.
+  </footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<script>
+/* =========================================================================
+   FONTES DE DADOS
+   - Manual: "Manual de Operação EMBRAPII Centros de Competência PPI Rev. 4.0"
+   - Indic:  "Indicadores e Metas - QuIIN.xlsx" (aba HEAD - INDICADORES - 4-2026;
+             indicadores acumulados executados ate novembro de 2025)
+   - Metas:  aba "METAS FINANCEIRAS QuIIN" do mesmo arquivo (orcamento planejado por ano)
+   - Reuniao:"Reuniao de Acompanhamento QuIIN_200526.pptx" (posicao 20/05/2026,
+             dados consolidados ate abril de 2026)
+   - Plano:  "Plano de execucao - Centro de competencias" (SENAI CIMATEC, dez/2023),
+             incluindo Anexo III - Plano para a Associacao Tecnologica
+   ========================================================================= */
+
+const FMT_INT = new Intl.NumberFormat('pt-BR');
+const FMT_PCT1 = n => (n*100).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1}) + '%';
+function fmtBRL(n, compact){
+  if(compact){
+    if(Math.abs(n) >= 1000000) return 'R$ ' + (n/1000000).toLocaleString('pt-BR',{maximumFractionDigits:1}) + ' mi';
+    if(Math.abs(n) >= 1000) return 'R$ ' + (n/1000).toLocaleString('pt-BR',{maximumFractionDigits:0}) + ' mil';
+    return 'R$ ' + FMT_INT.format(n);
+  }
+  return 'R$ ' + n.toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0});
+}
+function pillarColor(p){ return getComputedStyle(document.documentElement).getPropertyValue('--p-'+p).trim(); }
+function pillarSoft(p){ return getComputedStyle(document.documentElement).getPropertyValue('--p-'+p+'-soft').trim(); }
+
+const PILLAR_META = {
+  pdi:  { label:'Projetos de PD&I', full:'Ampliacao e Fortalecimento de Competencia Cientifica e Tecnologica em PD&I', lead:'Coordenador do CCTQ', minRes:'minimo 30% dos recursos EMBRAPII/MCTI' },
+  fcrh: { label:'Formacao e Capacitacao de RH', full:'Formacao e Capacitacao de Recursos Humanos para PD&I', lead:'Coordenador do CCTQ', minRes:'minimo 10% dos recursos EMBRAPII/MCTI' },
+  acs:  { label:'Atracao e Criacao de Startups', full:'Atracao e Criacao de Startups', lead:'Gerente Executivo do CCTQ', minRes:'minimo 10% dos recursos EMBRAPII/MCTI' },
+  at:   { label:'Associacao Tecnologica', full:'Associacao Tecnologica', lead:'Gerente Executivo do CCTQ', minRes:'recursos privados, sem aporte EMBRAPII/MCTI' },
+};
+
+/* Indicadores operacionais oficiais (Anexo 4 do Manual de Operacao), fonte Indic.
+   meta: alvo por ano civil | exec: realizado (ano1=2024, ano2=2025) | proj: projecao (ano3=2026, ano4=2027)
+   totalMeta: meta acumulada dos 42 meses | totalExec: executado acumulado ate nov/2025 */
+const INDICATORS = {
+  pdi: [
+    { nome:'Projetos de PD&I desenvolvidos pelo Centro de Competencia', unidade:'numero absoluto',
+      meta:{2024:5,2025:5,2026:5,2027:3}, totalMeta:18, exec:{2024:5,2025:10}, totalExec:15, proj:{2026:2,2027:0} },
+    { nome:'Pedidos de propriedade intelectual (PI) depositados no INPI', unidade:'numero absoluto',
+      meta:{2024:0,2025:2,2026:4,2027:3}, totalMeta:9, exec:{2024:0,2025:4}, totalExec:4, proj:{2026:4,2027:1} },
+    { nome:'Publicacoes em periodicos de excelencia internacional (A1 a A4)', unidade:'numero absoluto',
+      meta:{2024:0,2025:3,2026:7,2027:11}, totalMeta:21, exec:{2024:4,2025:5}, totalExec:9, proj:{2026:9,2027:3} },
+  ],
+  fcrh: [
+    { nome:'Profissionais formados ou capacitados em PD&I', unidade:'numero absoluto',
+      meta:{2024:75,2025:200,2026:300,2027:225}, totalMeta:800, exec:{2024:466,2025:1641}, totalExec:2107, proj:{2026:0,2027:0} },
+  ],
+  acs: [
+    { nome:'Empresas de base tecnologica participantes das acoes do Centro', unidade:'numero absoluto',
+      meta:{2024:10,2025:15,2026:20,2027:5}, totalMeta:50, exec:{2024:12,2025:58}, totalExec:70, proj:{2026:0,2027:0} },
+    { nome:'Projetos no ambiente de inovacao aberta com empresas de base tecnologica', unidade:'numero absoluto',
+      meta:{2024:10,2025:8,2026:3,2027:5}, totalMeta:26, exec:{2024:0,2025:2}, totalExec:2, proj:{2026:18,2027:6} },
+  ],
+  at: [
+    { nome:'Empresas distintas participantes como associadas', unidade:'numero absoluto',
+      meta:{2024:11,2025:29,2026:39,2027:50}, totalMeta:129, exec:{2024:4,2025:3}, totalExec:7, proj:{2026:92,2027:31} },
+    { nome:'Recursos financeiros de empresas associadas, sobre recursos EMBRAPII', unidade:'percentual',
+      meta:{2024:0.0534,2025:0.1341,2026:0.1971,2027:0.1703}, totalMeta:0.5549, exec:{2024:0.0021,2025:0.0030}, totalExec:0.0051, proj:{2026:0.4125,2027:0.1375}, isPct:true },
+  ],
+};
+const INFRA_INDICATOR = { nome:'Implantacao e operacionalizacao da infraestrutura com recursos EMBRAPII', unidade:'percentual',
+  meta:{2024:0.70,2025:0.80,2026:0.95,2027:1.00}, totalMeta:1.00, exec:{2024:0.25,2025:0.315}, totalExec:0.565, proj:{2026:0.33,2027:0.11}, isPct:true };
+
+/* Orcamento planejado por pilar e por ano (fonte Metas, aba METAS FINANCEIRAS QuIIN) */
+const BUDGET = {
+  pdi:  { ppi:{2024:7368760,2025:8827439,2026:8722439,2027:4081361}, total:34150000, aportePPI:29000000, proporcaoPPI:0.4833, limite:'minimo 30%' },
+  fcrh: { ppi:{2024:4000000,2025:4500000,2026:4300000,2027:1200000}, total:17300000, aportePPI:14000000, proporcaoPPI:0.2333, limite:'minimo 10%' },
+  acs:  { ppi:{2024:1500000,2025:2300000,2026:2200000,2027:1000000}, total:8070000, aportePPI:7000000, proporcaoPPI:0.1167, limite:'minimo 10%' },
+  at:   { ppi:{2024:700000,2025:700000,2026:600000,2027:300000}, total:2300000, aportePPI:null, proporcaoPPI:null, limite:'recurso privado' },
+};
+const INFRA_BUDGET = { ppi:{2024:4400120,2025:3440083,2026:2087033,2027:72764}, total:12230000, aportePPI:10000000, proporcaoPPI:0.1667, limite:'maximo 40%' };
+
+/* Execucao financeira consolidada do plano PPI, posicao 20/05/2026 (dados ate abril/2026), fonte Reuniao slide 25 */
+const EXEC_CONSOLIDADO = {
+  pdi:  { meta:29000000, executado:15457884, diferenca:13542116, pct:0.53 },
+  fcrh: { meta:14000000, executado:7581525,  diferenca:6418475,  pct:0.54 },
+  acs:  { meta:7000000,  executado:718106,   diferenca:6281894,  pct:0.10 },
+  infra:{ meta:10000000, executado:7749613,  diferenca:2250387,  pct:0.77 },
+  total:{ meta:60000000, executado:31507128, diferenca:28492872, pct:0.53 },
+};
+/* Captacao e execucao de recursos privados (AT) e de outras fontes, posicao abril/2026, fonte Reuniao slide 26 */
+const EXEC_AT = {
+  at:      { meta:7750000, captado:371400, executado:220597, pctExecCaptado:0.59, pctExecMeta:0.0285 },
+  outras:  { meta:6300000, captado:242112, executado:242112, pctExecCaptado:1.00, pctExecMeta:0.0384 },
+  total:   { meta:14050000, captado:613512, executado:462709, pctExecCaptado:0.75, pctExecMeta:0.0330 },
+};
+/* Cartoes de captacao da Associacao Tecnologica, posicao abril/2026, fonte Reuniao slide 22 */
+const AT_HEADLINE = {
+  metaCaptacao:7700000, oppsGanhas:5400000, pipelineOpen:564000, diferencaCaptacao:2300000,
+  metaCNPJs:129, associadosYTD:12, diferencaCNPJs:117, pipelineCNPJs:14,
+  renovacoes:5, faseContratual:1, valorAprovadoBV:120000, previstoRenovacoes:69000,
+};
+
+/* Destaques qualitativos por pilar, posicao abril/maio de 2026, fonte Reuniao */
+const DESTAQUES = {
+  pdi: [
+    'Cinco trabalhos apresentados no SBRC (Simposio Brasileiro de Redes de Computadores e Sistemas Distribuidos), incluindo dois minicursos.',
+    'Dois pedidos de propriedade intelectual em avaliacao no periodo.',
+    'Entregaveis e termos de conclusao enviados para sete macroatividades do plano de PD&I (LDPC, receptores nao convencionais, hardware DSP, certificacao de aleatoriedade, RRQ, analise de seguranca e QRNG).',
+  ],
+  fcrh: [
+    'Duas publicacoes aceitas em periodicos internacionais (Quantum Information Processing e The Journal of Supercomputing) e duas submetidas.',
+    'Pos-graduacao Lato Sensu em Comunicacao Quantica: 65 inscritos e 5 matriculados na turma vigente; trilhas complementares com 10 e 3 matriculados.',
+    'Bolsa de iniciacao tecnologica aprovada pela FAPESB para prototipo de baixo custo de ensino de distribuicao quantica de chaves (QKD).',
+  ],
+  acs: [
+    'Ideathon IA e Quantica realizado durante o AI Brasil Summit no SENAI CIMATEC: 22 participantes em 4 grupos.',
+    'Cinco startups em desenvolvimento: Authera e QuantumGEM na etapa de refinamento; Andira Quantum, Quantuino e Q-Sec na etapa de formacao.',
+    'Arena QuIIN 2026.1 realizada; proximas edicoes programadas para Feira de Santana (jun/26, com a UEFS), Sao Paulo (jul/26) e Manaus (jul/26, Forum Amazonico de Inovacao Industrial).',
+  ],
+  at: [
+    'Encontro Tecnico de Ciberseguranca e Quantum Safe realizado em 27 e 28 de maio de 2026.',
+    'Contrato com a Petrobras em analise juridica na EMBRAPII, com apostilamento de associacao internacional (QURECA) em andamento.',
+    'Doze empresas associadas ate o periodo, com pipeline adicional de 14 CNPJs em prospeccao.',
+  ],
+};
+
+const FOCO_60_DIAS = [
+  { tt:'Aceleracao de metas criticas', dd:'Inicio de projetos de PD&I e inovacao aberta, compras de equipamentos de infraestrutura e compras dos projetos em curso.' },
+  { tt:'Sustentabilidade financeira', dd:'Eventos com Atos, Nokia e GSI; formalizacao de novos associados; submissao de proposta ao edital FINEP (R$ 10 milhoes, outras fontes); cobranca das pos-graduacoes.' },
+  { tt:'Gestao de riscos', dd:'Monitoramento ativo dos indicadores, submissao de aditivos de projetos e de sinteses para devolucao de recursos a conta mae.' },
+  { tt:'Governanca', dd:'Envio de documentos de finalizacao de marcos, relatorios tecnicos e financeiros de fechamento e monitoramento de prazos dos projetos.' },
+];
+
+/* ---------------- Talentos: governanca e estrutura, fonte Plano (secao 4.3 e secao 8) ---------------- */
+const GOVERNANCA = {
+  vinculo: 'O CCTQ e vinculado a Diretoria Geral (DG) do SENAI CIMATEC, instancia deliberativa para conflitos e questoes nao normatizadas.',
+  suporte: 'Suporte permanente do PMO (gestao de projetos, metodologia PMI) e do PFO (monitoramento financeiro e prestacao de contas), alem dos nucleos Administrativo Financeiro, Desenvolvimento Humano Organizacional, Assessoria Juridica, Nucleo de Propriedade Intelectual e Secretaria Academica.',
+  conformidade: 'Auditoria por orgaos externos de controle, incluindo o Tribunal de Contas da Uniao, e adesao ao Programa de Compliance do Sistema FIEB (Codigo de Conduta e Etica, Politica Anticorrupcao). SENAI Bahia certificado ISO 9001:2015 e ISO/IEC 27001:2013.',
+  contratacao: 'Cronograma de contratacao previsto: 1 doutor para Coordenador Adjunto em ate 120 dias e 5 doutores adicionais para a equipe tecnica no mesmo prazo.',
+};
+const ORG_ESTRUTURA = {
+  top: { role:'Diretoria Geral, SENAI CIMATEC', who:'Instancia deliberativa do CCTQ' },
+  linha1: [
+    { role:'Coordenador do CCTQ', who:'Pesquisador Lider, planejamento cientifico e tecnologico' },
+    { role:'Gerente Executivo do CCTQ', who:'Assuntos administrativos, operacionais e institucionais' },
+  ],
+  linha2: [
+    { role:'Coordenador Adjunto', who:'Apoio cientifico e tecnologico, pos-graduacao e cooperacoes', under:0 },
+    { role:'Lideranca de PD&I e FCRH', who:'Sob a coordenacao cientifica', under:0 },
+    { role:'Lideranca de Associacao Tecnologica e ACS', who:'Sob a gerencia executiva', under:1 },
+  ],
+};
+const CONSELHO_CONSULTIVO = [
+  { seat:'Ministerio da Ciencia, Tecnologia e Inovacoes (MCTI)', qtd:1 },
+  { seat:'EMBRAPII', qtd:1 },
+  { seat:'Entidade de empreendedorismo, inovacao e empresas de base tecnologica', qtd:1 },
+  { seat:'Empresas associadas da Associacao Tecnologica', qtd:2 },
+  { seat:'Setor academico (preside o Conselho, mandato de 24 meses)', qtd:1 },
+  { seat:'Entidade empresarial da area tematica do Centro', qtd:1 },
+];
+const CONSELHO_NOTAS = 'Reunioes trimestrais, convocacao com 20 dias de antecedencia. Deliberacoes por maioria simples dos presentes, com voto de desempate do Presidente. A EMBRAPII possui poder de veto sobre encaminhamentos em desacordo com as estrategias institucionais ou a legislacao do PPI.';
+
+/* Campos oficiais do formulario de equipe (aba "10. Equipe" do Acompanhamento Financeiro), estrutura pronta para preenchimento */
+const EQUIPE_CAMPOS = ['Nome completo','Titulacao','Formacao academica','Funcao / atividade','Disponibilidade (h/mes)','Data de admissao','Curriculo Lattes'];
+const EQUIPE_EXEMPLO = [
+  { pilar:'pdi', funcao:'Pesquisador Lider' }, { pilar:'pdi', funcao:'Pesquisador' }, { pilar:'pdi', funcao:'Bolsista de PD&I' },
+  { pilar:'fcrh', funcao:'Coordenador pedagogico' }, { pilar:'fcrh', funcao:'Bolsista de formacao' },
+  { pilar:'acs', funcao:'Analista de inovacao aberta' }, { pilar:'acs', funcao:'Analista de startups' },
+  { pilar:'at', funcao:'Analista de relacionamento' }, { pilar:'at', funcao:'Gestor de captacao' },
+];
+
+/* ---------------- Associados: perfis e categorias de membership, fonte Plano Anexo III ---------------- */
+const PERFIS_ASSOCIADO = [
+  { nome:'Demandante', sub:'Usuaria da tecnologia', dd:'Empresas com oportunidades ou desafios soluciveis por tecnologias quanticas. Exemplos de perfil citados no Plano de Execucao: Positivo, PSR e Banco BV.' },
+  { nome:'Desenvolvedor industrial', sub:'Provedora da tecnologia', dd:'Empresas com capacidade de desenvolver, industrializar e fornecer solucoes em computacao quantica. Exemplos de perfil citados no Plano de Execucao: BULL, Google e NVIDIA.' },
+  { nome:'Parceiro de inovacao', sub:'ICTs e universidades', dd:'Instituicoes de pesquisa complementares ao ecossistema do CCTQ. Exemplos citados: rede de Institutos SENAI de Inovacao, FGV-SP, PUC-Rio, UNSW Sydney, Universitat de Valencia e University of Surrey.' },
+];
+const NOTA_PERFIS = 'Os nomes acima constam no Plano de Execucao (Anexo III) como referencia do tipo de organizacao elegivel a cada perfil, nao como relacao de associadas atualmente vigentes.';
+
+const MEMBERSHIP_TIERS = [
+  { id:'bronze', nome:'Bronze', valor:60000, cls:'tier-bronze',
+    beneficios:['Acesso a whitepapers','1 vaga na Trilha Informacao Quantica (90h)','+1 trilha de extensao e +2 iniciativas curtas','Isento para parceiros de inovacao e com desconto de 95% para startups, por ate 5 anos'] },
+  { id:'prata', nome:'Prata', valor:120000, cls:'tier-prata',
+    beneficios:['Whitepapers e foruns de discussao tecnologica','1 vaga em pos-graduacao Lato Sensu (360h)','Desconto de 15% em acesso prioritario a infraestrutura','Desconto de 20% em licenca comercial adicional de PI'] },
+  { id:'ouro', nome:'Ouro', valor:240000, cls:'tier-ouro',
+    beneficios:['Whitepapers, foruns e relatorios de tendencias','2 vagas em pos-graduacao Lato Sensu e 1 em nivel de aperfeicoamento','Desconto de 25% em acesso prioritario a infraestrutura','Assento elegivel no Conselho Consultivo da Associacao'] },
+  { id:'diamante', nome:'Diamante', valor:600000, cls:'tier-diamante',
+    beneficios:['Acesso antecipado a publicacoes cientificas','5 vagas em pos-graduacao Lato Sensu e 2 em nivel de aperfeicoamento','Desconto de 40% em acesso prioritario a infraestrutura e 1 licenca comercial de PI inclusa','Limite de 1 organizacao por grupo economico nesta categoria'] },
+];
+const MEMBERSHIP_NOTA = 'Modelo de membresia anual proposto no Plano de Execucao (Anexo III, Tabela 2). Renovacao anual com possibilidade de migracao de categoria, que concede voucher de R$ 50 mil em capacitacao ou acesso a testes tecnologicos.';
+
+/* Estrutura oficial de acompanhamento das associadas (aba "12. Acompanhamento Associadas"), pronta para preenchimento */
+const ASSOCIADOS_CAMPOS = ['Razao social / Nome fantasia','CNPJ','Categoria','Perfil','Inicio da associacao','Situacao','Contribuicao no periodo','Ponto focal','Participacao em acoes'];
+
+/* =========================================================================
+   ICONES (SVG inline, sem biblioteca)
+   ========================================================================= */
+const ICO = {
+  chevron:'<svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  up:'<svg viewBox="0 0 24 24" fill="none"><path d="M12 19V5M5 12l7-7 7 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  flag:'<svg viewBox="0 0 24 24" fill="none"><path d="M5 21V4h13l-3 4 3 4H5" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>',
+  cash:'<svg viewBox="0 0 24 24" fill="none"><rect x="2" y="6" width="20" height="12" rx="2" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.6"/></svg>',
+  users:'<svg viewBox="0 0 24 24" fill="none"><path d="M17 20v-1a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v1M15 3.3a4 4 0 0 1 0 7.6M21 20v-1a4 4 0 0 0-3-3.87" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><circle cx="8.5" cy="8" r="3.3" stroke="currentColor" stroke-width="1.7"/></svg>',
+  grad:'<svg viewBox="0 0 24 24" fill="none"><path d="M2 9l10-5 10 5-10 5-10-5Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M6 11v5c0 1.5 2.5 3 6 3s6-1.5 6-3v-5" stroke="currentColor" stroke-width="1.6"/></svg>',
+  source:'<svg viewBox="0 0 24 24" fill="none"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V4H6.5A2.5 2.5 0 0 0 4 6.5v13Z" stroke="currentColor" stroke-width="1.5"/><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20" stroke="currentColor" stroke-width="1.5"/></svg>',
+  info:'<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9.5" stroke="currentColor" stroke-width="1.6"/><path d="M12 11v5.5M12 7.6v.1" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>',
+  photo:'<svg viewBox="0 0 24 24" fill="none"><path d="M4 8h3l1.5-2h7L17 8h3v11H4V8Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><circle cx="12" cy="13.5" r="3.3" stroke="currentColor" stroke-width="1.5"/></svg>',
+  link:'<svg viewBox="0 0 24 24" fill="none"><path d="M10 14a4.5 4.5 0 0 0 6.4.3l2.3-2.3a4.5 4.5 0 0 0-6.4-6.4L11 7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M14 10a4.5 4.5 0 0 0-6.4-.3L5.3 12a4.5 4.5 0 0 0 6.4 6.4L13 17" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>',
+  gavel:'<svg viewBox="0 0 24 24" fill="none"><path d="M14 4l6 6M6 12l6 6M3 21h8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M9.5 6.5l8 8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>',
+  building:'<svg viewBox="0 0 24 24" fill="none"><path d="M4 21V4h9v17M13 21v-9h7v9M7 8h2M7 12h2M7 16h2" stroke="currentColor" stroke-width="1.5"/></svg>',
+};
+function svgIcon(name, size){ return ICO[name] ? ICO[name].replace('<svg ', `<svg width="${size||16}" height="${size||16}" ` ) : ''; }
+
+function deltaPill(ratio){
+  if(ratio >= 1) return `<span class="delta good">${svgIcon('up',11)} No alvo</span>`;
+  if(ratio >= 0.6) return `<span class="delta warn">${svgIcon('flag',11)} ${FMT_PCT1(ratio)} do alvo</span>`;
+  return `<span class="delta critical">${svgIcon('flag',11)} ${FMT_PCT1(ratio)} do alvo</span>`;
+}
+
+/* =========================================================================
+   ESTADO
+   ========================================================================= */
+const STATE = { view:'geral', year:'2026', mode:'operacional', pillar:'pdi', role:'Diretoria' };
+const CHART_REFS = {};
+
+function yearLabel(y){
+  return { '2024':'Ano 1, 2024', '2025':'Ano 2, 2025', '2026':'Ano 3, 2026', '2027':'Ano 4, 2027', 'total':'Total do plano (42 meses)' }[y];
+}
+function indicatorValueForYear(ind, year){
+  if(year === 'total') return { meta: ind.totalMeta, real: ind.totalExec, kind:'executado acumulado ate nov/2025' };
+  const y = Number(year);
+  if(y <= 2025) return { meta: ind.meta[y], real: ind.exec[y], kind:'executado' };
+  return { meta: ind.meta[y], real: ind.proj[y], kind:'projecao' };
+}
+function fmtIndVal(v, isPct){ return isPct ? FMT_PCT1(v) : FMT_INT.format(v); }
+
+/* =========================================================================
+   VIEW: GERAL
+   ========================================================================= */
+function renderGeral(){
+  const el = document.getElementById('view-geral');
+  const pillarsExec = ['pdi','fcrh','acs','at'];
+  el.innerHTML = `
+    <div class="view-head">
+      <div><h2>Visao geral do QuIIN</h2><p class="desc">Numeros consolidados do Centro de Competencia em Tecnologias Quanticas nos quatro pilares e na Associacao Tecnologica.</p></div>
+      <span class="asof">Posicao: abril de 2026</span>
+    </div>
+
+    <div class="grid grid-4" style="margin-bottom:14px;">
+      <div class="stat-tile"><span class="accent-bar" style="background:var(--brand)"></span>
+        <span class="label">Execucao consolidada do plano PPI</span>
+        <span class="value">${FMT_PCT1(EXEC_CONSOLIDADO.total.pct)}</span>
+        <span class="meta">${fmtBRL(EXEC_CONSOLIDADO.total.executado,true)} executados de ${fmtBRL(EXEC_CONSOLIDADO.total.meta,true)} previstos para os 42 meses</span>
+      </div>
+      <div class="stat-tile"><span class="accent-bar" style="background:var(--p-at)"></span>
+        <span class="label">Captacao privada e de outras fontes</span>
+        <span class="value">${fmtBRL(EXEC_AT.total.captado,true)}</span>
+        <span class="meta">de ${fmtBRL(EXEC_AT.total.meta,true)} previstos em 42 meses (${FMT_PCT1(EXEC_AT.total.pctExecMeta)} do total ja executado)</span>
+      </div>
+      <div class="stat-tile"><span class="accent-bar" style="background:var(--p-fcrh)"></span>
+        <span class="label">Empresas associadas a Associacao Tecnologica</span>
+        <span class="value">${AT_HEADLINE.associadosYTD}<small> / ${AT_HEADLINE.metaCNPJs} meta</small></span>
+        <span class="meta">${AT_HEADLINE.pipelineCNPJs} CNPJs em pipeline de prospeccao ativa</span>
+      </div>
+      <div class="stat-tile"><span class="accent-bar" style="background:var(--p-acs)"></span>
+        <span class="label">Pessoas formadas ou capacitadas em PD&amp;I</span>
+        <span class="value">${FMT_INT.format(INDICATORS.fcrh[0].totalExec)}</span>
+        <span class="meta">acumulado ate novembro de 2025, meta de 800 nos 42 meses</span>
+      </div>
+    </div>
+
+    <div class="grid" style="grid-template-columns:1.3fr 1fr; gap:14px; margin-bottom:14px;" id="geralMidRow">
+      <div class="card">
+        <div class="panel-title"><h3>Execucao financeira por pilar</h3><span class="hint">posicao abril de 2026</span></div>
+        <div class="charts-row" id="donutRow"></div>
+        <div class="legend-row">
+          ${pillarsExec.map(p=>`<span class="legend-item"><span class="legend-sw" style="background:var(--p-${p})"></span>${PILLAR_META[p].label}</span>`).join('')}
+          <span class="legend-item"><span class="legend-sw" style="background:var(--border-strong)"></span>Saldo a executar</span>
+        </div>
+      </div>
+      <div class="card" style="display:flex;flex-direction:column;">
+        <div class="panel-title"><h3>Os quatro pilares do QuIIN</h3></div>
+        <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:6px 0;">
+          ${pillarDiagramSVG()}
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:14px;">
+      <div class="panel-title"><h3>Foco dos proximos 60 dias</h3><span class="hint">fonte: Reuniao de Acompanhamento QuIIN, 20/05/2026</span></div>
+      <div class="grid grid-4">
+        ${FOCO_60_DIAS.map((f,i)=>`
+          <div class="chip">
+            <span class="ic" style="background:${['var(--brand)','var(--p-at)','var(--warn)','var(--p-acs)'][i]}">${svgIcon(['up','cash','flag','gavel'][i],14)}</span>
+            <div><div class="tt">${f.tt}</div><div class="dd">${f.dd}</div></div>
+          </div>`).join('')}
+      </div>
+    </div>
+
+    <div class="source-note">${svgIcon('source',13)} Execucao financeira, captacao e associadas: Reuniao de Acompanhamento QuIIN (20/05/2026), dados consolidados ate abril de 2026. Pessoas capacitadas: Indicadores e Metas QuIIN, acumulado ate novembro de 2025.</div>
+  `;
+  buildDonuts(pillarsExec);
+}
+
+function pillarDiagramSVG(){
+  const cx=165, cy=150;
+  const items = [
+    { p:'pdi', x:cx, y:40, label:'PD&I' },
+    { p:'fcrh', x:270, y:cy, label:'Formacao de RH' },
+    { p:'acs', x:cx, y:260, label:'Startups' },
+    { p:'at', x:60, y:cy, label:'Associacao', label2:'Tecnologica' },
+  ];
+  const lines = items.map(it=>`<line x1="${cx}" y1="${cy}" x2="${it.x}" y2="${it.y}" stroke="var(--p-${it.p})" stroke-width="1.4" stroke-dasharray="1 5" stroke-linecap="round"/>`).join('');
+  const nodes = items.map(it=>`
+    <g>
+      <circle cx="${it.x}" cy="${it.y}" r="25" fill="var(--p-${it.p}-soft)" stroke="var(--p-${it.p})" stroke-width="1.5"/>
+      <circle cx="${it.x}" cy="${it.y}" r="5" fill="var(--p-${it.p})"/>
+      <text x="${it.x}" y="${it.y+(it.label2?39:41)}" text-anchor="middle" font-family="Manrope, sans-serif" font-weight="700" font-size="10.5" fill="var(--ink)">${it.label}</text>
+      ${it.label2?`<text x="${it.x}" y="${it.y+51}" text-anchor="middle" font-family="Manrope, sans-serif" font-weight="700" font-size="10.5" fill="var(--ink)">${it.label2}</text>`:''}
+    </g>`).join('');
+  return `<svg viewBox="0 0 330 320" width="310" height="300" role="img" aria-label="Diagrama dos quatro pilares do QuIIN ao redor do centro de competencia">
+    ${lines}
+    <circle cx="${cx}" cy="${cy}" r="30" fill="var(--brand)"/>
+    <text x="${cx}" y="${cy-4}" text-anchor="middle" font-family="Manrope, sans-serif" font-weight="800" font-size="12" fill="var(--brand-ink)">QuIIN</text>
+    <text x="${cx}" y="${cy+9}" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="8" fill="var(--brand-ink)">CCTQ</text>
+    ${nodes}
+  </svg>`;
+}
+
+/* =========================================================================
+   VIEW: PILARES
+   ========================================================================= */
+function execFinanceiroDe(p){
+  if(p === 'at') return { meta:EXEC_AT.at.meta, executado:EXEC_AT.at.executado, diferenca:EXEC_AT.at.meta-EXEC_AT.at.executado, pct:EXEC_AT.at.pctExecMeta, capLabel:`Captado ate o periodo: ${fmtBRL(EXEC_AT.at.captado,true)} (${FMT_PCT1(EXEC_AT.at.pctExecCaptado)} ja executado)` };
+  return { meta:EXEC_CONSOLIDADO[p].meta, executado:EXEC_CONSOLIDADO[p].executado, diferenca:EXEC_CONSOLIDADO[p].diferenca, pct:EXEC_CONSOLIDADO[p].pct, capLabel:null };
+}
+
+function renderPilares(){
+  const el = document.getElementById('view-pilares');
+  const pillars = ['pdi','fcrh','acs','at'];
+  el.innerHTML = `
+    <div class="view-head">
+      <div><h2>Pilares do QuIIN</h2><p class="desc">Indicadores oficiais EMBRAPII (Anexo 4 do Manual de Operacao) e orcamento por pilar. Use os filtros para alternar ano e tipo de visao.</p></div>
+      <span class="asof" id="pilaresAsOf"></span>
+    </div>
+    <div class="grid grid-4" id="pilaresBigNums" style="margin-bottom:18px;"></div>
+    <div id="pilaresDetail"></div>
+  `;
+  paintPilaresBigNums();
+  paintPilaresDetail();
+}
+
+function paintPilaresBigNums(){
+  const host = document.getElementById('pilaresBigNums');
+  const pillars = ['pdi','fcrh','acs','at'];
+  document.getElementById('pilaresAsOf').textContent = STATE.mode === 'financeiro' ? 'Execucao acumulada: posicao abril de 2026' : `Referencia: ${yearLabel(STATE.year)}`;
+  host.innerHTML = pillars.map(p=>{
+    let big, sub, ratio;
+    if(STATE.mode === 'operacional'){
+      const ind = INDICATORS[p][0];
+      const v = indicatorValueForYear(ind, STATE.year);
+      big = fmtIndVal(v.real ?? 0, ind.isPct);
+      sub = `meta ${fmtIndVal(v.meta ?? 0, ind.isPct)} (${v.kind})`;
+      ratio = v.meta ? (v.real||0)/v.meta : 0;
+    } else {
+      const bud = p==='at' ? BUDGET.at : BUDGET[p];
+      const val = STATE.year === 'total' ? bud.total : bud.ppi[STATE.year];
+      big = fmtBRL(val, true);
+      sub = STATE.year === 'total' ? 'total do plano, 42 meses' : 'orcamento planejado no ano';
+      const ef = execFinanceiroDe(p);
+      ratio = ef.pct;
+    }
+    ratio = Math.max(0, Math.min(1, ratio||0));
+    return `
+      <button class="bignum-btn ${STATE.pillar===p?'active':''}" style="--pillar-color:var(--p-${p});--pillar-soft:var(--p-${p}-soft)" data-pillar="${p}">
+        <span class="pname"><span class="pdot"></span>${PILLAR_META[p].label}</span>
+        <span class="bval">${big}</span>
+        <span class="bsub">${sub}</span>
+        <span class="barwrap"><span class="barfill" style="width:${(ratio*100).toFixed(0)}%"></span></span>
+      </button>`;
+  }).join('');
+  host.querySelectorAll('.bignum-btn').forEach(b=>b.addEventListener('click', ()=>{ STATE.pillar=b.dataset.pillar; paintPilaresBigNums(); paintPilaresDetail(); }));
+}
+
+function paintPilaresDetail(){
+  const p = STATE.pillar;
+  const host = document.getElementById('pilaresDetail');
+  const meta = PILLAR_META[p];
+  const destaques = DESTAQUES[p] || [];
+
+  let bodyHtml;
+  if(STATE.mode === 'operacional'){
+    const rows = INDICATORS[p].map(ind=>{
+      const v = indicatorValueForYear(ind, STATE.year);
+      const ratio = v.meta ? (v.real||0)/v.meta : null;
+      return `<tr>
+        <td>${ind.nome}</td>
+        <td class="num">${ind.unidade}</td>
+        <td class="num">${fmtIndVal(v.meta ?? 0, ind.isPct)}</td>
+        <td class="num">${fmtIndVal(v.real ?? 0, ind.isPct)}<div class="tag" style="margin-top:3px;display:inline-block;">${v.kind}</div></td>
+        <td class="num">${ratio===null?'<span class="tag">sem meta</span>':deltaPill(ratio)}</td>
+      </tr>`;
+    }).join('');
+    bodyHtml = `
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Indicador</th><th class="num">Unidade</th><th class="num">Meta, ${yearLabel(STATE.year)}</th><th class="num">Resultado</th><th class="num">Em relacao ao alvo</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+      <div class="source-note">${svgIcon('source',13)} Metas e resultados oficiais conforme Anexo 4 do Manual de Operacao EMBRAPII e aba de indicadores do arquivo Indicadores e Metas QuIIN. Colunas Ano 1 e Ano 2 sao valores realizados; Ano 3 e Ano 4 sao projecoes, ainda nao realizadas.</div>`;
+  } else {
+    const bud = BUDGET[p];
+    const years = ['2024','2025','2026','2027'];
+    const ef = execFinanceiroDe(p);
+    const rows = `<tr>
+        <td>Recurso planejado (${p==='at'?'privado':'EMBRAPII/MCTI'})</td>
+        ${years.map(y=>`<td class="num ${y===STATE.year?'tabular':''}" style="${y===STATE.year?'font-weight:700;color:var(--brand)':''}">${fmtBRL(bud.ppi[y],true)}</td>`).join('')}
+        <td class="num" style="font-weight:700;">${fmtBRL(bud.total,true)}</td>
+      </tr>`;
+    bodyHtml = `
+      <div class="table-wrap" style="margin-bottom:14px;">
+        <table>
+          <thead><tr><th>Orcamento planejado</th><th class="num">Ano 1, 2024</th><th class="num">Ano 2, 2025</th><th class="num">Ano 3, 2026</th><th class="num">Ano 4, 2027</th><th class="num">Total do plano</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+      <div class="grid grid-3">
+        <div class="stat-tile" style="min-height:auto;">
+          <span class="label">Meta total (42 meses)</span>
+          <span class="value" style="font-size:22px;">${fmtBRL(ef.meta,true)}</span>
+        </div>
+        <div class="stat-tile" style="min-height:auto;">
+          <span class="label">Executado (posicao abr/2026)</span>
+          <span class="value" style="font-size:22px;">${fmtBRL(ef.executado,true)}</span>
+          <span class="meta">${FMT_PCT1(ef.pct)} do total previsto${ef.capLabel? '. '+ef.capLabel:''}</span>
+        </div>
+        <div class="stat-tile" style="min-height:auto;">
+          <span class="label">Referencia de aplicacao (Manual EMBRAPII)</span>
+          <span class="value" style="font-size:16px;">${meta.minRes}</span>
+          ${bud.proporcaoPPI? `<span class="meta">aporte PPI equivale a ${FMT_PCT1(bud.proporcaoPPI)} do plano total do pilar</span>`:''}
+        </div>
+      </div>
+      <div class="source-note">${svgIcon('source',13)} Orcamento planejado: aba Metas Financeiras QuIIN. Execucao: Reuniao de Acompanhamento QuIIN (20/05/2026), dados consolidados ate abril de 2026.</div>`;
+  }
+
+  host.innerHTML = `
+    <div class="card">
+      <div class="panel-title">
+        <span class="pdot" style="width:12px;height:12px;background:var(--p-${p})"></span>
+        <h3>${meta.full}</h3>
+        <span class="hint">lideranca: ${meta.lead}</span>
+      </div>
+      ${bodyHtml}
+      <div class="panel-title" style="margin-top:20px;"><h3>Destaques do periodo</h3></div>
+      <ul style="margin:0;padding-left:18px;font-size:12.5px;color:var(--ink-2);">
+        ${destaques.map(d=>`<li style="margin-bottom:6px;">${d}</li>`).join('')}
+      </ul>
+    </div>`;
+}
+
+/* =========================================================================
+   VIEW: TALENTOS
+   ========================================================================= */
+function renderTalentos(){
+  const el = document.getElementById('view-talentos');
+  el.innerHTML = `
+    <div class="view-head">
+      <div><h2>Talentos</h2><p class="desc">Estrutura de governanca, lideranca por pilar e organizacao da equipe do CCTQ.</p></div>
+      <span class="asof">fonte: Plano de Execucao do CCTQ, dez/2023</span>
+    </div>
+
+    <div class="grid grid-2" style="margin-bottom:14px;">
+      <div class="card">
+        <div class="panel-title"><h3>Organograma de governanca</h3></div>
+        <div class="org-tree">
+          <div class="org-node top"><div class="role">${ORG_ESTRUTURA.top.role}</div><div class="who">${ORG_ESTRUTURA.top.who}</div></div>
+          <div class="org-connector"></div>
+          <div class="org-row" style="margin-bottom:0;">
+            ${ORG_ESTRUTURA.linha1.map(n=>`
+              <div class="org-branchwrap">
+                <div class="org-node"><div class="role">${n.role}</div><div class="who">${n.who}</div></div>
+                <div class="org-connector"></div>
+              </div>`).join('')}
+          </div>
+          <div class="org-row">
+            ${ORG_ESTRUTURA.linha2.map(n=>`
+              <div class="org-node" style="min-width:170px;"><div class="role" style="font-size:11.5px;">${n.role}</div><div class="who">${n.who}</div></div>`).join('')}
+          </div>
+        </div>
+        <div class="source-note">${svgIcon('source',13)} Estrutura descrita na secao 4.3 do Plano de Execucao do CCTQ. Nomes nao constam por nao integrarem os arquivos de referencia consultados; campo pronto para preenchimento.</div>
+      </div>
+
+      <div class="card">
+        <div class="panel-title"><h3>Conselho Consultivo</h3><span class="hint">7 assentos, mandatos de 12 a 24 meses</span></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Representacao</th><th class="num">Assentos</th></tr></thead>
+            <tbody>${CONSELHO_CONSULTIVO.map(c=>`<tr><td>${c.seat}</td><td class="num">${c.qtd}</td></tr>`).join('')}</tbody>
+          </table>
+        </div>
+        <p style="font-size:11.5px;color:var(--ink-2);margin:12px 0 0;">${CONSELHO_NOTAS}</p>
+      </div>
+    </div>
+
+    <div class="grid grid-3" style="margin-bottom:14px;">
+      <div class="card"><div class="panel-title"><h3>Vinculo institucional</h3></div><p style="font-size:12px;color:var(--ink-2);margin:0;">${GOVERNANCA.vinculo}</p></div>
+      <div class="card"><div class="panel-title"><h3>Estrutura de suporte</h3></div><p style="font-size:12px;color:var(--ink-2);margin:0;">${GOVERNANCA.suporte}</p></div>
+      <div class="card"><div class="panel-title"><h3>Conformidade e auditoria</h3></div><p style="font-size:12px;color:var(--ink-2);margin:0;">${GOVERNANCA.conformidade}</p></div>
+    </div>
+
+    <div class="card">
+      <div class="banner">${svgIcon('info',15)}<div><b>Estrutura pronta para preenchimento.</b> Os cartoes abaixo seguem os campos oficiais do formulario de equipe do Centro de Competencia (nome completo, titulacao, formacao academica, funcao, disponibilidade, data de admissao e curriculo Lattes). Nenhum dado pessoal de colaboradores foi localizado nos arquivos de referencia consultados; a funcao e o pilar de cada cargo abaixo sao ilustrativos.</div></div>
+      <div class="panel-title"><h3>Quadro de equipe por pilar</h3><span class="hint">${GOVERNANCA.contratacao}</span></div>
+      <div class="grid grid-3" id="equipeGrid"></div>
+    </div>
+  `;
+  document.getElementById('equipeGrid').innerHTML = EQUIPE_EXEMPLO.map(p=>`
+    <div class="person-card" style="border-color:var(--p-${p.pilar})55;">
+      <div class="person-photo">${svgIcon('photo',20)}</div>
+      <div>
+        <div class="pn">Nome completo</div>
+        <div class="pf">${p.funcao} &middot; <span style="color:var(--p-${p.pilar});font-weight:700;">${PILLAR_META[p.pilar].label}</span></div>
+        <div class="plattes">${svgIcon('link',11)} curriculo Lattes</div>
+      </div>
+    </div>`).join('');
+}
+
+/* =========================================================================
+   VIEW: ASSOCIADOS
+   ========================================================================= */
+function renderAssociados(){
+  const el = document.getElementById('view-associados');
+  el.innerHTML = `
+    <div class="view-head">
+      <div><h2>Gestao de Associados</h2><p class="desc">Estrutura de acompanhamento das empresas associadas a Associacao Tecnologica do CCTQ.</p></div>
+      <span class="asof">Posicao: abril de 2026</span>
+    </div>
+
+    <div class="grid grid-4" style="margin-bottom:14px;">
+      <div class="stat-tile"><span class="accent-bar" style="background:var(--p-at)"></span>
+        <span class="label">Associadas ativas</span>
+        <span class="value">${AT_HEADLINE.associadosYTD}<small> / ${AT_HEADLINE.metaCNPJs} meta</small></span>
+        <span class="meta">diferenca de ${AT_HEADLINE.diferencaCNPJs} para a meta dos 42 meses</span>
+      </div>
+      <div class="stat-tile"><span class="accent-bar" style="background:var(--brand)"></span>
+        <span class="label">Pipeline em prospeccao</span>
+        <span class="value">${AT_HEADLINE.pipelineCNPJs}</span>
+        <span class="meta">CNPJs identificados, ${fmtBRL(AT_HEADLINE.pipelineOpen,true)} em oportunidades abertas</span>
+      </div>
+      <div class="stat-tile"><span class="accent-bar" style="background:var(--good)"></span>
+        <span class="label">Renovacoes no periodo</span>
+        <span class="value">${AT_HEADLINE.renovacoes}</span>
+        <span class="meta">${AT_HEADLINE.faseContratual} associada em fase contratual</span>
+      </div>
+      <div class="stat-tile"><span class="accent-bar" style="background:var(--warn)"></span>
+        <span class="label">Valor de renovacao ja aprovado</span>
+        <span class="value">${fmtBRL(AT_HEADLINE.valorAprovadoBV,true)}</span>
+        <span class="meta">previsao adicional de ${fmtBRL(AT_HEADLINE.previstoRenovacoes,true)} com mais 4 renovacoes</span>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:14px;">
+      <div class="panel-title"><h3>Perfis de associado</h3><span class="hint">fonte: Plano de Execucao, Anexo III</span></div>
+      <div class="grid grid-3">
+        ${PERFIS_ASSOCIADO.map(pf=>`
+          <div class="card" style="box-shadow:none;background:var(--surface-2);">
+            <div style="font-weight:800;font-family:Manrope,sans-serif;font-size:14px;">${pf.nome}</div>
+            <div style="font-size:11px;color:var(--ink-muted);font-weight:700;text-transform:uppercase;letter-spacing:.03em;margin:2px 0 8px;">${pf.sub}</div>
+            <div style="font-size:12px;color:var(--ink-2);">${pf.dd}</div>
+          </div>`).join('')}
+      </div>
+      <p style="font-size:11px;color:var(--ink-muted);margin:12px 0 0;font-style:italic;">${NOTA_PERFIS}</p>
+    </div>
+
+    <div class="card" style="margin-bottom:14px;">
+      <div class="panel-title"><h3>Categorias de membresia</h3><span class="hint">valor de adesao anual</span></div>
+      <div class="grid grid-4">
+        ${MEMBERSHIP_TIERS.map(t=>`
+          <div class="tier-card ${t.cls}">
+            <div class="tname">${t.nome}</div>
+            <div class="tval">${fmtBRL(t.valor,true)}<small> / ano</small></div>
+            <ul>${t.beneficios.map(b=>`<li>${b}</li>`).join('')}</ul>
+          </div>`).join('')}
+      </div>
+      <p style="font-size:11px;color:var(--ink-muted);margin:12px 0 0;">${MEMBERSHIP_NOTA}</p>
+    </div>
+
+    <div class="card">
+      <div class="banner">${svgIcon('info',15)}<div><b>Estrutura pronta para preenchimento.</b> As colunas abaixo seguem o formulario oficial de acompanhamento das associadas do Centro de Competencia. Nenhum dado de empresa associada individual foi localizado nos arquivos de referencia consultados; a tabela esta pronta para receber os registros reais.</div></div>
+      <div class="panel-title"><h3>Cadastro de associadas</h3><span class="hint">${AT_HEADLINE.associadosYTD} associadas ativas a integrar</span></div>
+      <div class="table-wrap template">
+        <table>
+          <thead><tr>${ASSOCIADOS_CAMPOS.map(c=>`<th>${c}</th>`).join('')}</tr></thead>
+          <tbody>
+            <tr class="empty-row"><td colspan="${ASSOCIADOS_CAMPOS.length}">Aguardando integracao com o formulario de acompanhamento das associadas</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+function buildDonuts(pillars){
+  const row = document.getElementById('donutRow');
+  row.innerHTML = pillars.map(p=>`
+    <div class="donut-card">
+      <div class="dwrap"><canvas id="donut-${p}"></canvas>
+        <div class="dcenter"><b>${FMT_PCT1(execFinanceiroDe(p).pct)}</b></div>
+      </div>
+      <div class="dlabel">${PILLAR_META[p].label}</div>
+    </div>`).join('');
+  if(typeof Chart === 'undefined') return;
+  pillars.forEach(p=>{
+    const ctx = document.getElementById('donut-'+p);
+    const pct = execFinanceiroDe(p).pct;
+    if(CHART_REFS['donut-'+p]) CHART_REFS['donut-'+p].destroy();
+    CHART_REFS['donut-'+p] = new Chart(ctx, {
+      type:'doughnut',
+      data:{ datasets:[{ data:[pct, 1-pct], backgroundColor:[pillarColor(p), getComputedStyle(document.documentElement).getPropertyValue('--border').trim()], borderWidth:0 }] },
+      options:{ cutout:'72%', plugins:{ legend:{display:false}, tooltip:{enabled:false} }, animation:{duration:400} }
+    });
+  });
+}
+
+/* =========================================================================
+   ROTEAMENTO E EVENTOS
+   ========================================================================= */
+const VIEWS = ['geral','pilares','talentos','associados'];
+const RENDERERS = { geral:renderGeral, pilares:renderPilares, talentos:renderTalentos, associados:renderAssociados };
+const RENDERED = {};
+
+function showView(v){
+  STATE.view = v;
+  VIEWS.forEach(name=>{
+    document.getElementById('view-'+name).hidden = (name !== v);
+  });
+  document.querySelectorAll('#tabnav button').forEach(b=>{
+    const on = b.dataset.view === v;
+    b.classList.toggle('active', on);
+    b.setAttribute('aria-selected', on ? 'true' : 'false');
+  });
+  RENDERERS[v]();
+  RENDERED[v] = true;
+}
+
+document.getElementById('tabnav').addEventListener('click', e=>{
+  const btn = e.target.closest('button[data-view]');
+  if(!btn) return;
+  showView(btn.dataset.view);
+});
+
+document.getElementById('yearSelect').addEventListener('change', e=>{
+  STATE.year = e.target.value;
+  if(STATE.view === 'pilares'){ paintPilaresBigNums(); paintPilaresDetail(); }
+});
+
+document.getElementById('viewToggle').addEventListener('click', e=>{
+  const btn = e.target.closest('button[data-mode]');
+  if(!btn) return;
+  STATE.mode = btn.dataset.mode;
+  document.querySelectorAll('#viewToggle button').forEach(b=>b.classList.toggle('active', b===btn));
+  if(STATE.view === 'pilares'){ paintPilaresBigNums(); paintPilaresDetail(); }
+});
+
+const ROLES = ['Diretoria','Coordenacao de pilar','Ponto focal de associada','Auditoria'];
+let roleIdx = 0;
+document.getElementById('roleLabel').addEventListener('click', ()=>{
+  roleIdx = (roleIdx+1) % ROLES.length;
+  STATE.role = ROLES[roleIdx];
+  document.getElementById('roleLabelText').textContent = STATE.role;
+});
+
+if(window.matchMedia){
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', ()=>{
+    if(STATE.view === 'geral' && RENDERED.geral) buildDonuts(['pdi','fcrh','acs','at']);
+  });
+}
+
+showView('geral');
+</script>
