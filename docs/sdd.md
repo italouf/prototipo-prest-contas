@@ -70,6 +70,9 @@ Ver `docs/requisitos.md` (RF-001 a RF-106, RNF-001 a RNF-010, RN-001 a RN-015, U
 - RN-012: acesso compatível com papel e pilar.
 - RN-013/014: metas e indicadores configuráveis.
 - RN-015: plurianuais diferenciam captado e executado.
+- RN-016..RN-022: painel anual (filtros ano/base, acumulado 2024–2027, denominadores
+  projetado/captado, farol 90/50, denominador zero ⇒ "—", edição por papel/pilar auditada,
+  mês só nos fluxos mensais) — ver `docs/sdd-dashboard-anual.md`.
 
 ## 9. Premissas
 
@@ -88,3 +91,6 @@ Ver `docs/requisitos.md` (RF-001 a RF-106, RNF-001 a RNF-010, RN-001 a RN-015, U
 
 Implementação organizada em loops (ver `docs/loops.md`); cada loop referencia
 requisitos RF/RNF/RN e critérios de aceite AC (ver `docs/requisitos.md`).
+Painel anual (filtro por ano + base Financeiro/Físico): `docs/sdd-dashboard-anual.md`,
+plano de teste em `specs/dashboard-anual.md`, matriz de estados L0 em
+`docs/retrofit/evidencias/dashboard-anual/loop-0/`.

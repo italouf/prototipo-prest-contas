@@ -19,9 +19,12 @@ web
 ## Product Purpose
 
 Portal local de gestão e prestação de contas mensal do Programa QuIIN: coletar
-indicadores por pilar, comparar meta × realizado × percentual, aprovar
+indicadores por pilar, comparar meta – realizado – percentual, aprovar
 lançamentos, fechar períodos com snapshot, importar financeiro consolidado via
 CSV e gerar relatório mensal HTML imprimível para a reunião com a Embrapii.
+Painel anual (filtro por ano 2024–2027 + base Financeiro/Físico) para
+acompanhamento do plano plurianual: cards, gráficos por fonte, tabela gerencial
+com farol, edição auditada e exportações refletindo os filtros.
 
 ## Positioning
 

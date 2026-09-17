@@ -50,6 +50,14 @@
 - `usuario` FK (SET_NULL), `acao`, `entidade`, `registro_id`,
   `campo`, `valor_anterior`, `valor_novo`, `justificativa`, `data_hora`.
 
+### planning.PlanoAnual (painel anual 2024–2027)
+- `ano` (choices 2024/2025/2026/2027 — Ano 1..Ano 4), `pilar` FK → Pilar,
+  `base` (financeiro/fisico), `previsto` (Decimal — projetado nos pilares PPI,
+  captado em AT/Outras fontes), `executado` (Decimal),
+  `atualizado_em`, `atualizado_por` FK → User (SET_NULL).
+- `unique_together(ano, pilar, base)`; `CheckConstraints` previsto/executado ≥ 0.
+- Snapshot de plano (não derivado do operacional) — ver `docs/sdd-dashboard-anual.md`.
+
 ## Estados
 
 ### Periodo
@@ -77,4 +85,5 @@ Periodo 1—* Lancamento *—1 Indicador
 Periodo 1—* FinanceiroConsolidado *—1 Pilar
 Periodo 1—* ImportacaoFinanceira
 User 1—* AuditLog
+Pilar 1—* PlanoAnual (por ano 2024–2027 × base financeiro/fisico)
 ```

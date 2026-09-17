@@ -22,6 +22,10 @@
 | RF-080..087 | Importação CSV atômica com validação e log | `finance/services.py` |
 | RF-090..097 | Relatório mensal HTML imprimível | `reports/views.py` |
 | RF-100..106 | Auditoria com usuário, data, entidade, ação, valores e justificativa | `audit/` |
+| RF-107..109 | Painel anual: filtro ANO, base Financeiro/Físico, 4 cards KPI | app-header + `planning` |
+| RF-110..112 | Gráficos por fonte + consolidado, tabela gerencial com farol, modal de metodologia | `planning` + SVG server-side |
+| RF-113..115 | Edição auditada do plano anual, CSV/HTML da visão corrente, impressão A4 | `planning.views` |
+| RF-116..119 | Footer com logos, sidebar reagrupada, deep-link `?ano&base`, mensal em `/prestacao/mensal/` | shell + `core` |
 
 ## Requisitos não funcionais (RNF)
 
@@ -37,6 +41,11 @@
 | RNF-008 | Código organizado por domínio (apps) |
 | RNF-009 | `seed_demo` idempotente |
 | RNF-010 | Somente dados fictícios/consolidados |
+| RNF-011 | Painel anual usa somente tokens de cor existentes (REGRA DE OURO) |
+| RNF-012 | Gráficos do painel anual em SVG server-side |
+| RNF-013 | Render do painel em ≤ ~20 queries |
+| RNF-014 | axe-core sem critical/serious nos estados de referência |
+| RNF-015 | Seed reproduz o Anexo A nos 10 estados |
 
 ## Regras de negócio (RN)
 
@@ -51,6 +60,10 @@ RN-001..RN-015 — ver `docs/sdd.md` seção 8 e `relatorio.html` (contexto).
 | US-003 | Como Liderança, quero ver o dashboard e o relatório mensal sem editar. |
 | US-004 | Como Auditor, quero consultar o histórico de alterações. |
 | US-005 | Como Master/Admin, quero importar o CSV financeiro consolidado com validação. |
+| US-006 | Como Liderança, quero filtrar o painel por ano e base para acompanhar a execução do plano. |
+| US-007 | Como Master, quero editar os valores anuais com auditoria e ver o recálculo imediato. |
+| US-008 | Como Auditor, quero exportar CSV e imprimir refletindo exatamente os filtros correntes. |
+| US-009 | Como PontoFocal, quero editar apenas os valores dos meus pilares. |
 
 ## Critérios de aceite (AC)
 
@@ -60,3 +73,5 @@ RN-001..RN-015 — ver `docs/sdd.md` seção 8 e `relatorio.html` (contexto).
 | AC-017..AC-024 | Validações E2E via Playwright (fluxos, permissões, CSV, relatório, mobile, diagnóstico). |
 | AC-025..AC-030 | `/impeccable init` antes de frontend; UI validada; responsividade; impressão; sem CDN; decisões registradas. |
 | AC-031..AC-038 | `relatorio.html` é só contexto; app independe dele; templates próprios; skill impecável tentada; Playwright opcional; app roda só com Python+Django+SQLite. |
+| AC-039..AC-047 | Painel anual: estado padrão, filtro ano/base, deep-link, farol, modal, CSV/impressão, permissões, axe (ver `specs/dashboard-anual.md`). |
+| AC-048..AC-050 | Redirects 301/302, seed reproduzindo o Anexo A, render em ≤ 20 queries. |

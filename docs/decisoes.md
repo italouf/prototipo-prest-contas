@@ -148,3 +148,25 @@
   `tests/e2e/fixes_r7.spec.ts` (timeline e modal após boost, primeiro clique em
   Talentos, drag nos dois sentidos, devolução por drag, download do CSV,
   empresa texto/datalist, reabrir perdida).
+
+## Decisões — Dashboard anual (L0/L1, 2026-09-17)
+
+1. **Anexo A confirmado sem correções** (L0, 0 divergências DOM × data-store × Anexo A);
+   vira a matriz canônica de seed/testes em `docs/retrofit/evidencias/dashboard-anual/loop-0/`.
+2. **Execução anual = snapshot de plano** (`planning.PlanoAnual`), não derivada do operacional:
+   garante o Anexo A exato sem reescalar fluxos mensais, CSV, relatório e e2e existentes.
+3. **`previsto` = projetado (PPI) ou captado (AT/Outras)** por construção; rótulo derivado por pilar.
+4. **Gráficos do painel anual em SVG server-side** (paridade, impressão, export standalone,
+   asserções DOM); Chart.js fica restrito ao dashboard mensal.
+5. **Farol crítico ⇒ `red-500/red-600`** (convenção já usada): não há token laranja no projeto.
+6. **Série "Outras fontes" ⇒ `quiin-violet`** (Anexo D), não o `pillar-outrasfontes` verde.
+7. **"Restaurar padrão" reseta filtros** (não os dados — o mockup zerava o dataset, destrutivo).
+8. **Edição persiste no banco com auditoria** (mockup usava localStorage).
+9. **app-header global** substitui o topbar em todas as páginas (decisão do usuário);
+   o seletor mensal migra para os fluxos mensais.
+10. **Grupos da sidebar em `localStorage`** (mesmo mecanismo do recolher), não sessionStorage.
+11. **Tooltips via `<title>` nativo no SVG** (acessível), não `#tip` mouse-only.
+12. **Evidências em `docs/retrofit/evidencias/dashboard-anual/`** (padrão vigente do repo).
+13. **`makemigrations planning` sempre** (`talentos.0002` fantasma no `db.sqlite3` local).
+14. **Modal do farol acessível** (`role="dialog"`, focus trap, ESC, retorno de foco) —
+    o mockup não implementa.
