@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% block title %}Prestação de contas — Semestral · Portal QuIIN{% endblock %}
+{% block content %}
+<div data-testid="page-semestral">
+  <h1 class="text-2xl font-bold">Prestação de contas — Semestral</h1>
+  <p class="text-sm text-text-muted">Períodos mensais de {{ ano }} agrupados por semestre.</p>
+
+  <div class="mt-4 flex flex-wrap gap-1.5" aria-label="Ano">
+    {% for a in anos %}
+    <a href="{% url 'core:semestral' %}?ano={{ a }}"
+       class="rounded-full border border-border px-3 py-1 text-xs {% if a == ano %}bg-quiin-navy text-white{% endif %}">{{ a }}</a>
+    {% endfor %}
+  </div>
+
+  <div class="mt-4 grid gap-4 lg:grid-cols-2">
+    <section class="rounded-xl border border-border bg-surface-2 p-5" aria-label="Primeiro semestre">
+      <h2 class="font-display text-lg font-semibold">1º semestre — {{ ano }}</h2>
+      <ul class="mt-3 space-y-2">
+        {% for p in s1 %}
+        <li class="flex items-center gap-2 text-sm">
+          <a class="font-semibold underline" href="{% url 'core:mensal' %}?periodo={{ p.competencia|date:'Y-m-d' }}">{{ p.rotulo }}</a>
+          <c-ui.badge tone="{% if p.status == 'ABERTO' or p.status == 'REABERTO' %}info{% elif p.status == 'FECHADO' %}success{% else %}neutral{% endif %}">{{ p.get_status_display }}</c-ui.badge>
+        </li>
+        {% empty %}
+        <li class="text-sm text-text-muted">Sem períodos neste semestre.</li>
+        {% endfor %}
+      </ul>
+    </section>
+    <section class="rounded-xl border border-border bg-surface-2 p-5" aria-label="Segundo semestre">
+      <h2 class="font-display text-lg font-semibold">2º semestre — {{ ano }}</h2>
+      <ul class="mt-3 space-y-2">
+        {% for p in s2 %}
+        <li class="flex items-center gap-2 text-sm">
+          <a class="font-semibold underline" href="{% url 'core:mensal' %}?periodo={{ p.competencia|date:'Y-m-d' }}">{{ p.rotulo }}</a>
+          <c-ui.badge tone="{% if p.status == 'ABERTO' or p.status == 'REABERTO' %}info{% elif p.status == 'FECHADO' %}success{% else %}neutral{% endif %}">{{ p.get_status_display }}</c-ui.badge>
+        </li>
+        {% empty %}
+        <li class="text-sm text-text-muted">Sem períodos neste semestre.</li>
+        {% endfor %}
+      </ul>
+    </section>
+  </div>
+</div>
+{% endblock %}

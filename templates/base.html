@@ -78,11 +78,30 @@
   function quiinAtivarNav() {
     document.querySelectorAll('[data-nav-link]').forEach(function (link) {
       var ativo = link.getAttribute('href') === window.location.pathname;
-      link.classList.toggle('nav-item-ativo', ativo);
+      link.classList.toggle('nav-ativo', ativo);
       if (ativo) { link.setAttribute('aria-current', 'page'); } else { link.removeAttribute('aria-current'); }
     });
   }
-  document.addEventListener('DOMContentLoaded', quiinAtivarNav);
+  function quiinNavGrupos() {
+    var estado = {};
+    try { estado = JSON.parse(localStorage.getItem('quiin-nav-grupos') || '{}'); } catch (e) { estado = {}; }
+    document.querySelectorAll('[data-nav-grupo]').forEach(function (botao) {
+      var alvo = document.getElementById(botao.getAttribute('data-nav-grupo'));
+      if (!alvo) return;
+      var aberto = estado[botao.getAttribute('data-nav-grupo')] !== false;
+      if (alvo.querySelector('[aria-current="page"]')) aberto = true;
+      botao.setAttribute('aria-expanded', aberto ? 'true' : 'false');
+      alvo.hidden = !aberto;
+      botao.addEventListener('click', function () {
+        var agoraAberto = alvo.hidden;
+        alvo.hidden = !agoraAberto;
+        botao.setAttribute('aria-expanded', agoraAberto ? 'true' : 'false');
+        estado[botao.getAttribute('data-nav-grupo')] = agoraAberto;
+        try { localStorage.setItem('quiin-nav-grupos', JSON.stringify(estado)); } catch (e) {}
+      });
+    });
+  }
+  document.addEventListener('DOMContentLoaded', function () { quiinAtivarNav(); quiinNavGrupos(); });
   document.addEventListener('htmx:afterSwap', quiinAtivarNav);
 </script>
 </body>

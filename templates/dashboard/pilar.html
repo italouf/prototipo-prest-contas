@@ -12,6 +12,13 @@
     <c-ui.badge pillar="{{ pilar.codigo }}">{{ pilar.codigo }}</c-ui.badge>
   </div>
 
+  {% if filtro_anual %}
+  <p class="mt-4 rounded-lg border border-border bg-quiin-mist/40 px-3 py-2 text-sm" data-testid="contexto-anual">
+    Contexto anual: <strong>{{ filtro_anual.rotulo_periodo }} · {{ filtro_anual.rotulo_base }}</strong>
+    — <a class="font-semibold underline" href="{% url 'core:dashboard' %}?ano={{ filtro_anual.ano_param }}&base={{ filtro_anual.base_param }}">ver no painel anual</a>
+  </p>
+  {% endif %}
+
   {% if not periodo %}
   <c-ui.card class="mt-4"><p class="text-sm text-text-muted">Nenhum período cadastrado.</p></c-ui.card>
   {% else %}

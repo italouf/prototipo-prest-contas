@@ -15,7 +15,7 @@ test('navega entre 5 paginas pela sidebar com boost', async ({ page }) => {
     [/^Lançamentos/, '/lancamentos/2/1/', /lançamentos mensais/i],
     [/^Aprovação/, '/aprovacao/2/', /painel de aprovação/i],
     [/^Financeiro$/, '/financeiro/', /financeiro consolidado/i],
-    [/^Relatório Mensal$/, '/relatorio/mensal/3/', /relatório mensal/i],
+    [/^Relatórios$/, '/relatorio/mensal/3/', /relatório mensal/i],
     [/^Auditoria$/, '/auditoria/', /auditoria/i],
   ];
 
@@ -26,8 +26,39 @@ test('navega entre 5 paginas pela sidebar com boost', async ({ page }) => {
     await expect(page).toHaveTitle(/Portal QuIIN/);
   }
 
-  await page.getByTestId('sidebar').getByRole('link', { name: /^Dashboard/ }).click();
+  await page.getByTestId('sidebar').getByRole('link', { name: /^Geral/ }).click();
   await expect(page.getByRole('heading', { name: /gestão do quiin/i })).toBeVisible();
+});
+
+test('grupos da sidebar colapsam com aria-expanded e persistem', async ({ page }) => {
+  await login(page);
+  const grupo = page.getByRole('button', { name: /pilares/i });
+  await expect(grupo).toHaveAttribute('aria-expanded', 'true');
+  await grupo.click();
+  await expect(grupo).toHaveAttribute('aria-expanded', 'false');
+  await expect(page.locator('#grp-pilares')).toBeHidden();
+  await page.reload();
+  await expect(page.getByRole('button', { name: /pilares/i })).toHaveAttribute('aria-expanded', 'false');
+  await page.getByRole('button', { name: /pilares/i }).click();
+  await expect(page.locator('#grp-pilares')).toBeVisible();
+});
+
+test('prestação de contas leva a mensal e semestral', async ({ page }) => {
+  await login(page);
+  await page.getByTestId('sidebar').getByRole('link', { name: /^Mensal/ }).click();
+  await expect(page).toHaveURL(/prestacao\/mensal/);
+  await expect(page.getByRole('heading', { name: /dashboard executivo/i })).toBeVisible();
+  await page.getByTestId('sidebar').getByRole('link', { name: /^Semestral/ }).click();
+  await expect(page).toHaveURL(/prestacao\/semestral/);
+  await expect(page.getByRole('heading', { name: /semestral/i })).toBeVisible();
+});
+
+test('pilar com filtro anual exibe contexto e volta ao painel', async ({ page }) => {
+  await login(page);
+  await page.goto('/pilar/1/?ano=2026&base=fis');
+  await expect(page.getByTestId('contexto-anual')).toContainText('Ano 3: 2026');
+  await page.getByTestId('contexto-anual').getByRole('link').click();
+  await expect(page).toHaveURL('/?ano=2026&base=fis');
 });
 
 test('sidebar mobile abre, navega e fecha', async ({ page }) => {

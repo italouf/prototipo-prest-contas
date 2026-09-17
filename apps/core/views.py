@@ -12,8 +12,9 @@ from apps.finance.models import FinanceiroConsolidado
 from apps.highlights.models import DestaqueMensal
 from apps.indicators.models import Indicador
 from apps.pillars.models import Pilar
+from apps.periods.models import Periodo
 from apps.planning.forms import ALIASES_BASE, BASE_FIN, PainelFiltroForm
-from apps.planning.services import ANOS, painel as painel_anual
+from apps.planning.services import ANOS, painel as painel_anual, rotulo_periodo
 
 from .calculos import itens_do_periodo
 from .dashboard import avisos_do_dashboard, graficos_dados, heatmap_por_pilar, kpi_por_pilar
@@ -172,11 +173,40 @@ def mensal(request):
 
 
 @login_required
+def semestral(request):
+    """Visão mínima semestral: períodos do ano agrupados por semestre (L4)."""
+    anos = sorted({p.competencia.year for p in Periodo.objects.all()}, reverse=True)
+    ano = None
+    if request.GET.get("ano", "").isdigit() and int(request.GET["ano"]) in anos:
+        ano = int(request.GET["ano"])
+    elif anos:
+        ano = anos[0]
+    periodos = list(Periodo.objects.filter(competencia__year=ano).order_by("competencia")) if ano else []
+    return render(request, "dashboard/semestral.html", {
+        "ano": ano, "anos": anos,
+        "s1": [p for p in periodos if p.competencia.month <= 6],
+        "s2": [p for p in periodos if p.competencia.month > 6],
+    })
+
+
+@login_required
 def pilar(request, pk):
     pilar_obj = get_object_or_404(Pilar, pk=pk)
     if not usuario_pode_pilar(request.user, pilar_obj):
         return sem_permissao(request)
     periodo, periodos = periodo_selecionado(request)
+    filtro_anual = None
+    if request.GET.get("ano") or request.GET.get("base"):
+        form_anual = PainelFiltroForm(request.GET)
+        if form_anual.is_valid():
+            ano_param = form_anual.cleaned_data["ano"]
+            base_param = form_anual.cleaned_data["base"]
+            filtro_anual = {
+                "ano_param": ano_param,
+                "base_param": base_param,
+                "rotulo_periodo": rotulo_periodo(None if ano_param == "todos" else int(ano_param)),
+                "rotulo_base": "Financeiro" if base_param == "fin" else "Físico",
+            }
     itens = []
     destaques = []
     if periodo is not None:
@@ -186,7 +216,7 @@ def pilar(request, pk):
     return render(
         request,
         "dashboard/pilar.html",
-        {"pilar": pilar_obj, "periodo": periodo, "periodos": periodos, "itens": itens, "destaques": destaques},
+        {"pilar": pilar_obj, "periodo": periodo, "periodos": periodos, "itens": itens, "destaques": destaques, "filtro_anual": filtro_anual},
     )
 
 

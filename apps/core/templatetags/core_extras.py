@@ -100,6 +100,14 @@ def nbr(valor):
 
 
 @register.filter
+def rotulo_painel(codigo):
+    """Rótulo pactuado do pilar no painel anual (PDI, Formação FCRH, ACS...)."""
+    from apps.planning.services import ROTULOS_PAINEL
+
+    return ROTULOS_PAINEL.get(codigo, codigo)
+
+
+@register.filter
 def status_lancamento(status):
     nomes = {
         "RASCUNHO": "Rascunho",

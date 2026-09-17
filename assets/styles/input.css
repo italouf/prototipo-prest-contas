@@ -58,6 +58,21 @@
   .nav-secao {
     @apply px-3 pb-1 pt-4 text-[0.65rem] font-semibold uppercase tracking-widest text-white/70;
   }
+  .nav-clara {
+    @apply flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-text transition-colors hover:bg-quiin-mist/40;
+  }
+  .nav-ativo {
+    @apply bg-quiin-royal/10 font-semibold text-quiin-navy;
+  }
+  .nav-secao-clara {
+    @apply px-3 pb-1 pt-4 text-[0.65rem] font-semibold uppercase tracking-widest text-text-muted;
+  }
+  .nav-grupo-chev {
+    transition: transform 0.15s ease-out;
+  }
+  [aria-expanded="true"] .nav-grupo-chev {
+    transform: rotate(180deg);
+  }
   .alert {
     @apply rounded-lg border px-3 py-2 text-sm;
   }
@@ -190,11 +205,13 @@
   }
   [data-recolhida="true"] .sidebar .nav-rotulo,
   [data-recolhida="true"] .sidebar .nav-secao,
+  [data-recolhida="true"] .sidebar .nav-secao-clara,
   [data-recolhida="true"] .sidebar .sidebar-marca-texto,
   [data-recolhida="true"] .sidebar .sidebar-badge {
     display: none;
   }
-  [data-recolhida="true"] .sidebar .nav-item {
+  [data-recolhida="true"] .sidebar .nav-item,
+  [data-recolhida="true"] .sidebar .nav-clara {
     justify-content: center;
   }
 }

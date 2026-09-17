@@ -19,6 +19,13 @@ def nav(request):
     )
 
     pilares = pilares_visiveis(request.user)
+    por_codigo = {p.codigo: p for p in pilares}
+    try:
+        from apps.planning.services import PILARES_PPI
+
+        pilares_grupo = [por_codigo[c] for c in PILARES_PPI if c in por_codigo]
+    except Exception:
+        pilares_grupo = []
     periodo_aberto = (
         Periodo.objects.filter(status__in=["ABERTO", "REABERTO"]).order_by("-competencia").first()
     )
@@ -52,6 +59,7 @@ def nav(request):
         "pode_importar_financeiro": pode_importar_financeiro(request.user),
         "pode_ver_auditoria": pode_ver_auditoria(request.user),
         "pilares_nav": pilares,
+        "pilares_grupo": pilares_grupo,
         "periodo_aberto_nav": periodo_aberto,
         "ultimo_periodo_nav": ultimo_periodo,
         "periodos_nav": Periodo.objects.order_by("-competencia"),
