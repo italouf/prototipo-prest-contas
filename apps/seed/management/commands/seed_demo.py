@@ -21,6 +21,7 @@ from apps.indicators.models import Indicador, Meta
 from apps.periods.models import Periodo
 from apps.periods.services import abrir_periodo, fechar_periodo
 from apps.pillars.models import Pilar, UsuarioPilar
+from apps.planning.models import ANOS, PlanoAnual
 from apps.talentos.models import Alocacao, Colaborador, Competencia
 
 USUARIOS = [
@@ -134,6 +135,24 @@ FINANCEIRO_MENSAL = {
     "OUTRASFONTES": ("OUTRAS_FONTES", 800_000, 100_000),
 }
 
+# Plano anual do painel 2024-2027 (Anexo A, confirmado no L0):
+# (codigo_pilar, base, previsto[2024..2027], executado[2024..2027]).
+# `previsto` = projetado nos pilares PPI, captado em AT/Outras fontes (RN-018).
+PLANO_ANUAL = [
+    ("PDI", "financeiro", (7, 10, 10, 2), (5, 8, 8, 0)),
+    ("FORMACAO", "financeiro", (4, 5, 4, 1), (2, 3, 2, 0)),
+    ("STARTUPS", "financeiro", (2, 2, 2, 1), (1, 1, 1, 0)),
+    ("INFRA", "financeiro", (2, 3, 4, 1), (2, 3, 4, 0)),
+    ("AT", "financeiro", (1, 2, 3, 1.75), (0, 1, 1, 0)),
+    ("OUTRASFONTES", "financeiro", (1, 2, 3, 1.75), (0, 0, 0, 0)),
+    ("PDI", "fisico", (4, 6, 6, 2), (3, 5, 5, 0)),
+    ("FORMACAO", "fisico", (3, 5, 5, 2), (2, 3, 2, 0)),
+    ("STARTUPS", "fisico", (2, 3, 3, 1), (1, 1, 1, 0)),
+    ("INFRA", "fisico", (2, 3, 4, 1), (2, 3, 4, 0)),
+    ("AT", "fisico", (1, 2, 3, 2), (0, 1, 1, 0)),
+    ("OUTRASFONTES", "fisico", (1, 2, 3, 2), (0, 0, 0, 0)),
+]
+
 # Task B — CRM AT demo (100% fictício): (nome, cnpj, status)
 CRM_EMPRESAS = [
     ("Metalúrgica Exemplo S.A.", "11.111.111/0001-11", "ASSOCIADA"),
@@ -196,6 +215,7 @@ class Command(BaseCommand):
         abrir_periodo(periodo_junho, erica)
         self._lancamentos_junho(periodo_junho, indicadores, usuarios, erica)
         self._financeiro_ytd(periodo_junho, pilares)
+        self._plano_anual(pilares)
         self._crm()
         self._talentos(pilares)
         self._highlights(periodo_junho, pilares, erica)
@@ -353,6 +373,20 @@ class Command(BaseCommand):
             arquivo_nome="financeiro_demo.csv",
             defaults={"status": "SUCESSO", "usuario": None, "log": "Arquivo de exemplo presente em data/seed/financeiro_demo.csv."},
         )
+
+    def _plano_anual(self, pilares):
+        anos = [a for a, _ in ANOS]
+        for pilar_cod, base, previstos, executados in PLANO_ANUAL:
+            for i, ano in enumerate(anos):
+                PlanoAnual.objects.update_or_create(
+                    ano=ano,
+                    pilar=pilares[pilar_cod],
+                    base=base,
+                    defaults={
+                        "previsto": Decimal(str(previstos[i])),
+                        "executado": Decimal(str(executados[i])),
+                    },
+                )
 
     def _crm(self):
         empresas = {}
