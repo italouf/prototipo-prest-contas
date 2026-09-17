@@ -40,19 +40,8 @@
           </a>
         </li>
         {% endfor %}
-        <li>
-          <a href="{% url 'crm_at:funil' %}" data-nav-link class="nav-clara {% if '/crm-at/' in request.path %}nav-ativo{% endif %}" {% if '/crm-at/' in request.path %}aria-current="page"{% endif %}>
-            <c-ui.icon name="funnel" size="18" /><span class="nav-rotulo">Associação Tecnológica</span>
-          </a>
-        </li>
       </ul>
     </div>
-    {% endif %}
-
-    {% if pode_lancar or pode_aprovar %}
-    <a href="{% url 'talentos:organograma' %}" data-nav-link class="nav-clara mt-1 {% if '/talentos/' in request.path %}nav-ativo{% endif %}" {% if '/talentos/' in request.path %}aria-current="page"{% endif %}>
-      <c-ui.icon name="users" size="18" /><span class="nav-rotulo">Talentos</span>
-    </a>
     {% endif %}
 
     <div class="mt-1">
@@ -123,6 +112,18 @@
         <c-ui.icon name="chevron-down" size="16" class="nav-grupo-chev" />
       </button>
       <ul id="grp-gestao" class="mt-0.5 space-y-0.5">
+        {% if pode_lancar or pode_aprovar %}
+        <li>
+          <a href="{% url 'crm_at:funil' %}" data-nav-link class="nav-clara {% if '/crm-at/' in request.path %}nav-ativo{% endif %}" {% if '/crm-at/' in request.path %}aria-current="page"{% endif %}>
+            <c-ui.icon name="funnel" size="18" /><span class="nav-rotulo">Associação Tecnológica</span>
+          </a>
+        </li>
+        <li>
+          <a href="{% url 'talentos:organograma' %}" data-nav-link class="nav-clara {% if '/talentos/' in request.path %}nav-ativo{% endif %}" {% if '/talentos/' in request.path %}aria-current="page"{% endif %}>
+            <c-ui.icon name="users" size="18" /><span class="nav-rotulo">Talentos</span>
+          </a>
+        </li>
+        {% endif %}
         {% if pode_ver_auditoria %}
         <li>
           <a href="{% url 'audit:lista' %}" data-nav-link class="nav-clara {% if '/auditoria/' in request.path %}nav-ativo{% endif %}" {% if '/auditoria/' in request.path %}aria-current="page"{% endif %}>

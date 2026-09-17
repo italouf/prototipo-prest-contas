@@ -38,6 +38,14 @@ class SidebarNavegacaoTestes(TestCase):
         self.assertContains(resposta, 'id="grp-contas"')
         sidebar = resposta.content.decode().split('data-testid="sidebar"')[1].split("</aside>")[0]
         self.assertNotIn("OUTRASFONTES", sidebar)
+        pilares = sidebar.split('id="grp-pilares"')[1].split("</ul>")[0]
+        for rotulo in ["PDI", "Formação FCRH", "ACS", "Infraestrutura"]:
+            self.assertIn(rotulo, pilares)
+        self.assertNotIn("Associação Tecnológica", pilares)
+        self.assertNotIn("Talentos", pilares)
+        gestao = sidebar.split('id="grp-gestao"')[1].split("</ul>")[0]
+        for rotulo in ["Associação Tecnológica", "Talentos", "Auditoria", "Admin"]:
+            self.assertIn(rotulo, gestao)
 
     def test_auditor_nao_ve_operacao_nem_admin(self):
         self.client.force_login(self.auditor)
@@ -46,6 +54,9 @@ class SidebarNavegacaoTestes(TestCase):
         self.assertNotContains(resposta, "Aprovação")
         self.assertNotContains(resposta, ">Admin<")
         self.assertContains(resposta, "Auditoria")
+        sidebar = resposta.content.decode().split('data-testid="sidebar"')[1].split("</aside>")[0]
+        self.assertNotIn("Associação Tecnológica", sidebar)
+        self.assertNotIn(">Talentos<", sidebar)
 
     def test_item_ativo_marca_pagina_corrente(self):
         self.client.force_login(self.master)
