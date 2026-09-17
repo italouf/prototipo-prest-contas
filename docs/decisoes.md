@@ -186,3 +186,11 @@
 23. **Render do painel em 9 queries** (teto de teste: 20; RNF-013).
 24. **E2E que muta o banco (T16) restaura o valor** ao final (banco local compartilhado).
 25. **`data-categoria` sem dois-pontos** nos dois tipos de gráfico (seletor único no e2e).
+26. **L9 — AT e Talentos em Gestão restrita** (decisão do usuário): saem do grupo
+    Pilares (só os 4 pilares PPI) e do link solto; Gestão segue
+    `pode_ver_auditoria` ou Master/Admin; os itens mantêm
+    `pode_lancar or pode_aprovar` — PontoFocal perde o link (URL preservada).
+27. **L9 — Números sem localização em SVG/inputs**: `{% localize off %}` na
+    geometria e `|unlocalize` nos `value`; rótulos visíveis seguem pt-BR.
+28. **L9 — Tabela com `min-w-[880px]` + `print:min-w-0`** (cabe em ≥1280px,
+    rola abaixo, imprime sem corte); removido parágrafo duplicado de `anual.html`.

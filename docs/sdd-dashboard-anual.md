@@ -168,3 +168,13 @@ Outras 0/8 (0%), consolidado 34/68 (50%). Per-ano e por pilar conforme tabelas d
 6. `logos.png` (4420×960, fundo `#E9E9E9`): vendorizar recorte 4277×651 reduzido.
 7. Specs e2e atuais de `/` serão re-apontadas p/ `/prestacao/mensal/` (L4/L8).
 8. Tooltips das barras: `<title>` nativo no SVG (acessível, sem JS) em vez do `#tip` mouse-only.
+9. Sidebar (L9, diverge da IA do mockup por decisão do usuário): **Pilares só com os
+   4 pilares PPI** (PDI, Formação FCRH, ACS, Infraestrutura); **Associação Tecnológica
+   e Talentos em Gestão** (não são pilares). Gestão segue restrita
+   (`pode_ver_auditoria` ou Master/Admin); AT/Talentos mantêm o gate
+   `pode_lancar or pode_aprovar` — PontoFocal perde o link direto (acesso por URL
+   preservado), Liderança inalterada.
+10. Render numérico (L9): geometria SVG e `value` de `<input type="number">` saem
+    **sem localização** (`{% localize off %}` / `|unlocalize`) — pt-BR insere
+    vírgula e invalida os atributos; rótulos visíveis seguem em pt-BR
+    (`numero_curto`).

@@ -270,3 +270,65 @@ for (const estado of ESTADOS_L5) {
     }
   });
 }
+
+test('L9 gráficos pintam barras com dimensões válidas (sem colapso em x=0)', async ({ page }) => {
+  await login(page);
+  await page.goto('/?ano=todos&base=fin');
+  for (const grafico of ['chart-fonte-ppi', 'chart-fonte-at', 'chart-fonte-outras', 'chart-consolidado']) {
+    const caixas = await page.getByTestId(grafico).locator('rect').evaluateAll((els) =>
+      els.map((el) => {
+        const r = (el as unknown as SVGGraphicsElement).getBBox();
+        return { x: r.x, y: r.y, w: r.width, h: r.height };
+      }),
+    );
+    expect(caixas.length).toBeGreaterThan(0);
+    for (const c of caixas) {
+      expect(c.w).toBeGreaterThanOrEqual(5);
+      expect(c.h).toBeGreaterThanOrEqual(1.5);
+    }
+    const xs = new Set(caixas.map((c) => Math.round(c.x)));
+    expect(xs.size).toBeGreaterThan(1);
+  }
+  const eixoX = await page
+    .getByTestId('chart-fonte-ppi')
+    .locator('g[data-categoria] > text[font-size="10"]')
+    .evaluateAll((els) => els.map((el) => (el as unknown as SVGGraphicsElement).getBBox().x));
+  expect(new Set(eixoX.map((x) => Math.round(x))).size).toBeGreaterThanOrEqual(4);
+});
+
+test('L9 tabela gerencial cabe no card em 1440px', async ({ page }) => {
+  await login(page);
+  await page.goto('/?ano=todos&base=fin');
+  const tabela = page.getByTestId('pilares-table');
+  await expect(tabela).toBeVisible();
+  const dentro = await tabela.evaluate((el) => {
+    const r = el.getBoundingClientRect();
+    const pai = (el.closest('section') as HTMLElement).getBoundingClientRect();
+    return r.width <= pai.width + 1;
+  });
+  expect(dentro).toBe(true);
+});
+
+test('L9 header permanece fixo ao rolar a página', async ({ page }) => {
+  await login(page);
+  await page.goto('/?ano=todos&base=fin');
+  await page.evaluate(() => window.scrollTo(0, 900));
+  await page.waitForTimeout(250);
+  const topo = await page.getByTestId('app-header').evaluate((el) => el.getBoundingClientRect().top);
+  expect(Math.round(topo)).toBe(0);
+});
+
+test('L9 sidebar: AT e Talentos ficam em Gestão, Pilares só com os 4 pilares', async ({ page }) => {
+  await login(page);
+  await page.goto('/?ano=todos&base=fin');
+  const pilares = page.locator('#grp-pilares');
+  for (const rotulo of ['PDI', 'Formação FCRH', 'ACS', 'Infraestrutura']) {
+    await expect(pilares.getByRole('link', { name: rotulo })).toBeVisible();
+  }
+  await expect(pilares.getByRole('link', { name: /Associação Tecnológica/ })).toHaveCount(0);
+  await expect(pilares.getByRole('link', { name: /^Talentos/ })).toHaveCount(0);
+  const gestao = page.locator('#grp-gestao');
+  await expect(gestao.getByRole('link', { name: /Associação Tecnológica/ })).toBeVisible();
+  await expect(gestao.getByRole('link', { name: /^Talentos/ })).toBeVisible();
+  await expect(gestao.getByRole('link', { name: /^Auditoria/ })).toBeVisible();
+});
