@@ -1,5 +1,6 @@
-{% load core_extras %}
+{% load core_extras l10n %}
 {# Gráfico de barras agrupadas por fonte (SVG server-side). Props: chave, titulo, hint, bloco (DTO), geo, unidade ("R$ mi"|"metas"). #}
+{# Números de geometria saem sem localização (ponto decimal) — SVG não aceita vírgula. #}
 <c-vars chave="" titulo="" hint="" bloco="" geo="" unidade="R$ mi" />
 <section aria-label="{{ titulo }}">
   <h3 class="font-display text-base font-semibold">{{ titulo }}</h3>
@@ -9,6 +10,7 @@
     <span class="inline-flex items-center gap-1.5"><i class="inline-block h-2.5 w-2.5 rounded-sm bg-quiin-sky"></i>Executado</span>
   </div>
   <div data-testid="chart-fonte-{{ chave }}">
+    {% localize off %}
     <svg viewBox="0 0 {{ geo.largura }} {{ geo.altura }}" class="mt-2 h-auto w-full" role="img" aria-label="{{ titulo }} por ano">
       {% for gr in geo.grupos %}
       <g opacity="{{ gr.opacidade }}"{% if gr.destaque %} data-destaque="true"{% endif %} data-categoria="{{ gr.eixo.0 }} {{ gr.eixo.1 }}">
@@ -27,6 +29,7 @@
       {% endfor %}
       <line x1="{{ geo.base_x1 }}" y1="{{ geo.base_y }}" x2="{{ geo.base_x2 }}" y2="{{ geo.base_y }}" class="stroke-border" stroke-width="1" />
     </svg>
+    {% endlocalize %}
   </div>
   <p data-testid="chart-rodape-{{ chave }}" class="mt-1 text-sm text-text-muted">Execução no período selecionado
     <c-dashboard.farol-badge faixa="{{ bloco.rodape_faixa }}" rotulo="{% if bloco.rodape_pct is not None %}{{ bloco.rodape_pct }}%{% else %}—{% endif %}" />

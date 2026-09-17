@@ -1,5 +1,6 @@
-{% load core_extras %}
+{% load core_extras l10n %}
 {# Gráfico consolidado por fonte e por ano (SVG server-side). Props: consolidado (DTO), geo, unidade. #}
+{# Números de geometria saem sem localização (ponto decimal) — SVG não aceita vírgula. #}
 <c-vars consolidado="" geo="" unidade="R$ mi" />
 <section aria-label="Consolidado por fonte e por ano">
   <h3 class="font-display text-base font-semibold">Consolidado por fonte e por ano</h3>
@@ -9,6 +10,7 @@
     <span class="inline-flex items-center gap-1.5"><i class="inline-block h-2.5 w-2.5 rounded-sm bg-quiin-violet"></i>Outras fontes executadas</span>
   </div>
   <div data-testid="chart-consolidado">
+    {% localize off %}
     <svg viewBox="0 0 {{ geo.largura }} {{ geo.altura }}" class="mt-2 h-auto w-full" role="img" aria-label="Execução de PPI, captação AT e outras fontes por ano">
       {% for linha in geo.linhas_grade %}
       <line x1="{{ geo.grade_x }}" y1="{{ linha.y }}" x2="{{ geo.grade_x2 }}" y2="{{ linha.y }}" class="stroke-quiin-mist" stroke-width="1" />
@@ -28,5 +30,6 @@
       {% endfor %}
       <line x1="{{ geo.grade_x }}" y1="{{ geo.base_y }}" x2="{{ geo.grade_x2 }}" y2="{{ geo.base_y }}" class="stroke-border" stroke-width="1" />
     </svg>
+    {% endlocalize %}
   </div>
 </section>

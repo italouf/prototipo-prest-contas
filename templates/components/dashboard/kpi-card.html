@@ -1,4 +1,6 @@
-{% load core_extras %}
+{% load core_extras l10n %}
+{# largura da barra é número inteiro; localize off defensivo (nunca vírgula em style). #}
+{% localize off %}
 {# Card KPI do painel anual. Props: card (DTO), base, borda (classe kpi-borda-*). #}
 <c-vars card="" base="financeiro" borda="kpi-borda-1" />
 <article data-testid="kpi-{{ card.chave }}" class="rounded-xl border border-border bg-surface-2 p-5 {{ borda }}">
@@ -12,3 +14,4 @@
     <c-dashboard.farol-badge faixa="{{ card.faixa }}" rotulo="{% if card.pct is not None %}{{ card.pct }}%{% else %}—{% endif %}" />
   </div>
 </article>
+{% endlocalize %}
