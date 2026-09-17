@@ -2,7 +2,11 @@
 {% block title %}Gestão do QuIIN · Portal QuIIN{% endblock %}
 {% block content %}
 <div data-testid="page-painel-anual">
-  <p class="text-sm text-text-muted">Resultados agregados do Centro de Competência. Os indicadores, os gráficos e a tabela respondem aos filtros de ano e de base de análise. {{ painel.rotulo_periodo }}.</p>
+  <div class="print-only" data-testid="print-cabecalho">
+    <h1 class="font-display text-2xl font-bold">Gestão do QuIIN — Painel anual</h1>
+    <p class="text-sm">Período: <strong>{{ painel.rotulo_periodo }}</strong> · Base: <strong>{% if base_param == 'fin' %}Financeiro{% else %}Físico{% endif %}</strong> · Unidade: <strong>{% if base_param == 'fin' %}R$ milhões{% else %}quantidade de metas{% endif %}</strong></p>
+  </div>
+  <p class="text-sm text-text-muted no-print">Resultados agregados do Centro de Competência. Os indicadores, os gráficos e a tabela respondem aos filtros de ano e de base de análise. {{ painel.rotulo_periodo }}.</p>
   {% include 'dashboard/_panel.html' %}
 </div>
 {% endblock %}

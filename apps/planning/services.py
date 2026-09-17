@@ -164,13 +164,13 @@ def painel(ano, base):
         exe = no_periodo(serie_anos(codigo, "executado"))
         pct = pct_inteiro(exe, prev)
         linhas_ppi.append(_linha_tabela(por_pilar[codigo]["pilar"], codigo, prev, exe, pct))
-    grupos.append({"titulo": "4.1 PPI: projetado x executado", "linhas": linhas_ppi + [
+    grupos.append({"titulo": "4.1 PPI: projetado x executado", "bloco": "4.1 PPI", "linhas": linhas_ppi + [
         _linha_tabela(None, "Total PPI", p_ppi, e_ppi, pct_inteiro(e_ppi, p_ppi), total=True),
     ]})
-    grupos.append({"titulo": "4.2 Captação de recursos: captado x executado", "linhas": [
+    grupos.append({"titulo": "4.2 Captação de recursos: captado x executado", "bloco": "4.2 Captação de recursos", "linhas": [
         _linha_tabela(por_pilar["AT"]["pilar"], "AT", p_at, e_at, pct_inteiro(e_at, p_at)),
     ]})
-    grupos.append({"titulo": "4.3 Outras fontes: captado x executado", "linhas": [
+    grupos.append({"titulo": "4.3 Outras fontes: captado x executado", "bloco": "4.3 Outras fontes", "linhas": [
         _linha_tabela(por_pilar["OUTRASFONTES"]["pilar"], "OUTRASFONTES", p_ou, e_ou, pct_inteiro(e_ou, p_ou)),
     ]})
 
@@ -196,9 +196,54 @@ def painel(ano, base):
 def _linha_tabela(pilar, codigo, previsto, executado, pct, total=False):
     return {
         "pilar": pilar,
+        "codigo": None if pilar is None else pilar.codigo,
         "rotulo": ROTULOS_PAINEL.get(codigo, getattr(pilar, "nome", codigo) if pilar else codigo),
         "previsto": previsto, "executado": executado,
         "saldo": previsto - executado, "pct": pct,
         "faixa": faixa(percentual(executado, previsto)),
         "grupo": False, "total": total or codigo == "Total PPI",
     }
+
+
+def grade_edicao(base, codigos=None):
+    """Blocos editáveis da base para o modo de edição (L7).
+
+    `codigos`: subset de pilares editáveis (None = todos). Cada linha carrega
+    seu próprio campo (previsto|executado) e os 4 valores anuais.
+    """
+    from .models import PlanoAnual
+
+    base = BASES_URL.get(base, base)
+    mapa = {}
+    for linha in PlanoAnual.objects.filter(base=base).select_related("pilar"):
+        mapa[(linha.pilar.codigo, linha.ano)] = (Decimal(linha.previsto), Decimal(linha.executado))
+
+    def serie(codigo, campo):
+        idx = 0 if campo == "previsto" else 1
+        return [mapa.get((codigo, ano), (Decimal(0), Decimal(0)))[idx] for ano in ANOS]
+
+    def permitido(codigo):
+        return codigos is None or codigo in codigos
+
+    def celulas(codigo, campo):
+        valores = serie(codigo, campo)
+        return {"valores": valores,
+                "celulas": [{"ano": ano, "valor": valor} for ano, valor in zip(ANOS, valores)],
+                "total": sum(valores, Decimal(0))}
+
+    blocos = []
+    for campo, titulo in (("previsto", "Recursos PPI, projetado"), ("executado", "Recursos PPI, executado")):
+        linhas = [
+            {"codigo": c, "rotulo": ROTULOS_PAINEL[c], "campo": campo, **celulas(c, campo)}
+            for c in PILARES_PPI if permitido(c)
+        ]
+        if linhas:
+            blocos.append({"titulo": titulo, "cabecalho": "Pilar", "linhas": linhas})
+    for codigo, titulo in (("AT", "Captação de recursos (AT)"), ("OUTRASFONTES", "Outras fontes")):
+        if not permitido(codigo):
+            continue
+        blocos.append({"titulo": titulo, "cabecalho": "Indicador", "linhas": [
+            {"codigo": codigo, "rotulo": "Captado", "campo": "previsto", **celulas(codigo, "previsto")},
+            {"codigo": codigo, "rotulo": "Executado", "campo": "executado", **celulas(codigo, "executado")},
+        ]})
+    return blocos

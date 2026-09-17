@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+{# Export standalone do painel anual (L7): CSS + sprite embutidos; sem JS de interação. #}
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gestão do QuIIN — {{ painel.rotulo_periodo }} · {% if base_param == 'fin' %}Financeiro{% else %}Físico{% endif %}</title>
+<style>{{ standalone_css }}</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">{{ standalone_sprite|safe }}</svg>
+<div class="mx-auto w-full max-w-[1440px] px-4 py-6 lg:px-8">
+  <h1 class="font-display text-2xl font-bold">Gestão do QuIIN</h1>
+  <p class="text-sm text-text-muted">Sistema de gerenciamento e monitoramento das metas do Centro de Competência EMBRAPII CIMATEC em Tecnologias Quânticas</p>
+  <p class="mt-2 text-sm">Período: <strong>{{ painel.rotulo_periodo }}</strong> · Base: <strong>{% if base_param == 'fin' %}Financeiro{% else %}Físico{% endif %}</strong> · Unidade: <strong>{% if base_param == 'fin' %}R$ milhões{% else %}quantidade de metas{% endif %}</strong></p>
+  {% include 'dashboard/_panel.html' with standalone=True %}
+</div>
+</body>
+</html>

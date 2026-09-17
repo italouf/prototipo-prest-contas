@@ -28,7 +28,6 @@ class SidebarNavegacaoTestes(TestCase):
     def test_grupos_e_itens_do_mockup_mais_operacao_e_gestao(self):
         self.client.force_login(self.master)
         resposta = self.client.get(reverse("core:dashboard"))
-        html = resposta.content.decode()
         for rotulo in ["Geral", "Pilares", "PDI", "Formação FCRH", "ACS", "Infraestrutura",
                        "Associação Tecnológica", "Talentos", "Prestação de contas",
                        "Mensal", "Semestral", "Relatórios", "Operação", "Lançamentos",
@@ -37,7 +36,8 @@ class SidebarNavegacaoTestes(TestCase):
         self.assertContains(resposta, 'aria-expanded')
         self.assertContains(resposta, 'id="grp-pilares"')
         self.assertContains(resposta, 'id="grp-contas"')
-        self.assertNotIn("OUTRASFONTES", html)
+        sidebar = resposta.content.decode().split('data-testid="sidebar"')[1].split("</aside>")[0]
+        self.assertNotIn("OUTRASFONTES", sidebar)
 
     def test_auditor_nao_ve_operacao_nem_admin(self):
         self.client.force_login(self.auditor)

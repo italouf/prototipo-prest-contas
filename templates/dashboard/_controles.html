@@ -42,10 +42,10 @@
 
   <div class="ml-auto flex flex-wrap items-center gap-2" role="toolbar" aria-label="Ações do painel">
     {% if pode_editar_painel %}
-    <c-ui.button variant="primary" size="sm" disabled title="Edição disponível no L7">Editar dados</c-ui.button>
+    <c-ui.button variant="primary" size="sm" data-testid="btn-editar-dados" data-editor-toggle onclick="quiinAlternarEditor()">Editar dados</c-ui.button>
     {% endif %}
-    <c-ui.button size="sm" disabled title="Download disponível no L7">Baixar dashboard</c-ui.button>
-    <c-ui.button size="sm" disabled title="CSV disponível no L7">Baixar dados (CSV)</c-ui.button>
+    <c-ui.button size="sm" href="{% url 'planning:export_html' %}?ano={{ ano_param }}&base={{ base_param }}">Baixar dashboard</c-ui.button>
+    <c-ui.button size="sm" href="{% url 'planning:csv' %}?ano={{ ano_param }}&base={{ base_param }}">Baixar dados (CSV)</c-ui.button>
     <c-ui.button size="sm" onclick="window.print()">Imprimir</c-ui.button>
     <c-ui.button size="sm" variant="ghost" href="{% url 'core:dashboard' %}">Restaurar padrão</c-ui.button>
   </div>

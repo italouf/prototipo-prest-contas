@@ -36,4 +36,8 @@
     <p class="text-xs text-text-muted">Execução de PPI, captação AT e outras fontes por ano, {% if base_param == 'fin' %}em R$ milhões{% else %}em quantidade de metas físicas{% endif %}.</p>
     <c-dashboard.chart-consolidado :consolidado="painel.consolidado" :geo="geo_consolidado" unidade="{{ painel.unidade }}" />
   </section>
+
+  {% if pode_editar_painel and not standalone %}
+  {% include 'dashboard/editor.html' %}
+  {% endif %}
 </div>

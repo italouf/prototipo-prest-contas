@@ -72,6 +72,68 @@ test('T08 URL mensal antiga redireciona 301 para o ano equivalente', async ({ pa
   await expect(page.getByTestId('context-chips')).toContainText('Período: Ano 3: 2026');
 });
 
+test('T12 CSV reflete Ano 3 + Físico', async ({ page }) => {
+  await login(page);
+  await page.goto('/?ano=2026&base=fis');
+  const download = await Promise.all([
+    page.waitForEvent('download'),
+    page.getByRole('link', { name: /baixar dados/i }).click(),
+  ]);
+  const caminho = await download[0].path();
+  const texto = fs.readFileSync(caminho as string, 'utf8').replace(/^﻿/, '');
+  const linhas = texto.split('\n');
+  expect(linhas[0]).toBe('Bloco;Item;Indicador;Unidade;Período;Valor');
+  expect(texto).toContain('4.1 PPI;PDI;Projetado;metas;Ano 3: 2026;6');
+  expect(texto).toContain('4.2 Captação de recursos;Associação Tecnológica (AT);Executado;metas;Ano 3: 2026;1');
+  expect(texto).not.toContain('R$ milhoes');
+});
+
+test('T13 impressão mostra cabeçalho do filtro e esconde controles', async ({ page }) => {
+  await login(page);
+  await page.goto('/?ano=2026&base=fis');
+  await page.emulateMedia({ media: 'print' });
+  await expect(page.getByTestId('print-cabecalho')).toBeVisible();
+  await expect(page.getByTestId('print-cabecalho')).toContainText('Ano 3: 2026');
+  await expect(page.getByTestId('dashboard-controls')).toBeHidden();
+  await expect(page.getByTestId('sidebar')).toBeHidden();
+});
+
+test('T14 liderança não vê Editar e recebe 403 no POST', async ({ page }) => {
+  await login(page, 'lideranca', 'lider123');
+  await expect(page.getByRole('button', { name: /editar dados/i })).toHaveCount(0);
+  const cookies = await page.context().cookies();
+  const csrf = cookies.find((c) => c.name === 'csrftoken')?.value ?? '';
+  const resposta = await page.request.post('/plano-anual/aplicar/', {
+    form: { ano: 'todos', base: 'fin', v__2026__financeiro__PDI__executado: '99' },
+    headers: { 'X-CSRFToken': csrf },
+  });
+  expect(resposta.status()).toBe(403);
+});
+
+test('T15 ponto focal edita só os próprios pilares', async ({ page }) => {
+  await login(page, 'focal_pdi', 'focal123');
+  await page.getByRole('button', { name: /editar dados/i }).click();
+  await expect(page.getByTestId('editor-dados')).toBeVisible();
+  await expect(page.locator('#editor-dados input[name*="__PDI__"]')).not.toHaveCount(0);
+  await expect(page.locator('#editor-dados input[name*="__INFRA__"]')).toHaveCount(0);
+});
+
+test('T16 master edita e o painel recalcula com auditoria', async ({ page }) => {
+  await login(page);
+  await page.getByRole('button', { name: /editar dados/i }).click();
+  await expect(page.getByTestId('editor-dados')).toBeVisible();
+  await page.locator('input[name="v__2026__financeiro__PDI__executado"]').fill('9');
+  await page.getByRole('button', { name: /^aplicar alterações$/i }).first().click();
+  await expect(page.getByTestId('kpi-ppi')).toContainText('R$ 41 mi');
+  await page.goto('/auditoria/');
+  await expect(page.getByTestId('timeline-auditoria')).toContainText(/plano anual editado/i);
+  await page.goto('/?ano=todos&base=fin');
+  await page.getByRole('button', { name: /editar dados/i }).click();
+  await page.locator('input[name="v__2026__financeiro__PDI__executado"]').fill('8');
+  await page.getByRole('button', { name: /^aplicar alterações$/i }).first().click();
+  await expect(page.getByTestId('kpi-ppi')).toContainText('R$ 40 mi');
+});
+
 const MATRIZ_L0 = JSON.parse(
   fs.readFileSync(
     path.join(process.cwd(), 'docs/retrofit/evidencias/dashboard-anual/loop-0/matriz-estados.json'),

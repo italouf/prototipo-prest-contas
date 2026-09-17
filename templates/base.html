@@ -62,9 +62,7 @@
       {% block content %}{% endblock %}
     </main>
     {% if user.is_authenticated %}
-    <footer class="mx-auto w-full max-w-[1440px] px-4 pb-8 text-xs text-text-muted lg:px-8">
-      Portal QuIIN — protótipo local de gestão e prestação de contas. Dados fictícios para demonstração.
-    </footer>
+    <c-layout.app_footer />
     {% endif %}
   </div>
 </div>
@@ -103,6 +101,16 @@
   }
   document.addEventListener('DOMContentLoaded', function () { quiinAtivarNav(); quiinNavGrupos(); });
   document.addEventListener('htmx:afterSwap', quiinAtivarNav);
+  function quiinAlternarEditor(forcar) {
+    var ed = document.getElementById('editor-dados');
+    if (!ed) return;
+    var abrir = typeof forcar === 'boolean' ? forcar : ed.hidden;
+    ed.hidden = !abrir;
+    document.querySelectorAll('[data-editor-toggle]').forEach(function (b) {
+      b.textContent = abrir ? 'Fechar edição' : 'Editar dados';
+    });
+    if (abrir) ed.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 </script>
 </body>
 </html>

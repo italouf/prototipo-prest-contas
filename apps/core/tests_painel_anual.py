@@ -73,10 +73,12 @@ class PainelAnualViewTestes(TestCase):
     def test_toolbar_respeita_papel(self):
         self.client.force_login(self.master)
         resposta = self.client.get(reverse("core:dashboard"))
-        self.assertContains(resposta, "Editar dados")
+        self.assertContains(resposta, 'data-testid="btn-editar-dados"')
+        self.assertContains(resposta, '<section id="editor-dados"')
         self.client.force_login(self.lider)
         resposta = self.client.get(reverse("core:dashboard"))
-        self.assertNotContains(resposta, "Editar dados")
+        self.assertNotContains(resposta, 'data-testid="btn-editar-dados"')
+        self.assertNotContains(resposta, '<section id="editor-dados"')
 
     def test_exige_login(self):
         resposta = self.client.get(reverse("core:dashboard"))

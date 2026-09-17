@@ -134,6 +134,9 @@
 }
 
 @layer utilities {
+  .print-only {
+    display: none;
+  }
   .numerico {
     font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
@@ -187,8 +190,14 @@
   [data-testid="topbar"],
   [data-testid="app-header"],
   [data-testid="sidebar"],
-  [data-testid="progresso"] {
+  [data-testid="progresso"],
+  #dashboard-controls,
+  #editor-dados,
+  [data-testid="farol-modal"] {
     display: none !important;
+  }
+  .print-only {
+    display: block !important;
   }
   body {
     background: #fff;

@@ -160,6 +160,7 @@ ACAO_AMIGAVEL = {
     "REABRIR_PERIODO": "Período reaberto",
     "IMPORTAR_FINANCEIRO": "Financeiro importado",
     "IMPORTAR_FINANCEIRO_ERRO": "Importação rejeitada",
+    "EDITAR_PLANO_ANUAL": "Plano anual editado",
 }
 
 
