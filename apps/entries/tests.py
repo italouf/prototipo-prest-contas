@@ -79,7 +79,7 @@ class LancamentoTestes(TestCase):
         resultado = meta_realizado_percentual(self.ind, self.periodo)
         self.assertEqual(resultado["percentual"], 50)
         self.client.force_login(self.master)
-        resposta = self.client.get(reverse("core:dashboard"))
+        resposta = self.client.get(reverse("core:mensal"))
         self.assertContains(resposta, "50%")
 
 

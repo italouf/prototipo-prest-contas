@@ -170,3 +170,19 @@
 13. **`makemigrations planning` sempre** (`talentos.0002` fantasma no `db.sqlite3` local).
 14. **Modal do farol acessível** (`role="dialog"`, focus trap, ESC, retorno de foco) —
     o mockup não implementa.
+
+## Decisões — Dashboard anual (L2–L8, 2026-09-17)
+
+15. **Swap htmx com OOB**: trocar o filtro devolve `#dashboard-panel` + controles
+    (`#dashboard-controls`) via `hx-swap-oob`, mantendo header, painel e URL coerentes.
+16. **Segmento ativo usa `aria-current`** (links não suportam `aria-pressed` — axe exigiu).
+17. **`numero_curto`**: até 2 decimais sem zeros à direita (75,5 · 7,75 · 40), paridade com o `fmt` do mockup.
+18. **`tailwind build --force` sempre**: o cache do CLI ignora mudanças só de template.
+19. **`collectstatic` após novo asset estático** (manifest estrito quebra render/tests).
+20. **Grupos da sidebar abertos por padrão** (mockup renderiza fechados; abertura favorece
+    descoberta; grupo do item ativo sempre abre).
+21. **Trocar de filtro descarta edição não salva** (o swap re-renderiza o painel).
+22. **Standalone**: CSS + sprite inline, fontes degradam, editor fora, farol expandido.
+23. **Render do painel em 9 queries** (teto de teste: 20; RNF-013).
+24. **E2E que muta o banco (T16) restaura o valor** ao final (banco local compartilhado).
+25. **`data-categoria` sem dois-pontos** nos dois tipos de gráfico (seletor único no e2e).

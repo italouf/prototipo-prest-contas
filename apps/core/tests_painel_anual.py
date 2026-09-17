@@ -91,6 +91,19 @@ class PainelAnualViewTestes(TestCase):
         self.assertEqual(resposta.status_code, 200)
         self.assertContains(resposta, "Dashboard Executivo")
 
+    def test_painel_cabe_no_orcamento_de_queries(self):
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
+
+        self.client.force_login(self.master)
+        with CaptureQueriesContext(connection) as capturadas:
+            self.client.get(reverse("core:dashboard"))
+        self.assertLessEqual(len(capturadas.captured_queries), 20)
+        self.client.force_login(self.master)
+        resposta = self.client.get(reverse("core:mensal"))
+        self.assertEqual(resposta.status_code, 200)
+        self.assertContains(resposta, "Dashboard Executivo")
+
     def test_tabela_farol_e_modal_metodologia(self):
         self.client.force_login(self.master)
         resposta = self.client.get(reverse("core:dashboard"))

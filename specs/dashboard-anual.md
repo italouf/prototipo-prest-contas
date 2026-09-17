@@ -7,6 +7,12 @@ Pré-condição: `seed_demo` aplicado. Login como Master (exceto onde indicado).
 `chart-fonte-ppi|at|outras`, `chart-rodape-ppi|at|outras`, `pilares-table`,
 `farol-modal`, `farol-abrir`, `editor-dados`, `btn-toolbar-*`, `sidebar`, `app-footer`.
 
+> Cobertura L8: T01–T08, T12–T17 em `dashboard_anual.spec.ts`; T09/T11 idem;
+> T10 implícito na paridade L5 (10 estados × farol); T18 = `SeedPlanoAnualTestes`
+> + `test_painel_cabe_no_orcamento_de_queries` (Django); T19 em `shell.spec.ts`
+> (grupos, mensal/semestral, pilar→painel); T20 = specs mensais re-apontadas
+> (`dashboard.spec.ts`, `dashboard_r2.spec.ts`, `polish_r6.spec.ts`).
+
 ## Casos por AC
 
 | # | AC | Passos | Asserções |

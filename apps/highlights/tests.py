@@ -48,7 +48,7 @@ class DashboardDestaquesTestes(TestCase):
         self.periodo = Periodo.objects.create(competencia=date(2026, 6, 1), status="ABERTO")
 
     def test_home_traz_destaque_geral_e_do_pilar_limitado_a_6(self):
-        from apps.core.views import dashboard
+        from apps.core.views import mensal
 
         base = timezone.now()
         criados = []
@@ -67,7 +67,7 @@ class DashboardDestaquesTestes(TestCase):
         requisicao = _request("/", self.master)
         with mock.patch("apps.core.views.render") as mock_render:
             mock_render.return_value = HttpResponse()
-            dashboard(requisicao)
+            mensal(requisicao)
         contexto = _contexto_de_render(mock_render)
         self.assertIn("destaques", contexto)
         destaques = list(contexto["destaques"])
@@ -79,7 +79,7 @@ class DashboardDestaquesTestes(TestCase):
         )
 
     def test_home_com_destaque_geral_e_de_pilar_aparecem_no_contexto(self):
-        from apps.core.views import dashboard
+        from apps.core.views import mensal
 
         geral = DestaqueMensal.objects.create(
             periodo=self.periodo, pilar=None, titulo="Geral do mês", descricao="Visão geral."
@@ -90,20 +90,20 @@ class DashboardDestaquesTestes(TestCase):
         requisicao = _request("/", self.master)
         with mock.patch("apps.core.views.render") as mock_render:
             mock_render.return_value = HttpResponse()
-            dashboard(requisicao)
+            mensal(requisicao)
         destaques = list(_contexto_de_render(mock_render)["destaques"])
         self.assertIn(geral, destaques)
         self.assertIn(do_pilar, destaques)
 
     def test_home_sem_periodo_traz_destaques_vazio(self):
-        from apps.core.views import dashboard
+        from apps.core.views import mensal
 
         Periodo.objects.all().delete()
         DestaqueMensal.objects.all().delete()
         requisicao = _request("/", self.master)
         with mock.patch("apps.core.views.render") as mock_render:
             mock_render.return_value = HttpResponse()
-            dashboard(requisicao)
+            mensal(requisicao)
         self.assertEqual(list(_contexto_de_render(mock_render)["destaques"]), [])
 
 

@@ -1,3 +1,4 @@
+import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
@@ -132,6 +133,37 @@ test('T16 master edita e o painel recalcula com auditoria', async ({ page }) => 
   await page.locator('input[name="v__2026__financeiro__PDI__executado"]').fill('8');
   await page.getByRole('button', { name: /^aplicar alterações$/i }).first().click();
   await expect(page.getByTestId('kpi-ppi')).toContainText('R$ 40 mi');
+});
+
+test('T17 axe-core limpo nos 3 estados de referência', async ({ page }) => {
+  await login(page);
+  for (const url of ['/', '/?ano=2026&base=fin', '/?ano=todos&base=fis']) {
+    await page.goto(url);
+    const resultado = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
+    const graves = resultado.violations.filter((v) => ['critical', 'serious'].includes(v.impact ?? ''));
+    expect(graves, graves.map((v) => `${v.id}: ${v.help}`).join('\n')).toEqual([]);
+  }
+});
+
+test('L8 sem erros de console/pageerror ao filtrar', async ({ page }) => {
+  const erros: string[] = [];
+  page.on('pageerror', (e) => erros.push(String(e)));
+  page.on('console', (m) => { if (m.type() === 'error') erros.push(m.text()); });
+  await login(page);
+  await page.getByTestId('year-select').selectOption('2026');
+  await page.getByTestId('base-toggle').getByRole('link', { name: 'Físico' }).click();
+  await expect(page.getByTestId('context-chips')).toContainText('Ano 3: 2026');
+  expect(erros).toEqual([]);
+});
+
+test('L8 painel anual responsivo no viewport móvel', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await login(page);
+  const semOverflow = await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth);
+  expect(semOverflow).toBeTruthy();
+  await expect(page.getByTestId('sidebar')).not.toBeInViewport();
+  await page.getByTestId('sidebar-toggle').click();
+  await expect(page.getByTestId('sidebar')).toBeInViewport();
 });
 
 const MATRIZ_L0 = JSON.parse(

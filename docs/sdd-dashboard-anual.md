@@ -1,6 +1,6 @@
 # SDD — Dashboard Anual QuIIN (filtro por ano + base Financeiro/Físico)
 
-Data: 2026-09-17 · Status: rascunho L1 (aguardando revisão) · Loops: L0–L8
+Data: 2026-09-17 · Status: implementado (loops L0–L8 concluídos)
 Fonte de verdade visual: `mockup/gestao_quiin_dashboard_17092026.html` (+ `mockup/logos.png`)
 Matriz de estados validada no L0: `docs/retrofit/evidencias/dashboard-anual/loop-0/matriz-estados.md`
 Plano de teste: `specs/dashboard-anual.md`
