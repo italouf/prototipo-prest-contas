@@ -105,3 +105,12 @@ class PilarPainelViewTestes(TestCase):
         self.assertContains(resposta, "Indicadores do pilar")
         self.assertContains(resposta, "PDI-X")
         self.assertEqual(resposta.context["periodo"], periodo)
+
+    def test_pagina_do_pilar_cabe_no_orcamento_de_queries(self):
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
+
+        self.client.force_login(self.master)
+        with CaptureQueriesContext(connection) as capturadas:
+            self.client.get(self.url("PDI"))
+        self.assertLessEqual(len(capturadas.captured_queries), 25)

@@ -29,7 +29,7 @@ test('master visualiza dashboard de qualquer pilar', async ({ page }) => {
   await login(page, 'erica', 'erica123');
   const resposta = await page.goto('/pilar/2/');
   expect(resposta?.status()).toBe(200);
-  await expect(page.getByRole('heading', { name: /Formação/i })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Formação e Capacitação de RH', exact: true })).toBeVisible();
 });
 
 test('ponto focal não acessa pilar não autorizado', async ({ page }) => {
