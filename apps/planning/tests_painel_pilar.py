@@ -73,6 +73,18 @@ class PainelPilarTestes(TestCase):
         self.assertEqual((total["previsto"], total["executado"]), (D(29), D(21)))
         self.assertEqual((total["pct"], total["faixa"]), (72, "parcial"))
 
+    def test_tabela_mostra_todos_os_anos_com_destaque_no_filtro(self):
+        p = self.painel("PDI", ano=2026)
+        rotulos = [l["rotulo"] for l in p["tabela"]]
+        self.assertEqual(rotulos, ["Ano 1: 2024", "Ano 2: 2025", "Ano 3: 2026", "Ano 4: 2027", "Total"])
+        total = p["tabela"][4]
+        self.assertEqual((total["previsto"], total["executado"]), (D(29), D(21)))
+        self.assertEqual((total["pct"], total["faixa"]), (72, "parcial"))
+        self.assertEqual([l["destaque"] for l in p["tabela"]],
+                         [False, False, True, False, False])
+        sem_filtro = self.painel("PDI")["tabela"]
+        self.assertEqual([l["destaque"] for l in sem_filtro], [False] * 5)
+
     def test_cards_reaproveitam_formato_do_kpi_card(self):
         p = self.painel("PDI")
         chaves = [c["chave"] for c in p["cards"]]
