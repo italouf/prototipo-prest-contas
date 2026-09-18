@@ -202,3 +202,7 @@
     (`rounded-lg px-4 py-2 text-xs` ≈ `.btn` do mockup); botões-ícone do header
     em 32px com ícones 16px (só no `app_header`, sem tocar o design system);
     ícones da sidebar mantidos em 18px (par com labels `text-sm`).
+31. **L12.0 - Painel por pilar**: mesmos componentes do geral (sem duplicar);
+    AT volta para Pilares (é pilar) e Funil AT vai para Gestão; Outras Fontes
+    fora; CSV do pilar com shape próprio por ano; banner `contexto-anual` sai
+    (chips assumem); sem mudança de schema (reuso de `PlanoAnual`).

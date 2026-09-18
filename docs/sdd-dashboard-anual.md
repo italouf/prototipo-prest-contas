@@ -182,3 +182,90 @@ Outras 0/8 (0%), consolidado 34/68 (50%). Per-ano e por pilar conforme tabelas d
     abaixo do header sem scroll exclusivo (acompanha a página; drawer mobile
     mantém scroll próprio); marca mantida na sidebar; toolbar em linha própria
     alinhada à direita; rodapé full width.
+
+## 9. Painel por pilar (L12–L16)
+
+Mesmo visual do painel geral, recortado por pilar, reagindo a `?ano=&base=`.
+Pilares com painel: **PDI, Formação FCRH, ACS, Infraestrutura, Associação
+Tecnológica** (Outras Fontes fica fora). Sem mudança de schema — reuso de
+`planning.PlanoAnual` (ver `docs/modelo-dados.md`).
+
+### 9.1 Requisitos (continuação)
+
+**RF-120..127**
+
+| ID | Requisito | Onde |
+|---|---|---|
+| RF-120 | Painel anual por pilar na página do pilar: 4 cards (Previsto/Captado, Executado, Saldo, % + farol), gráfico previsto×executado por ano + acumulado, tabela por ANO (Ano 1..4 + Total) | `painel_pilar` + componentes |
+| RF-121 | Filtros ANO + base no header do pilar reagindo a todo o painel (chips incluídos) | `_controles_pilar` + fragmento htmx |
+| RF-122 | Seção mensal atual preservada abaixo ("Prestação mensal do pilar") | `core.views.pilar` |
+| RF-123 | Sidebar: os 5 pilares clicáveis em Pilares; Funil AT em Gestão | `c-layout.sidebar` |
+| RF-124 | Edição escopada ao pilar (Master/Admin tudo; PontoFocal só o seu) | `planning:aplicar` com `pilar=` |
+| RF-125 | CSV do pilar refletindo ano+base | `planning:csv` com `pilar=` |
+| RF-126 | HTML standalone do pilar | `planning:export_html` com `pilar=` |
+| RF-127 | Impressão A4 do pilar com cabeçalho do pilar + filtros; Restaurar volta a `/pilar/<pk>/` | print CSS + `_controles_pilar` |
+
+**RNF-016..019**
+
+| ID | Requisito |
+|---|---|
+| RNF-016 | Reuso dos componentes do painel geral (`kpi-card`, `chart-fonte`, `farol-badge`, `geometria_fonte`); sem CSS/cores paralelos |
+| RNF-017 | Render do pilar em ≤ ~25 queries |
+| RNF-018 | axe-core sem critical/serious em `/pilar/1/` e `/pilar/4/?ano=2026&base=fis` |
+| RNF-019 | Paridade absoluta com o Anexo A por pilar/ano/base (fixture + matriz L0) |
+
+**RN-023..026**
+- **RN-023:** % do pilar usa **projetado** (PPI) ou **captado** (AT) — extensão da RN-018.
+- **RN-024:** farol pelas faixas 90/50 (RN-019); **RN-025:** denominador zero ⇒ "—" (RN-020).
+- **RN-026:** edição por pilar só para quem edita aquele pilar (RN-021); POST fora do escopo ⇒ 403.
+
+**US-010..012**
+
+| ID | História |
+|---|---|
+| US-010 | Como Liderança, quero ver o painel anual de cada pilar filtrado por ano e base |
+| US-011 | Como PontoFocal, quero editar somente os valores do meu pilar |
+| US-012 | Como Auditor, quero baixar CSV/HTML do pilar refletindo os filtros |
+
+**AC-051..060** (Gherkin em `specs/painel-pilar.md`): AC-051 PDI acumulado FIN (29×21, 72% parcial);
+AC-052 Ano 3:2026 recalcula (PDI 10×8); AC-053 base Físico (PDI 18×13, "metas");
+AC-054 deep-link `/pilar/1/?ano=2025&base=fis`; AC-055 AT usa **Captado** (7,75×2, 26%);
+AC-056 sidebar (5 em Pilares; Funil AT em Gestão); AC-057 CSV do pilar; AC-058 impressão
+com cabeçalho do pilar; AC-059 editor escopado + 403; AC-060 axe nos dois estados.
+
+### 9.2 Contrato de URL
+
+| Rota | Comportamento |
+|---|---|
+| `GET /pilar/<pk>/?ano=todos\|2024..2027&base=fin\|fis` | Painel anual do pilar + seção mensal abaixo; inválido ⇒ **302** para `/pilar/<pk>/?ano=todos&base=fin` (preservando `periodo`) |
+| `GET /plano-anual/dados.csv?ano&base&pilar=<pk>` | CSV do pilar (`Pilar;Ano;Previsto;Executado;Saldo;% Executado`; valida visibilidade ⇒ 403) |
+| `GET /plano-anual/dashboard.html?ano&base&pilar=<pk>` | HTML standalone do pilar |
+| `POST /plano-anual/aplicar/` com `pilar=<pk>` | Edição escopada; redireciona ao painel do pilar |
+
+### 9.3 Componentes e reuso
+
+Novos: `dashboard/tabela-anual-pilar` (linhas por ano + Total), `dashboard/painel-pilar.html`
+(`#painel-pilar`), `_controles_pilar.html`, `_fragmento_pilar.html`,
+`standalone_pilar.html`. Reusados sem alteração: `kpi-card`, `chart-fonte`,
+`farol-badge`, `modal-farol`, `geometria_fonte`, `PainelFiltroForm`, chips.
+Helper compartilhado de filtros/redirect com o painel geral; `contexto_pilar()`
+para painel + HTML. Banner `contexto-anual` sai (chips assumem o contexto).
+
+### 9.4 Matriz por pilar (derivada do Anexo A — fonte de verdade p/ testes)
+
+FIN acumulado: PDI 29×21 (72% parcial); FCRH 14×7 (50%); ACS 7×3 (43% crítica);
+Infra 10×9 (90% atingida); AT 7,75×2 (26% crítica).
+FIS acumulado: PDI 18×13 (72%); FCRH 15×7 (47% crítica); ACS 9×3 (33% crítica);
+Infra 10×9 (90%); AT 8×2 (25% crítica).
+Ano 3:2026 FIN: PDI 10×8 (80%); FCRH 4×2 (50%); ACS 2×1 (50%); Infra 4×4 (100%);
+AT 3×1 (33%). FIS: PDI 6×5 (83%); AT 3×1 (33%).
+
+### 9.5 Loops
+
+| Loop | Entrega | DoD |
+|---|---|---|
+| **L12** | `painel_pilar` + testes (10 estados × 5 pilares, rótulo Projetado/Captado, faixas, zero, ≤2 queries) | unit verdes; `loop-12/` |
+| **L13** | componentes + view/redirects + filtros/chips/fragmento | deep-link/troca de estado; axe; screenshots |
+| **L14** | AT em Pilares, Funil AT em Gestão, testes de navegação | e2e sidebar; acessos preservados |
+| **L15** | edição escopada, CSV, HTML, impressão, restaurar | e2e + evidências |
+| **L16** | regressão total, paridade por pilar, docs finais | tudo verde + relatório |
