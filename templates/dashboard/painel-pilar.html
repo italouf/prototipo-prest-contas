@@ -1,0 +1,41 @@
+{# Painel anual do pilar (L13): 3 kpi-cards + card %/farol + gráfico + tabela. #}
+{% load core_extras %}
+<div id="painel-pilar" data-testid="painel-pilar" class="mt-4">
+  <section aria-label="Visão geral do pilar">
+    <h2 class="font-display text-lg font-semibold">Visão geral — {{ painel_pilar.rotulo }}</h2>
+    <p class="text-xs text-text-muted">Agregado do pilar. Os indicadores, o gráfico e a tabela respondem aos filtros de ano e de base de análise. {{ painel_pilar.rotulo_periodo }}.</p>
+    <div class="mt-3 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <c-dashboard.kpi-card :card="painel_pilar.cards.0" base="{{ base_param }}" borda="kpi-borda-1" />
+      <c-dashboard.kpi-card :card="painel_pilar.cards.1" base="{{ base_param }}" borda="kpi-borda-2" />
+      <c-dashboard.kpi-card :card="painel_pilar.cards.2" base="{{ base_param }}" borda="kpi-borda-3" />
+      <article data-testid="kpi-percentual" class="rounded-xl border border-border bg-surface-2 p-5 kpi-borda-4">
+        <h3 class="text-xs font-semibold uppercase tracking-wide text-text-muted">% Executado</h3>
+        <p class="numerico mt-3 text-3xl font-bold">{% if painel_pilar.pct is not None %}{{ painel_pilar.pct }}<span class="text-base font-semibold text-text-muted">%</span>{% else %}—{% endif %}</p>
+        <p class="mt-1 text-xs text-text-muted">taxa de execução no período</p>
+        <div class="mt-3 flex items-center gap-2">
+          <div class="h-1.5 flex-1 overflow-hidden rounded-full bg-quiin-mist/60" role="img" aria-label="{% if painel_pilar.pct is not None %}{{ painel_pilar.pct }}{% else %}—{% endif %}% executado">
+            <div class="h-full rounded-full {% if painel_pilar.faixa == 'ok' %}bg-quiin-quantum-green{% elif painel_pilar.faixa == 'parcial' %}bg-amber-400{% elif painel_pilar.faixa == 'critica' %}bg-red-500{% else %}bg-quiin-mist{% endif %}" style="width: {% if painel_pilar.pct is not None %}{{ painel_pilar.pct }}{% else %}0{% endif %}%"></div>
+          </div>
+          <c-dashboard.farol-badge faixa="{{ painel_pilar.faixa }}" rotulo="{% if painel_pilar.faixa == 'ok' %}Meta atingida{% elif painel_pilar.faixa == 'parcial' %}Execução parcial{% elif painel_pilar.faixa == 'critica' %}Execução crítica{% else %}Sem meta{% endif %}" />
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <section class="mt-6 rounded-xl border border-border bg-surface-2 p-5" aria-label="Evolução anual do pilar">
+    <h2 class="font-display text-lg font-semibold">{{ painel_pilar.rotulo }}: {{ painel_pilar.rotulo_previsto|lower }} x executado</h2>
+    <p class="text-xs text-text-muted">Evolução anual de 2024 a 2027 e acumulado do plano, {% if base_param == 'fin' %}em R$ milhões{% else %}em quantidade de metas físicas{% endif %}. O ano selecionado no filtro aparece em destaque.</p>
+    <div class="mt-4">
+      <c-dashboard.chart-fonte chave="pilar" titulo="{{ painel_pilar.rotulo }}: {{ painel_pilar.rotulo_previsto|lower }} x executado" hint="Evolução anual de 2024 a 2027 e acumulado do plano." :bloco="painel_pilar.grafico" :geo="geo_pilar" unidade="{{ painel_pilar.unidade }}" />
+    </div>
+  </section>
+
+  <section class="mt-4 rounded-xl border border-border bg-surface-2 p-5" aria-label="Detalhamento anual do pilar">
+    <div class="flex flex-wrap items-center gap-1">
+      <h2 class="font-display text-lg font-semibold">Detalhamento anual — {{ painel_pilar.rotulo }}</h2>
+      <c-dashboard.modal-farol />
+    </div>
+    <p class="text-xs text-text-muted">Previsto e executado por ano no período selecionado, {% if base_param == 'fin' %}em R$ milhões{% else %}em quantidade de metas físicas{% endif %}.</p>
+    <c-dashboard.tabela-anual-pilar :linhas="painel_pilar.tabela" base="{{ painel_pilar.base }}" rotulo_previsto="{{ painel_pilar.rotulo_previsto }}" />
+  </section>
+</div>

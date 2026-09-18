@@ -244,11 +244,14 @@ def painel_pilar(pilar, ano, base):
         tabela.append({
             "rotulo": f"Ano {i + 1}: {a}", "previsto": pv, "executado": ex,
             "saldo": pv - ex, "pct": pp, "faixa": faixa(percentual(ex, pv)),
-            "total": False,
+            "total": False, "destaque": ano is not None and ANOS.index(ano) == i,
         })
+    tot_prev, tot_exec = sum(prev_anos, Decimal(0)), sum(exec_anos, Decimal(0))
     tabela.append({
-        "rotulo": "Total", "previsto": prev, "executado": exe,
-        "saldo": saldo, "pct": pct, "faixa": fx, "total": True,
+        "rotulo": "Total", "previsto": tot_prev, "executado": tot_exec,
+        "saldo": tot_prev - tot_exec, "pct": pct_inteiro(tot_exec, tot_prev),
+        "faixa": faixa(percentual(tot_exec, tot_prev)), "total": True,
+        "destaque": False,
     })
 
     return {
@@ -263,6 +266,13 @@ def painel_pilar(pilar, ano, base):
         "cards": cards,
         "serie_previsto": prev_anos + [sum(prev_anos, Decimal(0))],
         "serie_executado": exec_anos + [sum(exec_anos, Decimal(0))],
+        "grafico": {
+            "chave": "pilar",
+            "serie_previsto": prev_anos + [sum(prev_anos, Decimal(0))],
+            "serie_executado": exec_anos + [sum(exec_anos, Decimal(0))],
+            "nome_previsto": rot_prev, "nome_executado": "Executado",
+            "rodape_pct": pct, "rodape_faixa": fx,
+        },
         "rodape_pct": pct, "rodape_faixa": fx,
         "tabela": tabela,
     }

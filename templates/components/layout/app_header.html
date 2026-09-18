@@ -56,5 +56,9 @@
   <div id="dashboard-controls" class="border-t border-border px-4 py-2.5 lg:px-8" data-testid="dashboard-controls">
     {% include 'dashboard/_controles.html' %}
   </div>
+  {% elif painel_pilar %}
+  <div id="dashboard-controls" class="border-t border-border px-4 py-2.5 lg:px-8" data-testid="dashboard-controls">
+    {% include 'dashboard/_controles_pilar.html' %}
+  </div>
   {% endif %}
 </header>

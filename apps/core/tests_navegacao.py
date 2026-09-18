@@ -85,25 +85,3 @@ class SemestralViewTestes(TestCase):
     def test_semestral_exige_login(self):
         resposta = self.client.get(reverse("core:semestral"))
         self.assertEqual(resposta.status_code, 302)
-
-
-class PilarContextoAnualTestes(TestCase):
-    def setUp(self):
-        garantir_grupos()
-        self.master = adicionar_grupo(
-            User.objects.create_user(username="ctx_master", password="x"), "Master")
-        self.pdi = Pilar.objects.create(codigo="PDI", nome="PDI / FCCT", ordem=1)
-
-    def test_pilar_com_filtro_anual_exibe_banner(self):
-        self.client.force_login(self.master)
-        resposta = self.client.get(
-            reverse("core:pilar", args=[self.pdi.pk]), {"ano": "2026", "base": "fis"})
-        self.assertEqual(resposta.status_code, 200)
-        self.assertContains(resposta, "Ano 3: 2026")
-        self.assertContains(resposta, "/?ano=2026&base=fis")
-
-    def test_pilar_sem_filtro_nao_exibe_banner(self):
-        self.client.force_login(self.master)
-        resposta = self.client.get(reverse("core:pilar", args=[self.pdi.pk]))
-        self.assertEqual(resposta.status_code, 200)
-        self.assertNotContains(resposta, "contexto-anual")

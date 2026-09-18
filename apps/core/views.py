@@ -14,8 +14,9 @@ from apps.indicators.models import Indicador
 from apps.pillars.models import Pilar
 from apps.periods.models import Periodo
 from apps.planning.forms import ALIASES_BASE, BASE_FIN, PainelFiltroForm
-from apps.planning.services import ANOS, rotulo_periodo
+from apps.planning.services import ANOS, painel_pilar
 from apps.planning.views import contexto_painel
+from apps.planning.charts import geometria_fonte
 
 from .calculos import itens_do_periodo
 from .dashboard import avisos_do_dashboard, graficos_dados, heatmap_por_pilar, kpi_por_pilar
@@ -187,33 +188,57 @@ def semestral(request):
 
 @login_required
 def pilar(request, pk):
+    """Painel anual do pilar + seção mensal (RF-120/RF-122)."""
     pilar_obj = get_object_or_404(Pilar, pk=pk)
     if not usuario_pode_pilar(request.user, pilar_obj):
         return sem_permissao(request)
+    params = request.GET
+    base_url = f"/pilar/{pilar_obj.pk}/"
+
+    def _preservar_periodo(destino):
+        periodo_param = params.get("periodo", "")
+        try:
+            date.fromisoformat(periodo_param)
+        except ValueError:
+            return destino
+        return f"{destino}&periodo={periodo_param}"
+
+    if params:
+        base_crua = (params.get("base") or "").strip().lower()
+        if base_crua in ALIASES_BASE:
+            form_previa = PainelFiltroForm({"ano": params.get("ano") or "todos"})
+            ano_previo = form_previa["ano"].value() if form_previa.is_valid() else "todos"
+            return redirect(_preservar_periodo(
+                f"{base_url}?ano={ano_previo}&base={ALIASES_BASE[base_crua]}"))
+    form = PainelFiltroForm(params or None)
+    if params and not form.is_valid():
+        return redirect(_preservar_periodo(f"{base_url}?ano=todos&base=fin"))
+    ano_param = form.cleaned_data["ano"] if params else "todos"
+    base_param = form.cleaned_data["base"] if params else BASE_FIN
+    ano = None if ano_param == "todos" else int(ano_param)
+    pp = painel_pilar(pilar_obj, ano, base_param)
+    destaque = None if ano is None else ANOS.index(ano)
+    geo = geometria_fonte(
+        [float(v) for v in pp["serie_previsto"]],
+        [float(v) for v in pp["serie_executado"]],
+        destaque,
+    )
     periodo, periodos = periodo_selecionado(request)
-    filtro_anual = None
-    if request.GET.get("ano") or request.GET.get("base"):
-        form_anual = PainelFiltroForm(request.GET)
-        if form_anual.is_valid():
-            ano_param = form_anual.cleaned_data["ano"]
-            base_param = form_anual.cleaned_data["base"]
-            filtro_anual = {
-                "ano_param": ano_param,
-                "base_param": base_param,
-                "rotulo_periodo": rotulo_periodo(None if ano_param == "todos" else int(ano_param)),
-                "rotulo_base": "Financeiro" if base_param == "fin" else "Físico",
-            }
     itens = []
     destaques = []
     if periodo is not None:
         indicadores = Indicador.objects.filter(pilar=pilar_obj, ativo=True)
         itens = itens_do_periodo(indicadores, periodo)
         destaques = DestaqueMensal.objects.filter(periodo=periodo).filter(Q(pilar=pilar_obj) | Q(pilar__isnull=True)).select_related("pilar").order_by("-criado_em")
-    return render(
-        request,
-        "dashboard/pilar.html",
-        {"pilar": pilar_obj, "periodo": periodo, "periodos": periodos, "itens": itens, "destaques": destaques, "filtro_anual": filtro_anual},
-    )
+    contexto = {
+        "pilar": pilar_obj, "periodo": periodo, "periodos": periodos,
+        "itens": itens, "destaques": destaques,
+        "painel_pilar": pp, "ano_param": ano_param, "base_param": base_param,
+        "geo_pilar": geo,
+    }
+    if request.headers.get("HX-Request"):
+        return render(request, "dashboard/_fragmento_pilar.html", contexto)
+    return render(request, "dashboard/pilar.html", contexto)
 
 
 @login_required
