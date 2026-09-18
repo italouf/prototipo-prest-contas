@@ -38,4 +38,8 @@
     <p class="text-xs text-text-muted">Previsto e executado por ano no período selecionado, {% if base_param == 'fin' %}em R$ milhões{% else %}em quantidade de metas físicas{% endif %}.</p>
     <c-dashboard.tabela-anual-pilar :linhas="painel_pilar.tabela" base="{{ painel_pilar.base }}" rotulo_previsto="{{ painel_pilar.rotulo_previsto }}" />
   </section>
+
+  {% if pode_editar_pilar and not standalone %}
+  {% include 'dashboard/editor.html' %}
+  {% endif %}
 </div>

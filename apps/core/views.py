@@ -14,9 +14,8 @@ from apps.indicators.models import Indicador
 from apps.pillars.models import Pilar
 from apps.periods.models import Periodo
 from apps.planning.forms import ALIASES_BASE, BASE_FIN, PainelFiltroForm
-from apps.planning.services import ANOS, painel_pilar
-from apps.planning.views import contexto_painel
-from apps.planning.charts import geometria_fonte
+from apps.planning.services import ANOS
+from apps.planning.views import contexto_painel, contexto_pilar
 
 from .calculos import itens_do_periodo
 from .dashboard import avisos_do_dashboard, graficos_dados, heatmap_por_pilar, kpi_por_pilar
@@ -224,14 +223,7 @@ def pilar(request, pk):
         return redirect(_preservar_periodo(f"{base_url}?ano=todos&base=fin"))
     ano_param = form.cleaned_data["ano"] if params else "todos"
     base_param = form.cleaned_data["base"] if params else BASE_FIN
-    ano = None if ano_param == "todos" else int(ano_param)
-    pp = painel_pilar(pilar_obj, ano, base_param)
-    destaque = None if ano is None else ANOS.index(ano)
-    geo = geometria_fonte(
-        [float(v) for v in pp["serie_previsto"]],
-        [float(v) for v in pp["serie_executado"]],
-        destaque,
-    )
+    contexto = contexto_pilar(pilar_obj, ano_param, base_param, request.user)
     periodo, periodos = periodo_selecionado(request)
     itens = []
     destaques = []
@@ -242,9 +234,8 @@ def pilar(request, pk):
     contexto = {
         "pilar": pilar_obj, "periodo": periodo, "periodos": periodos,
         "itens": itens, "destaques": destaques,
-        "painel_pilar": pp, "ano_param": ano_param, "base_param": base_param,
-        "geo_pilar": geo,
     }
+    contexto.update(contexto_pilar(pilar_obj, ano_param, base_param, request.user))
     if _hx_parcial(request):
         return render(request, "dashboard/_fragmento_pilar.html", contexto)
     return render(request, "dashboard/pilar.html", contexto)

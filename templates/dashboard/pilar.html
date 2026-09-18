@@ -4,6 +4,10 @@
 {% block breadcrumbs %}{% include "partials/breadcrumbs.html" with atual=pilar.nome %}{% endblock %}
 {% block content %}
 <div data-testid="page-pilar">
+  <div class="print-only" data-testid="print-cabecalho">
+    <h1 class="font-display text-2xl font-bold">{{ pilar.nome }} — Painel anual</h1>
+    <p class="text-sm">Período: <strong>{{ painel_pilar.rotulo_periodo }}</strong> · Base: <strong>{% if base_param == 'fin' %}Financeiro{% else %}Físico{% endif %}</strong> · Unidade: <strong>{% if base_param == 'fin' %}R$ milhões{% else %}quantidade de metas{% endif %}</strong></p>
+  </div>
   <div class="flex flex-wrap items-end justify-between gap-3">
     <div>
       <h1 class="text-2xl font-bold">{{ pilar.nome }}</h1>

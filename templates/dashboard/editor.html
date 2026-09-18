@@ -16,6 +16,7 @@
     {% csrf_token %}
     <input type="hidden" name="ano" value="{{ ano_param }}">
     <input type="hidden" name="base" value="{{ base_param }}">
+    {% if pilar_pk %}<input type="hidden" name="pilar" value="{{ pilar_pk }}">{% endif %}
     {% for bloco in grade_edicao %}
     <div>
       <h3 class="font-display text-sm font-semibold">{{ bloco.titulo }}</h3>
