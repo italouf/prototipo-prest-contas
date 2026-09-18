@@ -193,6 +193,81 @@ def painel(ano, base):
     }
 
 
+def painel_pilar(pilar, ano, base):
+    """DTO do painel anual de um pilar (L12). `ano=None` = todos os anos."""
+    from .models import PlanoAnual
+
+    base = _validar(ano, base)
+    codigo = pilar.codigo
+    valores = {
+        l.ano: (Decimal(l.previsto), Decimal(l.executado))
+        for l in PlanoAnual.objects.filter(base=base, pilar=pilar).order_by("ano")
+    }
+
+    def serie_anos(campo):
+        idx = 0 if campo == "previsto" else 1
+        return [valores.get(a, (Decimal(0), Decimal(0)))[idx] for a in ANOS]
+
+    def no_periodo(vals_anos):
+        return sum(vals_anos, Decimal(0)) if ano is None else vals_anos[ANOS.index(ano)]
+
+    prev_anos = serie_anos("previsto")
+    exec_anos = serie_anos("executado")
+    prev, exe = no_periodo(prev_anos), no_periodo(exec_anos)
+    saldo = prev - exe
+    pct = pct_inteiro(exe, prev)
+    fx = faixa(percentual(exe, prev))
+    rot_prev = rotulo_previsto(codigo)
+    denominador = "projetados" if codigo in PILARES_PPI else "captados"
+
+    def card_pilar(chave, titulo, valor, ref, denom, com_farol):
+        pp = pct_inteiro(valor, ref) if com_farol else None
+        return {
+            "chave": chave, "titulo": titulo, "executado": valor,
+            "previsto": ref, "denominador": denom,
+            "pct": pp, "faixa": faixa(percentual(valor, ref)) if com_farol else "neutra",
+            "barra": min(pp or 0, 100) if pp is not None else 0,
+        }
+
+    cards = [
+        card_pilar("previsto", rot_prev, prev, prev, denominador, False),
+        card_pilar("executado", "Executado", exe, prev, denominador, True),
+        card_pilar("saldo", "Saldo a executar", saldo, prev, "restantes", False),
+        {**card_pilar("percentual", "% Executado", exe, prev, denominador, True),
+         "executado": None},
+    ]
+
+    tabela = []
+    for i, a in enumerate(ANOS):
+        pv, ex = prev_anos[i], exec_anos[i]
+        pp = pct_inteiro(ex, pv)
+        tabela.append({
+            "rotulo": f"Ano {i + 1}: {a}", "previsto": pv, "executado": ex,
+            "saldo": pv - ex, "pct": pp, "faixa": faixa(percentual(ex, pv)),
+            "total": False,
+        })
+    tabela.append({
+        "rotulo": "Total", "previsto": prev, "executado": exe,
+        "saldo": saldo, "pct": pct, "faixa": fx, "total": True,
+    })
+
+    return {
+        "pilar": pilar, "codigo": codigo,
+        "rotulo": ROTULOS_PAINEL.get(codigo, pilar.nome),
+        "ano": ano, "base": base,
+        "unidade": "R$ mi" if base == BASE_FINANCEIRO else "metas",
+        "rotulo_periodo": rotulo_periodo(ano),
+        "rotulo_previsto": rot_prev, "denominador": denominador,
+        "previsto": prev, "executado": exe, "saldo": saldo,
+        "pct": pct, "faixa": fx,
+        "cards": cards,
+        "serie_previsto": prev_anos + [sum(prev_anos, Decimal(0))],
+        "serie_executado": exec_anos + [sum(exec_anos, Decimal(0))],
+        "rodape_pct": pct, "rodape_faixa": fx,
+        "tabela": tabela,
+    }
+
+
 def _linha_tabela(pilar, codigo, previsto, executado, pct, total=False):
     return {
         "pilar": pilar,
