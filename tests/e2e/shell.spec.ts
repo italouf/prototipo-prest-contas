@@ -150,3 +150,68 @@ test('L10 botões em linha própria alinhados à direita', async ({ page }) => {
   expect(geo.bordaDireita - geo.toolbarDireita).toBeLessThanOrEqual(48);
   expect(geo.bordaDireita - geo.chipsDireita).toBeLessThanOrEqual(48);
 });
+
+test('L11 botoes da toolbar na escala do mockup (12px, raio 8px, mesma linha)', async ({ page }) => {
+  await login(page);
+  await page.goto('/?ano=todos&base=fin');
+  const botoes = page.locator('[role="toolbar"] a, [role="toolbar"] button');
+  await expect(botoes).toHaveCount(5);
+  const metricas = await botoes.evaluateAll((els) =>
+    els.map((el) => {
+      const cs = getComputedStyle(el);
+      const r = el.getBoundingClientRect();
+      return {
+        fonte: cs.fontSize,
+        padTopo: cs.paddingTop,
+        padEsq: cs.paddingLeft,
+        raio: cs.borderRadius,
+        topo: Math.round(r.top),
+        direita: Math.round(r.right),
+        altura: Math.round(r.height),
+      };
+    }),
+  );
+  for (const m of metricas) {
+    expect(m.fonte).toBe('12px');
+    expect(m.padTopo).toBe('8px');
+    expect(m.padEsq).toBe('16px');
+    expect(m.raio).toBe('8px');
+  }
+  const topos = new Set(metricas.map((m) => m.topo));
+  expect(topos.size).toBe(1);
+  const alturas = new Set(metricas.map((m) => m.altura));
+  expect(alturas.size).toBe(1);
+  const bordaHeader = await page.getByTestId('app-header').evaluate((el) => el.getBoundingClientRect().right);
+  expect(bordaHeader - Math.max(...metricas.map((m) => m.direita))).toBeLessThanOrEqual(48);
+});
+
+test('L11 botoes-icone do header em 32px com icones 16px', async ({ page }) => {
+  await login(page);
+  await page.goto('/?ano=todos&base=fin');
+  for (const seletor of ['[data-testid="dark-toggle"]', 'button[aria-label="Sair"]']) {
+    const botao = page.locator(seletor);
+    const caixa = await botao.boundingBox();
+    expect(Math.round(caixa?.width ?? 0)).toBe(32);
+    expect(Math.round(caixa?.height ?? 0)).toBe(32);
+    const svg = await botao.locator('svg').nth(0).evaluate((el) => ({
+      w: Math.round(el.getBoundingClientRect().width),
+      h: Math.round(el.getBoundingClientRect().height),
+    }));
+    expect(svg.w).toBe(16);
+    expect(svg.h).toBe(16);
+  }
+});
+
+test('L11 sidebar acompanha a rolagem principal (sem scroll exclusivo)', async ({ page }) => {
+  await login(page);
+  await page.goto('/?ano=todos&base=fin');
+  const sidebar = page.getByTestId('sidebar');
+  const topoAntes = Math.round((await sidebar.boundingBox())?.y ?? 0);
+  expect(topoAntes).toBeGreaterThan(0);
+  await page.evaluate(() => window.scrollTo(0, 600));
+  await page.waitForTimeout(250);
+  const topoDepois = Math.round((await sidebar.boundingBox())?.y ?? 0);
+  expect(topoDepois).toBeLessThan(topoAntes);
+  const overflow = await sidebar.evaluate((el) => getComputedStyle(el).overflowY);
+  expect(overflow).toBe('visible');
+});

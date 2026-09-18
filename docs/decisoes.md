@@ -198,3 +198,7 @@
     `lg:h-screen` nem scroll exclusivo — `lg:overflow-visible`, acompanha a
     página); marca mantida na sidebar (decisão do usuário); toolbar em linha
     própria alinhada à direita; rodapé full width; skeleton `top-0`.
+30. **L11 — Escala do mockup no header**: toolbar com `size="toolbar"`
+    (`rounded-lg px-4 py-2 text-xs` ≈ `.btn` do mockup); botões-ícone do header
+    em 32px com ícones 16px (só no `app_header`, sem tocar o design system);
+    ícones da sidebar mantidos em 18px (par com labels `text-sm`).
