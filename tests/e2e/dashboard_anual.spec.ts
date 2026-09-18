@@ -318,17 +318,17 @@ test('L9 header permanece fixo ao rolar a página', async ({ page }) => {
   expect(Math.round(topo)).toBe(0);
 });
 
-test('L9 sidebar: AT e Talentos ficam em Gestão, Pilares só com os 4 pilares', async ({ page }) => {
+test('L9 sidebar: Pilares com os 5 pilares; Gestão com Funil AT', async ({ page }) => {
   await login(page);
   await page.goto('/?ano=todos&base=fin');
   const pilares = page.locator('#grp-pilares');
   for (const rotulo of ['PDI', 'Formação FCRH', 'ACS', 'Infraestrutura']) {
     await expect(pilares.getByRole('link', { name: rotulo })).toBeVisible();
   }
-  await expect(pilares.getByRole('link', { name: /Associação Tecnológica/ })).toHaveCount(0);
+  await expect(pilares.getByRole('link', { name: /Associação Tecnológica/ })).toBeVisible();
   await expect(pilares.getByRole('link', { name: /^Talentos/ })).toHaveCount(0);
   const gestao = page.locator('#grp-gestao');
-  await expect(gestao.getByRole('link', { name: /Associação Tecnológica/ })).toBeVisible();
+  await expect(gestao.getByRole('link', { name: /^Funil AT/ })).toBeVisible();
   await expect(gestao.getByRole('link', { name: /^Talentos/ })).toBeVisible();
   await expect(gestao.getByRole('link', { name: /^Auditoria/ })).toBeVisible();
 });

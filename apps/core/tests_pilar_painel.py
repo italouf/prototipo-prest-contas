@@ -77,6 +77,16 @@ class PilarPainelViewTestes(TestCase):
         self.assertContains(resposta, "hx-swap-oob")
         self.assertNotContains(resposta, 'data-testid="app-header"')
 
+    def test_navegacao_com_boost_recebe_pagina_completa(self):
+        self.client.force_login(self.master)
+        resposta = self.client.get(
+            self.url("AT"),
+            headers={"HX-Request": "true", "HX-Boosted": "true"})
+        self.assertEqual(resposta.status_code, 200)
+        self.assertContains(resposta, 'data-testid="app-header"')
+        self.assertContains(resposta, 'id="painel-pilar"')
+        self.assertNotContains(resposta, "hx-swap-oob")
+
     def test_at_mostra_captado_e_tabela_por_ano(self):
         self.client.force_login(self.master)
         resposta = self.client.get(self.url("AT"))

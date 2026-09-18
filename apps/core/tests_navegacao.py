@@ -39,12 +39,13 @@ class SidebarNavegacaoTestes(TestCase):
         sidebar = resposta.content.decode().split('data-testid="sidebar"')[1].split("</aside>")[0]
         self.assertNotIn("OUTRASFONTES", sidebar)
         pilares = sidebar.split('id="grp-pilares"')[1].split("</ul>")[0]
-        for rotulo in ["PDI", "Formação FCRH", "ACS", "Infraestrutura"]:
+        for rotulo in ["PDI", "Formação FCRH", "ACS", "Infraestrutura",
+                       "Associação Tecnológica"]:
             self.assertIn(rotulo, pilares)
-        self.assertNotIn("Associação Tecnológica", pilares)
         self.assertNotIn("Talentos", pilares)
+        self.assertNotIn("Funil AT", pilares)
         gestao = sidebar.split('id="grp-gestao"')[1].split("</ul>")[0]
-        for rotulo in ["Associação Tecnológica", "Talentos", "Auditoria", "Admin"]:
+        for rotulo in ["Funil AT", "Talentos", "Auditoria", "Admin"]:
             self.assertIn(rotulo, gestao)
 
     def test_auditor_nao_ve_operacao_nem_admin(self):
@@ -55,8 +56,15 @@ class SidebarNavegacaoTestes(TestCase):
         self.assertNotContains(resposta, ">Admin<")
         self.assertContains(resposta, "Auditoria")
         sidebar = resposta.content.decode().split('data-testid="sidebar"')[1].split("</aside>")[0]
-        self.assertNotIn("Associação Tecnológica", sidebar)
-        self.assertNotIn(">Talentos<", sidebar)
+        pilares = sidebar.split('id="grp-pilares"')[1].split("</ul>")[0]
+        for rotulo in ["PDI", "Formação FCRH", "ACS", "Infraestrutura",
+                       "Associação Tecnológica"]:
+            self.assertIn(rotulo, pilares)
+        gestao = sidebar.split('id="grp-gestao"')[1].split("</ul>")[0]
+        self.assertIn("Auditoria", gestao)
+        self.assertNotIn("Funil AT", gestao)
+        self.assertNotIn(">Talentos<", gestao)
+        self.assertNotIn(">Admin<", gestao)
 
     def test_item_ativo_marca_pagina_corrente(self):
         self.client.force_login(self.master)

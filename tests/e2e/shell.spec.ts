@@ -53,12 +53,12 @@ test('prestação de contas leva a mensal e semestral', async ({ page }) => {
   await expect(page.getByRole('heading', { name: /semestral/i })).toBeVisible();
 });
 
-test('pilar com filtro anual exibe contexto e volta ao painel', async ({ page }) => {
+test('pilar com filtro anual exibe painel e mantém seção mensal', async ({ page }) => {
   await login(page);
   await page.goto('/pilar/1/?ano=2026&base=fis');
-  await expect(page.getByTestId('contexto-anual')).toContainText('Ano 3: 2026');
-  await page.getByTestId('contexto-anual').getByRole('link').click();
-  await expect(page).toHaveURL('/?ano=2026&base=fis');
+  await expect(page.getByTestId('context-chips')).toContainText('Ano 3: 2026');
+  await expect(page.getByTestId('painel-pilar')).toBeVisible();
+  await expect(page.getByRole('heading', { name: /prestação mensal do pilar/i })).toBeVisible();
 });
 
 test('sidebar mobile abre, navega e fecha', async ({ page }) => {

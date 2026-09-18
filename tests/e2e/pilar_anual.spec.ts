@@ -65,6 +65,21 @@ test('P05 AT usa Captado e seção mensal continua', async ({ page }) => {
   await expect(page.locator('#th-1')).toContainText('Captado (R$ mi)');
 });
 
+test('P07 sidebar: 5 pilares clicáveis; AT abre o painel; Funil AT em Gestão', async ({ page }) => {
+  await login(page);
+  await page.goto('/?ano=todos&base=fin');
+  const pilares = page.locator('#grp-pilares');
+  for (const rotulo of ['PDI', 'Formação FCRH', 'ACS', 'Infraestrutura']) {
+    await expect(pilares.getByRole('link', { name: rotulo })).toBeVisible();
+  }
+  await pilares.getByRole('link', { name: /Associação Tecnológica/ }).click();
+  await expect(page).toHaveURL(/pilar\/4\/$/);
+  await expect(page.getByTestId('painel-pilar')).toContainText('Captado');
+  const gestao = page.locator('#grp-gestao');
+  await expect(gestao.getByRole('link', { name: /^Funil AT/ })).toBeVisible();
+  await expect(gestao.getByRole('link', { name: /Associação Tecnológica \(AT\)/ })).toHaveCount(0);
+});
+
 test('P06 tabela por ano com farol e gráfico com destaque', async ({ page }) => {
   await login(page);
   await page.goto('/pilar/5/?ano=2026&base=fin');

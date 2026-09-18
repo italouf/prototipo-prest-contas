@@ -21,9 +21,9 @@ def nav(request):
     pilares = pilares_visiveis(request.user)
     por_codigo = {p.codigo: p for p in pilares}
     try:
-        from apps.planning.services import PILARES_PPI
+        from apps.planning.services import PILARES_COM_PAINEL
 
-        pilares_grupo = [por_codigo[c] for c in PILARES_PPI if c in por_codigo]
+        pilares_grupo = [por_codigo[c] for c in PILARES_COM_PAINEL if c in por_codigo]
     except Exception:
         pilares_grupo = []
     periodo_aberto = (

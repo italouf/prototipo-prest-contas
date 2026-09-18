@@ -34,6 +34,15 @@ MESES_ABREV = ["", "Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set"
 URL_PADRAO_PAINEL = "/?ano=todos&base=fin"
 
 
+def _hx_parcial(request):
+    """Fragmento htmx só para swaps de filtro — nunca para navegação com boost.
+
+    O sidebar usa hx-boost com hx-select="#main": se a view devolvesse o
+    fragmento, o OOB atualizaria header/URL mas o #main jamais trocaria.
+    """
+    return bool(request.headers.get("HX-Request")) and not request.headers.get("HX-Boosted")
+
+
 @login_required
 def dashboard(request):
     """Painel anual (RF-107/RF-108/RF-118): `?ano=todos|2024..2027&base=fin|fis`."""
@@ -57,7 +66,7 @@ def dashboard(request):
     ano_param = form.cleaned_data["ano"] if params else "todos"
     base_param = form.cleaned_data["base"] if params else BASE_FIN
     contexto = contexto_painel(ano_param, base_param, request.user)
-    if request.headers.get("HX-Request"):
+    if _hx_parcial(request):
         return render(request, "dashboard/_fragmento.html", contexto)
     return render(request, "dashboard/anual.html", contexto)
 
@@ -236,7 +245,7 @@ def pilar(request, pk):
         "painel_pilar": pp, "ano_param": ano_param, "base_param": base_param,
         "geo_pilar": geo,
     }
-    if request.headers.get("HX-Request"):
+    if _hx_parcial(request):
         return render(request, "dashboard/_fragmento_pilar.html", contexto)
     return render(request, "dashboard/pilar.html", contexto)
 
