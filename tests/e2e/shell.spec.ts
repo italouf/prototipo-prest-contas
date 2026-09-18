@@ -104,3 +104,49 @@ test('papel ativo aparece no topbar', async ({ page }) => {
   await login(page);
   await expect(page.getByTestId('papel-badge')).toHaveText('Master');
 });
+
+test('L10 topbar full-width com sidebar abaixo e scroll único', async ({ page }) => {
+  await login(page);
+  await page.goto('/?ano=todos&base=fin');
+  const geo = await page.evaluate(() => {
+    const header = document.querySelector('[data-testid="app-header"]') as HTMLElement;
+    const sidebar = document.querySelector('[data-testid="sidebar"]') as HTMLElement;
+    const hc = header.getBoundingClientRect();
+    const sc = sidebar.getBoundingClientRect();
+    return {
+      larguraViewport: window.innerWidth,
+      headerX: Math.round(hc.x),
+      headerLargura: Math.round(hc.width),
+      sidebarTopo: Math.round(sc.y),
+      headerBase: Math.round(hc.bottom),
+      overflowSidebar: getComputedStyle(sidebar).overflowY,
+    };
+  });
+  expect(geo.headerX).toBe(0);
+  expect(Math.abs(geo.headerLargura - geo.larguraViewport)).toBeLessThanOrEqual(1);
+  expect(geo.sidebarTopo).toBeGreaterThanOrEqual(geo.headerBase - 1);
+  expect(geo.overflowSidebar).toBe('visible');
+});
+
+test('L10 botões em linha própria alinhados à direita', async ({ page }) => {
+  await login(page);
+  await page.goto('/?ano=todos&base=fin');
+  const geo = await page.evaluate(() => {
+    const header = document.querySelector('[data-testid="app-header"]') as HTMLElement;
+    const chips = document.querySelector('[data-testid="context-chips"]') as HTMLElement;
+    const toolbar = document.querySelector('[role="toolbar"]') as HTMLElement;
+    const hc = header.getBoundingClientRect();
+    const cc = chips.getBoundingClientRect();
+    const tc = toolbar.getBoundingClientRect();
+    return {
+      bordaDireita: Math.round(hc.right),
+      chipsDireita: Math.round(cc.right),
+      toolbarDireita: Math.round(tc.right),
+      chipsBase: Math.round(cc.bottom),
+      toolbarTopo: Math.round(tc.top),
+    };
+  });
+  expect(geo.toolbarTopo).toBeGreaterThanOrEqual(geo.chipsBase - 1);
+  expect(geo.bordaDireita - geo.toolbarDireita).toBeLessThanOrEqual(48);
+  expect(geo.bordaDireita - geo.chipsDireita).toBeLessThanOrEqual(48);
+});

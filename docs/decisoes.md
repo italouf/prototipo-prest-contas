@@ -194,3 +194,7 @@
     geometria e `|unlocalize` nos `value`; rótulos visíveis seguem pt-BR.
 28. **L9 — Tabela com `min-w-[880px]` + `print:min-w-0`** (cabe em ≥1280px,
     rola abaixo, imprime sem corte); removido parágrafo duplicado de `anual.html`.
+29. **L10 — Shell full-width**: topbar acima de tudo (sidebar abaixo, sem
+    `lg:h-screen` nem scroll exclusivo — `lg:overflow-visible`, acompanha a
+    página); marca mantida na sidebar (decisão do usuário); toolbar em linha
+    própria alinhada à direita; rodapé full width; skeleton `top-0`.

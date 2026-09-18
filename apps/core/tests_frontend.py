@@ -150,6 +150,16 @@ class ShellTestes(TestCase):
         self.assertContains(resposta, 'data-testid="dark-toggle"')
         self.assertNotContains(resposta, 'data-testid="login-shell"')
 
+    def test_topbar_ocupa_topo_e_sidebar_vem_abaixo(self):
+        self.client.force_login(self.erica)
+        html = self.client.get("/").content.decode()
+        self.assertLess(
+            html.index('data-testid="app-header"'),
+            html.index('data-testid="sidebar"'),
+        )
+        self.assertIn('lg:overflow-visible', html)
+        self.assertNotIn('lg:h-screen', html)
+
     def test_pagina_publica_nao_tem_sidebar(self):
         resposta = self.client.get("/accounts/login/")
         self.assertContains(resposta, 'data-testid="login-shell"')

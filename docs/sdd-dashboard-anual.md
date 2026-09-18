@@ -178,3 +178,7 @@ Outras 0/8 (0%), consolidado 34/68 (50%). Per-ano e por pilar conforme tabelas d
     **sem localização** (`{% localize off %}` / `|unlocalize`) — pt-BR insere
     vírgula e invalida os atributos; rótulos visíveis seguem em pt-BR
     (`numero_curto`).
+11. Shell (L10, paridade com o mockup): topbar full-width acima de tudo; sidebar
+    abaixo do header sem scroll exclusivo (acompanha a página; drawer mobile
+    mantém scroll próprio); marca mantida na sidebar; toolbar em linha própria
+    alinhada à direita; rodapé full width.
