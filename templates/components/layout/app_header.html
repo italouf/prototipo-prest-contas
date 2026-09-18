@@ -3,7 +3,7 @@
   <div class="flex items-center gap-3 px-4 py-2.5 lg:px-8">
     <button type="button" data-testid="sidebar-toggle" aria-label="Abrir menu"
             class="rounded-md border border-border p-2 text-text lg:hidden" @click="aberto = true">
-      <c-ui.icon name="menu" size="18" />
+      <c-ui.icon name="menu" size="16" />
     </button>
 
     <div class="min-w-0 flex-1">
@@ -35,18 +35,18 @@
       <c-ui.badge papel="{{ papel }}" class="hidden sm:inline-flex" data-testid="papel-badge">{{ papel }}</c-ui.badge>
       <span class="hidden text-sm font-medium xl:inline">{{ user.nome_exibicao }}</span>
       <button type="button" data-testid="dark-toggle" aria-label="Alternar tema" title="Alternar tema"
-              class="inline-flex h-9 w-9 items-center justify-center rounded-md border border-border bg-surface-2 text-text"
+              class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-surface-2 text-text"
               x-data="{ escuro: document.documentElement.classList.contains('dark') }"
               @click="escuro = !escuro; document.documentElement.classList.toggle('dark', escuro); localStorage.setItem('quiin-theme', escuro ? 'dark' : 'light')"
               :aria-pressed="escuro">
-        <span x-show="!escuro"><c-ui.icon name="sun" size="18" /></span>
-        <span x-show="escuro" x-cloak><c-ui.icon name="moon" size="18" /></span>
+        <span x-show="!escuro"><c-ui.icon name="sun" size="16" /></span>
+        <span x-show="escuro" x-cloak><c-ui.icon name="moon" size="16" /></span>
       </button>
       <form method="post" action="{% url 'accounts:logout' %}">
         {% csrf_token %}
         <button type="submit" aria-label="Sair" title="Sair"
-                class="inline-flex h-9 w-9 items-center justify-center rounded-md border border-border bg-surface-2 text-text hover:bg-quiin-mist/40 dark:hover:bg-white/5">
-          <c-ui.icon name="log-out" size="18" />
+                class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-surface-2 text-text hover:bg-quiin-mist/40 dark:hover:bg-white/5">
+          <c-ui.icon name="log-out" size="16" />
         </button>
       </form>
     </div>

@@ -45,11 +45,11 @@
 
   <div class="flex flex-wrap items-center justify-end gap-2" role="toolbar" aria-label="Ações do painel">
     {% if pode_editar_painel %}
-    <c-ui.button variant="primary" size="sm" data-testid="btn-editar-dados" data-editor-toggle onclick="quiinAlternarEditor()">Editar dados</c-ui.button>
+    <c-ui.button variant="primary" size="toolbar" data-testid="btn-editar-dados" data-editor-toggle onclick="quiinAlternarEditor()">Editar dados</c-ui.button>
     {% endif %}
-    <c-ui.button size="sm" href="{% url 'planning:export_html' %}?ano={{ ano_param }}&base={{ base_param }}">Baixar dashboard</c-ui.button>
-    <c-ui.button size="sm" href="{% url 'planning:csv' %}?ano={{ ano_param }}&base={{ base_param }}">Baixar dados (CSV)</c-ui.button>
-    <c-ui.button size="sm" onclick="window.print()">Imprimir</c-ui.button>
-    <c-ui.button size="sm" variant="ghost" href="{% url 'core:dashboard' %}">Restaurar padrão</c-ui.button>
+    <c-ui.button size="toolbar" href="{% url 'planning:export_html' %}?ano={{ ano_param }}&base={{ base_param }}">Baixar dashboard</c-ui.button>
+    <c-ui.button size="toolbar" href="{% url 'planning:csv' %}?ano={{ ano_param }}&base={{ base_param }}">Baixar dados (CSV)</c-ui.button>
+    <c-ui.button size="toolbar" onclick="window.print()">Imprimir</c-ui.button>
+    <c-ui.button size="toolbar" variant="ghost" href="{% url 'core:dashboard' %}">Restaurar padrão</c-ui.button>
   </div>
 </div>
