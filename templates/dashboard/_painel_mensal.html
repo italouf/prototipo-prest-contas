@@ -1,0 +1,178 @@
+{# Painel da prestação mensal no padrão do anual (L20): avisos, KPIs, financeiro, SVG, status, tabela, destaques. #}
+{# Números em atributos/style saem sem localização (ponto decimal) — CSS/SVG não aceitam vírgula. #}
+{% load core_extras l10n %}
+<div id="painel-mensal" data-testid="painel-mensal" class="mt-4">
+  {% if avisos %}
+  <section data-testid="avisos" class="space-y-2" aria-label="Avisos críticos">
+    {% for aviso in avisos %}
+    <div class="flex flex-wrap items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-status-pendente-texto">
+      <c-ui.icon name="alert" size="16" />
+      <span>{{ aviso.texto }}</span>
+      <a href="{{ aviso.url }}" class="font-semibold underline">{{ aviso.acao }}</a>
+    </div>
+    {% endfor %}
+  </section>
+  {% endif %}
+
+  <section class="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3" aria-label="Indicadores-chave por pilar">
+    {% for k in kpis %}
+    <a href="{% url 'core:pilar' k.pilar.pk %}" data-testid="kpi-{{ k.pilar.codigo|lower }}" data-kpi-card
+       hx-get="{% url 'core:pilar_drawer' k.pilar.pk %}?periodo={{ periodo.competencia|date:'Y-m-d' }}"
+       hx-target="#drawer-conteudo" hx-swap="innerHTML" hx-indicator="#skeleton-global" @click="drawerAberto = true"
+       class="anim-entrada block rounded-xl border border-border bg-surface-2 p-5 shadow-sm transition-shadow hover:shadow-md">
+      <div class="flex items-center justify-between gap-2">
+        <span class="text-xs font-semibold uppercase tracking-wide text-text-muted">{{ k.pilar.nome }}</span>
+        <c-ui.badge pillar="{{ k.pilar.codigo }}">{{ k.pilar.codigo }}</c-ui.badge>
+      </div>
+      <p class="numerico mt-3 text-3xl font-bold">{{ k.percentual_fmt }}</p>
+      <p class="text-xs text-text-muted">média de execução · {{ k.atingidos }}/{{ k.com_meta }} metas atingidas · {{ k.pendentes }} pendente{{ k.pendentes|pluralize }}</p>
+      <div class="mt-3 flex items-center gap-2">
+        <div class="h-1.5 flex-1 overflow-hidden rounded bg-quiin-mist/60" role="img" aria-label="média de execução {{ k.percentual_fmt }}">
+          <div class="h-full rounded-full {% if k.faixa == 'ok' %}bg-quiin-quantum-green{% elif k.faixa == 'parcial' %}bg-amber-400{% elif k.faixa == 'critica' %}bg-red-500{% else %}bg-quiin-mist{% endif %}" style="width: {{ k.barra_pct|unlocalize }}%"></div>
+        </div>
+        <c-dashboard.farol-badge faixa="{{ k.faixa }}" rotulo="{{ k.percentual_fmt }}" />
+      </div>
+    </a>
+    {% endfor %}
+  </section>
+
+  <section class="mt-4 grid gap-4 sm:grid-cols-3" aria-label="Execução financeira consolidada">
+    <c-ui.card>
+      <p class="text-xs font-semibold uppercase tracking-wide text-text-muted">Execução acumulada {{ periodo.competencia|date:'Y' }}</p>
+      <p class="numerico mt-1 text-2xl font-bold">{{ cards.execucao|escala_ptbr }}</p>
+      <p class="text-xs text-text-muted">{{ cards.execucao|moeda_ptbr }} executado</p>
+    </c-ui.card>
+    <c-ui.card>
+      <p class="text-xs font-semibold uppercase tracking-wide text-text-muted">Captação AT</p>
+      <p class="numerico mt-1 text-2xl font-bold">{{ cards.captacao_at|escala_ptbr }}</p>
+      <p class="text-xs text-text-muted">{{ cards.captacao_at|moeda_ptbr }} junto a empresas privadas</p>
+    </c-ui.card>
+    <c-ui.card>
+      <p class="text-xs font-semibold uppercase tracking-wide text-text-muted">Outras fontes</p>
+      <p class="numerico mt-1 text-2xl font-bold">{{ cards.outras_fontes|escala_ptbr }}</p>
+      <p class="text-xs text-text-muted">{{ cards.outras_fontes|moeda_ptbr }} captado no ano</p>
+    </c-ui.card>
+  </section>
+
+  <div class="mt-4 grid gap-4 lg:grid-cols-2" aria-label="Execução financeira">
+    <div class="rounded-xl border border-border bg-surface-2 p-5">
+      <c-dashboard.chart-fonte chave="mensal" titulo="Evolução financeira mensal — {{ periodo.competencia|date:'Y' }}" hint="Captação e execução mês a mês, em R$ milhões. O mês selecionado no filtro aparece em destaque." bloco="bloco_mensal" geo="geo_mensal" unidade="R$ mi" eixo_rotulo="por mês" legenda_a="Captado" legenda_b="Executado" />
+    </div>
+    <div class="rounded-xl border border-border bg-surface-2 p-5">
+      {% if geo_pilares %}
+      <c-dashboard.chart-fonte chave="pilares" titulo="Captação × execução por pilar — acumulado {{ periodo.competencia|date:'Y' }}" hint="Captação e execução por pilar no acumulado do ano, em R$ milhões." bloco="bloco_pilares" geo="geo_pilares" unidade="R$ mi" eixo_rotulo="por pilar" legenda_a="Captado" legenda_b="Executado" />
+      {% else %}
+      <h3 class="font-display text-base font-semibold">Captação × execução por pilar — acumulado {{ periodo.competencia|date:'Y' }}</h3>
+      <p class="mt-1 text-sm text-text-muted">Sem dados financeiros para os pilares visíveis.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <section class="mt-4 rounded-xl border border-border bg-surface-2 p-5" data-testid="status-distribuicao" aria-label="Distribuição de lançamentos por status">
+    <h2 class="font-display text-lg font-semibold">Lançamentos — {{ periodo.rotulo }}</h2>
+    <div class="mt-3 flex h-3 overflow-hidden rounded-full bg-quiin-mist/60" role="img" aria-label="Distribuição de lançamentos por status">
+      <div class="bg-quiin-quantum-green" style="width: {{ status_counts.APROVADO.pct|unlocalize }}%" title="Aprovados: {{ status_counts.APROVADO.quantidade }}"></div>
+      <div class="bg-quiin-blue" style="width: {{ status_counts.ENVIADO.pct|unlocalize }}%" title="Enviados: {{ status_counts.ENVIADO.quantidade }}"></div>
+      <div class="bg-quiin-mist" style="width: {{ status_counts.RASCUNHO.pct|unlocalize }}%" title="Rascunhos: {{ status_counts.RASCUNHO.quantidade }}"></div>
+      <div class="bg-amber-400" style="width: {{ status_counts.DEVOLVIDO.pct|unlocalize }}%" title="Devolvidos: {{ status_counts.DEVOLVIDO.quantidade }}"></div>
+    </div>
+    <ul class="mt-2 flex flex-wrap gap-4 text-xs text-text-muted">
+      <li>Aprovado — {{ status_counts.APROVADO.quantidade }}</li>
+      <li>Enviado — {{ status_counts.ENVIADO.quantidade }}</li>
+      <li>Rascunho — {{ status_counts.RASCUNHO.quantidade }}</li>
+      <li>Devolvido — {{ status_counts.DEVOLVIDO.quantidade }}</li>
+    </ul>
+  </section>
+
+  <section class="mt-4 overflow-x-auto rounded-xl border border-border bg-surface-2" aria-label="Consolidado por pilar">
+    <h2 class="px-5 pt-5 font-display text-lg font-semibold">Consolidado por pilar — {{ periodo.rotulo }}</h2>
+    {% for linha in linhas %}
+    <div class="px-5 pt-4">
+      <h3 class="font-display text-sm font-semibold text-quiin-royal">{{ linha.pilar.nome }}</h3>
+      <div class="mt-2 overflow-x-auto">
+        <table class="w-full border-collapse text-sm">
+          <thead>
+            <tr class="border-b border-border text-left text-xs uppercase tracking-wide text-text-muted">
+              <th class="py-2 pr-3">Indicador</th><th class="py-2 pr-3">Un.</th><th class="py-2 pr-3">Meta</th>
+              <th class="py-2 pr-3">Realizado</th><th class="py-2 pr-3">% execução</th><th class="py-2 pr-3">Farol</th><th class="py-2">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in linha.itens %}
+            <tr class="border-b border-border/60 {% if item.percentual is not None and item.percentual < 100 %}bg-amber-50/60{% endif %}">
+              <td class="py-2 pr-3"><strong>{{ item.indicador.nome }}</strong><br><span class="text-xs text-text-muted">{{ item.indicador.codigo }}</span></td>
+              <td class="py-2 pr-3">{{ item.indicador.unidade }}</td>
+              <td class="py-2 pr-3 numerico">{% if item.meta is not None %}{{ item.meta|numero_ptbr }}{% else %}—{% endif %}</td>
+              <td class="py-2 pr-3 numerico">{{ item.realizado|numero_ptbr }}{% if item.ytd %} <span class="text-xs text-text-muted">(YTD)</span>{% endif %}</td>
+              <td class="py-2 pr-3 numerico">{% if item.percentual is not None %}{{ item.percentual|pct }}{% else %}—{% endif %}</td>
+              <td class="py-2 pr-3"><c-dashboard.farol-badge faixa="{{ item.faixa }}" rotulo="{% if item.percentual is not None %}{{ item.percentual|pct }}{% else %}—{% endif %}" /></td>
+              <td class="py-2"><c-ui.badge tone="{% if item.lc.status == 'APROVADO' %}success{% elif item.lc.status == 'ENVIADO' %}info{% elif item.lc.status == 'DEVOLVIDO' %}warn{% else %}neutral{% endif %}">{{ item.lc.status|default:'Pendente'|status_lancamento }}</c-ui.badge></td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="7" class="py-3 text-sm text-text-muted">Nenhum indicador ativo neste pilar.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endfor %}
+    <div class="h-5"></div>
+  </section>
+
+  <div class="mt-4 grid gap-4 lg:grid-cols-2">
+    <section class="rounded-xl border border-border bg-surface-2 p-5" data-testid="heatmap" aria-label="Heatmap de execução por pilar">
+      <h2 class="font-display text-lg font-semibold">Heatmap de execução</h2>
+      <p class="text-xs text-text-muted">Verde ≥ 90% · Amarelo ≥ 50% · Vermelho &lt; 50% · Cinza sem dado.</p>
+      <div class="mt-4 space-y-4">
+        {% for grupo in heatmap %}
+        <div>
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-sm font-semibold">{{ grupo.pilar.nome }}</span>
+            <span class="text-xs text-text-muted">{{ grupo.resumo }}</span>
+          </div>
+          <div class="mt-2 flex flex-wrap gap-1.5">
+            {% for celula in grupo.celulas %}
+            <a href="{% url 'core:pilar' grupo.pilar.pk %}" title="{{ celula.titulo }}" aria-label="{{ celula.titulo }}"
+               hx-get="{% url 'core:pilar_drawer' grupo.pilar.pk %}?periodo={{ periodo.competencia|date:'Y-m-d' }}"
+               hx-target="#drawer-conteudo" hx-swap="innerHTML" hx-indicator="#skeleton-global" @click="drawerAberto = true"
+               class="h-6 w-6 rounded {% if celula.faixa == 'ok' %}bg-quiin-quantum-green{% elif celula.faixa == 'parcial' %}bg-amber-400{% elif celula.faixa == 'critica' %}bg-red-500{% else %}bg-quiin-mist{% endif %}"></a>
+            {% endfor %}
+          </div>
+        </div>
+        {% empty %}
+        <p class="text-sm text-text-muted">Sem pilares visíveis.</p>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="rounded-xl border border-border bg-surface-2 p-5" aria-label="Destaques do período">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <h2 class="font-display text-lg font-semibold">Destaques do período</h2>
+        <div class="flex flex-wrap gap-1.5" data-testid="destaques-filtros">
+          <button type="button" hx-get="{% url 'core:mensal' %}?periodo={{ periodo.competencia|date:'Y-m-d' }}"
+                  hx-target="#painel-mensal" hx-select="#painel-mensal" hx-swap="outerHTML" hx-push-url="true" hx-indicator="#progresso, #skeleton-global"
+                  class="rounded-full border border-border px-3 py-1 text-xs {% if not destaque_pilar %}bg-quiin-navy text-white{% endif %}">Todos</button>
+          {% for p in pilares_nav %}
+          <button type="button" hx-get="{% url 'core:mensal' %}?periodo={{ periodo.competencia|date:'Y-m-d' }}&destaque_pilar={{ p.pk }}"
+                  hx-target="#painel-mensal" hx-select="#painel-mensal" hx-swap="outerHTML" hx-push-url="true" hx-indicator="#progresso, #skeleton-global"
+                  class="rounded-full border border-border px-3 py-1 text-xs {% if destaque_pilar == p.pk|stringformat:'s' %}bg-quiin-navy text-white{% endif %}">{{ p.codigo }}</button>
+          {% endfor %}
+        </div>
+      </div>
+      <div id="feed-destaques" data-testid="feed-destaques" class="mt-4 space-y-3">
+        {% for d in destaques %}
+        <article class="rounded-lg border border-border p-3">
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="text-sm font-semibold">{{ d.titulo }}</span>
+            <c-ui.badge tone="info">{{ d.get_tipo_display }}</c-ui.badge>
+            {% if d.pilar %}<c-ui.badge pillar="{{ d.pilar.codigo }}">{{ d.pilar.codigo }}</c-ui.badge>{% endif %}
+          </div>
+          <p class="mt-1 text-sm text-text-muted">{{ d.descricao }}</p>
+        </article>
+        {% empty %}
+        <p class="text-sm text-text-muted">Nenhum destaque para o filtro atual.</p>
+        {% endfor %}
+      </div>
+    </section>
+  </div>
+</div>

@@ -82,10 +82,19 @@ class PainelAnualViewTestes(TestCase):
         self.assertNotContains(resposta, '<section id="editor-dados"')
 
     def test_toggle_da_barra_so_existe_com_painel(self):
+        from datetime import date
+
+        from apps.periods.models import Periodo
+
         self.client.force_login(self.master)
         resposta = self.client.get(reverse("core:dashboard"))
         self.assertContains(resposta, '<button type="button" data-testid="barra-toggle"')
         resposta = self.client.get(reverse("core:mensal"))
+        self.assertNotContains(resposta, '<button type="button" data-testid="barra-toggle"')
+        Periodo.objects.create(competencia=date(2026, 6, 1), status="ABERTO")
+        resposta = self.client.get(reverse("core:mensal"))
+        self.assertContains(resposta, '<button type="button" data-testid="barra-toggle"')
+        resposta = self.client.get(reverse("core:semestral"))
         self.assertNotContains(resposta, '<button type="button" data-testid="barra-toggle"')
 
     def test_exige_login(self):

@@ -1,17 +1,17 @@
 {% load core_extras l10n %}
 {# Gráfico de barras agrupadas por fonte (SVG server-side). Props: chave, titulo, hint, bloco (DTO), geo, unidade ("R$ mi"|"metas"). #}
 {# Números de geometria saem sem localização (ponto decimal) — SVG não aceita vírgula. #}
-<c-vars chave="" titulo="" hint="" bloco="" geo="" unidade="R$ mi" />
+<c-vars chave="" titulo="" hint="" bloco="" geo="" unidade="R$ mi" eixo_rotulo="por ano" legenda_a="Projetado ou captado" legenda_b="Executado" />
 <section aria-label="{{ titulo }}">
   <h3 class="font-display text-base font-semibold">{{ titulo }}</h3>
   <p class="text-xs text-text-muted">{{ hint }}</p>
   <div class="mt-1 flex flex-wrap gap-4 text-xs text-text-muted" aria-hidden="true">
-    <span class="inline-flex items-center gap-1.5"><i class="inline-block h-2.5 w-2.5 rounded-sm bg-quiin-royal"></i>Projetado ou captado</span>
-    <span class="inline-flex items-center gap-1.5"><i class="inline-block h-2.5 w-2.5 rounded-sm bg-quiin-sky"></i>Executado</span>
+    <span class="inline-flex items-center gap-1.5"><i class="inline-block h-2.5 w-2.5 rounded-sm bg-quiin-royal"></i>{{ legenda_a }}</span>
+    <span class="inline-flex items-center gap-1.5"><i class="inline-block h-2.5 w-2.5 rounded-sm bg-quiin-sky"></i>{{ legenda_b }}</span>
   </div>
   <div data-testid="chart-fonte-{{ chave }}">
     {% localize off %}
-    <svg viewBox="0 0 {{ geo.largura }} {{ geo.altura }}" class="mt-2 h-auto w-full" role="img" aria-label="{{ titulo }} por ano">
+    <svg viewBox="0 0 {{ geo.largura }} {{ geo.altura }}" class="mt-2 h-auto w-full" role="img" aria-label="{{ titulo }} {{ eixo_rotulo }}">
       {% for gr in geo.grupos %}
       <g opacity="{{ gr.opacidade }}"{% if gr.destaque %} data-destaque="true"{% endif %} data-categoria="{{ gr.eixo.0 }} {{ gr.eixo.1 }}">
         {% if gr.divisor %}<line x1="{{ gr.divisor_x }}" y1="{{ geo.divisor_y1 }}" x2="{{ gr.divisor_x }}" y2="{{ geo.base_y }}" class="stroke-border" stroke-width="1" stroke-dasharray="3 3" />{% endif %}

@@ -18,6 +18,7 @@ const ROTAS = [
   '/crm-at/funil/',
   '/talentos/organograma/',
   '/relatorio/mensal/2/',
+  '/prestacao/mensal/',
   '/auditoria/',
   '/busca/?q=artigos',
   '/dev/design-system/',

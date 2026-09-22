@@ -1,0 +1,63 @@
+{# Faixas de filtros/chips/toolbar da prestação mensal (L20). Incluída no app_header e no fragmento htmx. #}
+{# Faixas alinhadas à direita como no mockup: filtros acima, chips em faixa própria, ações em linha própria. #}
+<div class="flex flex-col gap-y-2">
+  <div class="flex flex-wrap items-end justify-end gap-x-6 gap-y-2">
+  <form method="get" action="{% url 'core:mensal' %}"
+        hx-get="{% url 'core:mensal' %}" hx-target="#painel-mensal" hx-select="#painel-mensal"
+        hx-swap="outerHTML" hx-push-url="true" hx-indicator="#progresso, #skeleton-global"
+        class="flex flex-wrap items-end gap-x-4 gap-y-2">
+    <input type="hidden" name="destaque_pilar" value="{{ destaque_pilar }}">
+    <div>
+      <label for="periodo-dash" class="block text-[0.65rem] font-semibold uppercase tracking-widest text-text-muted">Período</label>
+      <select id="periodo-dash" name="periodo" data-testid="period-selector-dashboard" onchange="this.form.requestSubmit()"
+              class="mt-1 rounded-md border border-border bg-surface px-3 py-2 text-sm text-text">
+        {% for p in periodos %}
+        <option value="{{ p.competencia|date:'Y-m-d' }}" data-testid="period-option-{{ p.rotulo }}" {% if periodo and p.pk == periodo.pk %}selected{% endif %}>{{ p.rotulo }} — {{ p.get_status_display }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </form>
+
+  <div>
+    <span class="block text-[0.65rem] font-semibold uppercase tracking-widest text-text-muted">Status</span>
+    <div class="mt-1">
+      <c-ui.badge tone="{% if periodo.status == 'ABERTO' or periodo.status == 'REABERTO' %}info{% elif periodo.status == 'FECHADO' %}success{% else %}neutral{% endif %}">{{ periodo.get_status_display }}</c-ui.badge>
+    </div>
+  </div>
+  </div>
+
+  <div class="flex flex-wrap justify-end gap-1.5" data-testid="context-chips">
+    <span class="rounded-full border border-border bg-quiin-mist/40 px-3 py-1 text-xs">Período: <strong>{{ painel_mensal.rotulo_periodo }}</strong></span>
+    <span class="rounded-full border border-border bg-quiin-mist/40 px-3 py-1 text-xs">Status: <strong>{{ painel_mensal.status_display }}</strong></span>
+    <span class="rounded-full border border-border bg-quiin-mist/40 px-3 py-1 text-xs">Pilares: <strong>{{ painel_mensal.n_pilares }}</strong></span>
+  </div>
+
+  <div class="flex flex-wrap items-center justify-end gap-2" role="toolbar" aria-label="Ações do mês">
+    {% if pode_aprovar and status_counts.ENVIADO.quantidade %}
+    <c-ui.button variant="primary" size="toolbar" href="{% url 'entries:aprovacao' periodo.pk %}">Aprovar {{ status_counts.ENVIADO.quantidade }} pendente{{ status_counts.ENVIADO.quantidade|pluralize }}</c-ui.button>
+    {% endif %}
+    {% if pode_gerenciar_periodos %}
+      {% if periodo.status == 'PLANEJADO' %}
+      <form method="post" action="{% url 'periods:acao' periodo.pk 'abrir' %}">
+        {% csrf_token %}<input type="hidden" name="next" value="core:dashboard">
+        <c-ui.button variant="ghost" size="toolbar" type="submit">Abrir período</c-ui.button>
+      </form>
+      {% elif periodo.permite_edicao %}
+      <form method="post" action="{% url 'periods:acao' periodo.pk 'fechar' %}"
+            onsubmit="return confirm('Fechar o período gera o snapshot e bloqueia edições. Confirma?');">
+        {% csrf_token %}<input type="hidden" name="next" value="core:dashboard">
+        <c-ui.button variant="ghost" size="toolbar" type="submit">Fechar período</c-ui.button>
+      </form>
+      {% elif periodo.status == 'FECHADO' %}
+      <form method="post" action="{% url 'periods:acao' periodo.pk 'reabrir' %}" class="flex items-center gap-2">
+        {% csrf_token %}<input type="hidden" name="next" value="core:dashboard">
+        <input type="text" name="justificativa" placeholder="Justificativa da reabertura" required aria-label="Justificativa da reabertura"
+               class="rounded-md border border-border bg-surface-2 px-3 py-2 text-sm">
+        <c-ui.button variant="ghost" size="toolbar" type="submit">Reabrir</c-ui.button>
+      </form>
+      {% endif %}
+    {% endif %}
+    <c-ui.button variant="ghost" size="toolbar" href="{% url 'reports:mensal' periodo.pk %}">Relatório mensal</c-ui.button>
+    <c-ui.button variant="ghost" size="toolbar" onclick="window.print()">Imprimir</c-ui.button>
+  </div>
+</div>

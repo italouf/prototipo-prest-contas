@@ -1,26 +1,23 @@
 """Agregações de apresentação do dashboard executivo (R2).
 
 Funções puras: recebem as `linhas` já calculadas pela view (sem novas queries).
+Farol alinhado ao painel anual (L20): ok ≥90 · parcial ≥50 · crítica <50.
 """
 import json
 from decimal import Decimal
 
 from django.urls import reverse
 
+from apps.planning.services import faixa as faixa_anual
+
 NIVEL_OK = "ok"
-NIVEL_ATENCAO = "atencao"
-NIVEL_CRITICO = "critico"
-NIVEL_NEUTRO = "neutro"
+NIVEL_PARCIAL = "parcial"
+NIVEL_CRITICA = "critica"
+NIVEL_NEUTRA = "neutra"
 
 
 def _nivel(percentual):
-    if percentual is None:
-        return NIVEL_NEUTRO
-    if percentual >= 100:
-        return NIVEL_OK
-    if percentual >= 50:
-        return NIVEL_ATENCAO
-    return NIVEL_CRITICO
+    return faixa_anual(percentual)
 
 
 def _formatar_percentual(percentual):
@@ -46,7 +43,7 @@ def kpi_por_pilar(linhas):
                 "pilar": linha["pilar"],
                 "percentual": percentual,
                 "percentual_fmt": _formatar_percentual(percentual),
-                "nivel": _nivel(percentual),
+                "faixa": _nivel(percentual),
                 "barra_pct": float(min(percentual or 0, 100)),
                 "com_meta": com_meta,
                 "atingidos": atingidos,
@@ -64,7 +61,7 @@ def heatmap_por_pilar(linhas):
         celulas = []
         for item in linha["itens"]:
             indicador = item["indicador"]
-            nivel = _nivel(item["percentual"])
+            faixa = _nivel(item["percentual"])
             meta = item.get("meta")
             realizado = item.get("realizado")
             titulo = f"{indicador.nome}: "
@@ -72,8 +69,8 @@ def heatmap_por_pilar(linhas):
                 titulo += "sem valor/meta"
             else:
                 titulo += f"{realizado} de {meta} ({item['percentual']:.0f}%)"
-            celulas.append({"codigo": indicador.codigo, "titulo": titulo, "nivel": nivel})
-        ok = sum(1 for c in celulas if c["nivel"] == NIVEL_OK)
+            celulas.append({"codigo": indicador.codigo, "titulo": titulo, "faixa": faixa})
+        ok = sum(1 for c in celulas if c["faixa"] == NIVEL_OK)
         grupos.append(
             {
                 "pilar": linha["pilar"],

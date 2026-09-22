@@ -226,3 +226,13 @@
     `#dashboard-controls` por um div sem classe/testid (regressão visual
     silenciosa desde L3/L13) — `_fragmento*.html` agora espelham os atributos
     do app_header, com guarda nos testes de fragmento.
+35. **L20 — Prestação mensal no padrão Geral/Pilares**: `apps/core/prestacao.py`
+    (`contexto_mensal`, `resolver_periodo/destaque`, séries em R$ mi) com a
+    view `core:mensal` como casca fina; `?periodo=` inválido ⇒ 302 canônico;
+    controles no header (`_controles_mensal`, 3 faixas) + fragmento OOB +
+    `#painel-mensal`; SVG via `chart-fonte` com `apps/core/charts.py`
+    genérico (`planning/charts.py::geometria_fonte` delega, saída idêntica);
+    farol unificado no anual (≥90/≥50/<50) — sai o ≥100 do mensal; Chart.js
+    aposentado do dashboard (fica no relatório); filtro de destaques vira
+    swap de painel com push-url; `|unlocalize` nos widths das barras
+    (CSS/SVG não aceitam vírgula — inclusive nas barras de status legadas).

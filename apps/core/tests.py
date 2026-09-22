@@ -61,7 +61,8 @@ class DashboardExecutivoTestes(TestCase):
         self.assertContains(resposta, "Evolução financeira mensal")
         self.assertContains(resposta, "Captação × execução por pilar")
         self.assertContains(resposta, 'data-testid="heatmap"')
-        self.assertContains(resposta, 'data-testid="chart-mensal"')
+        self.assertContains(resposta, 'data-testid="chart-fonte-mensal"')
+        self.assertContains(resposta, 'data-testid="chart-fonte-pilares"')
         self.assertContains(resposta, 'data-testid="status-distribuicao"')
 
 
@@ -195,7 +196,7 @@ class DashboardR2HelpersTestes(TestCase):
             ],
         )
         celulas = heatmap_por_pilar([linha])[0]["celulas"]
-        self.assertEqual([c["nivel"] for c in celulas], ["ok", "atencao", "critico", "neutro"])
+        self.assertEqual([c["faixa"] for c in celulas], ["ok", "parcial", "critica", "neutra"])
 
     def test_avisos_incluem_pendencias_e_pilares_incompletos(self):
         from apps.core.dashboard import avisos_do_dashboard
@@ -238,7 +239,8 @@ class DashboardR2ViewTestes(TestCase):
         resposta = self.client.get(reverse("core:mensal"))
         self.assertEqual(len(resposta.context["kpis"]), 2)
         self.assertEqual(len(resposta.context["heatmap"]), 2)
-        self.assertIn("chart_mensal_json", resposta.context)
+        self.assertIn("geo_mensal", resposta.context)
+        self.assertIn("geo_pilares", resposta.context)
 
     def test_drawer_do_pilar_renderiza_itens(self):
         resposta = self.client.get(

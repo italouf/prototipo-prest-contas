@@ -297,8 +297,11 @@ test('L19 barra do painel pode ser ocultada e o estado persiste', async ({ page 
   await expect(page.getByTestId('context-chips')).toContainText('Unidade: quantidade de metas');
   await expect(controles).toBeVisible();
 
-  // Página sem painel não tem o botão.
+  // Página com painel tem o botão e ele alterna a barra.
   await page.getByTestId('sidebar').getByRole('link', { name: /^Mensal/ }).click();
   await expect(page).toHaveURL(/prestacao\/mensal/);
-  await expect(alternador).toHaveCount(0);
+  await expect(alternador).toBeVisible();
+  await expect(page.getByTestId('dashboard-controls')).toBeVisible();
+  await alternador.click();
+  await expect(page.getByTestId('dashboard-controls')).toBeHidden();
 });

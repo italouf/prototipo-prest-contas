@@ -36,7 +36,7 @@ test('dashboard executivo exibe gráficos e escala de valores', async ({ page })
   await expect(page.locator('[data-kpi-card]')).toHaveCount(6);
   await expect(page.getByText(/R\$ .* mi|R\$ \d+ mil/).first()).toBeVisible();
   await expect(page.getByTestId('heatmap')).toBeVisible();
-  await expect(page.getByTestId('chart-mensal')).toBeVisible();
+  await expect(page.getByTestId('chart-fonte-mensal')).toBeVisible();
   await expect(page.getByTestId('status-distribuicao')).toBeVisible();
 });
 

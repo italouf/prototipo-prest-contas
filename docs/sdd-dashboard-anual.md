@@ -15,7 +15,8 @@ distribuição de status, consolidado por pilar. Banco sem conceito de ano-safra
 de BASE (Financeiro/Físico), 4 cards KPI, 3 gráficos por fonte, tabela gerencial com farol,
 gráfico consolidado, modal de metodologia, modo de edição auditado, CSV/impressão/download
 refletindo os filtros, app-header global, sidebar reagrupada, footer institucional com logos.
-O dashboard mensal atual migra intacto para `/prestacao/mensal/`.
+O dashboard mensal atual migra intacto para `/prestacao/mensal/` (e no L20 é
+reformulado no padrão do painel anual — ver `specs/prestacao-mensal.md`).
 
 **Fora de escopo:** alterar fluxos mensais (lançamentos, períodos, CSV financeiro, relatório A4,
 kanban, CRM, talentos, destaques, auditoria); novas dependências; novas cores fora dos tokens.
@@ -118,7 +119,7 @@ Migração: apenas `planning/0001_initial.py` (sempre `makemigrations planning` 
 | Rota | View | Comportamento |
 |---|---|---|
 | `GET /` | `core.views.dashboard` (reescrita) | `?ano=todos\|2024..2027&base=fin\|fis`; `Form` próprio com `clean()`; inválido ⇒ 302 default; `?periodo=` legado ⇒ 301; `HX-Request` ⇒ partial `#dashboard-panel` |
-| `GET /prestacao/mensal/` | `core.views.mensal` | dashboard mensal atual, intacto |
+| `GET /prestacao/mensal/` | `core.views.mensal` | prestação mensal no padrão do anual (L20: `?periodo=` canônico, controles no header, SVG, farol; ver `specs/prestacao-mensal.md`) |
 | `GET /prestacao/semestral/` | `core.views.semestral` | visão mínima (agrega 6 meses) |
 | `POST /plano-anual/aplicar/` | `planning.views.aplicar` | grid ano×pilar×base, validação backend, atômico, auditoria por linha; `acao=baixar` ⇒ responde o HTML standalone |
 | `GET /plano-anual/dados.csv` | `planning.views.csv` | visão corrente; `;`, BOM, UTF-8; colunas `Bloco;Item;Indicador;Unidade;Período;Valor` |

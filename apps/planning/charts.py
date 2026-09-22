@@ -1,22 +1,21 @@
-"""Geometria dos gráficos do painel anual (L2) — funções puras.
+"""Geometria dos gráficos do painel anual (L2) — delega ao genérico (L20).
 
 Os templates emitem o SVG a partir destes dicionários; nenhuma matemática
 vive no template. Proporções espelham o mockup (5 categorias com divisor
 antes do acumulado; consolidado com 3 séries por ano).
 """
+from apps.core.charts import ALTURA_MINIMA, OPACIDADE_DIM, geometria_barras
+
 LARGURA_FONTE, ALTURA_FONTE = 430, 268
 PAD_FONTE = {"esq": 8, "dir": 8, "topo": 26, "base": 46}
 LARGURA_BARRA_MAX, ESPACO_BARRAS = 26, 5
-ALTURA_MINIMA = 1.5
-OPACIDADE_DIM = 0.3
 
 LARGURA_CONSOL, ALTURA_CONSOL = 1100, 280
 PAD_CONSOL = {"esq": 52, "dir": 20, "topo": 26, "base": 50}
 LARGURA_BARRA_CONSOL, ESPACO_CONSOL = 44, 10
 
-
-def _num(v):
-    return float(v or 0)
+EIXOS_FONTE = (("Ano 1", "2024"), ("Ano 2", "2025"), ("Ano 3", "2026"),
+               ("Ano 4", "2027"), ("Todos os anos", "2024 a 2027"))
 
 
 def geometria_fonte(serie_previsto, serie_executado, destaque):
@@ -24,52 +23,17 @@ def geometria_fonte(serie_previsto, serie_executado, destaque):
 
     `destaque`: índice 0..4 da categoria selecionada ou None (todos os anos).
     """
-    vals_a = [_num(v) for v in serie_previsto]
-    vals_b = [_num(v) for v in serie_executado]
-    teto = max([1, *vals_a, *vals_b]) * 1.18
-    plot_w = LARGURA_FONTE - PAD_FONTE["esq"] - PAD_FONTE["dir"]
-    plot_h = ALTURA_FONTE - PAD_FONTE["topo"] - PAD_FONTE["base"]
-    base_y = PAD_FONTE["topo"] + plot_h
-    larg_grupo = plot_w / 5
-    larg_barra = min(LARGURA_BARRA_MAX, larg_grupo * 0.3)
-
-    def barra(x_esq, valor):
-        h = max(ALTURA_MINIMA, valor / teto * plot_h) if valor > 0 else ALTURA_MINIMA
-        y = base_y - h
-        return {"x": round(x_esq, 2), "y": round(y, 2),
-                "w": round(larg_barra, 2), "h": round(h, 2), "valor": valor,
-                "cx": round(x_esq + larg_barra / 2, 2), "ry": round(y - 4, 2)}
-
-    eixos = [("Ano 1", "2024"), ("Ano 2", "2025"), ("Ano 3", "2026"),
-             ("Ano 4", "2027"), ("Todos os anos", "2024 a 2027")]
-    grupos = []
-    for i in range(5):
-        centro = PAD_FONTE["esq"] + larg_grupo * (i + 0.5)
-        sel = destaque is not None and i == destaque
-        grupos.append({
-            "eixo": eixos[i],
-            "cx_eixo": round(centro, 2),
-            "a": barra(centro - ESPACO_BARRAS / 2 - larg_barra, vals_a[i]),
-            "b": barra(centro + ESPACO_BARRAS / 2, vals_b[i]),
-            "opacidade": 1 if (destaque is None or sel) else OPACIDADE_DIM,
-            "destaque": sel,
-            "divisor": i == 4,
-            "divisor_x": round(PAD_FONTE["esq"] + larg_grupo * 4, 2),
-        })
-    return {
-        "largura": LARGURA_FONTE, "altura": ALTURA_FONTE, "base_y": round(base_y, 2),
-        "topo_y": PAD_FONTE["topo"], "divisor_y1": PAD_FONTE["topo"] - 6,
-        "eixo_y1": ALTURA_FONTE - PAD_FONTE["base"] + 18,
-        "eixo_y2": ALTURA_FONTE - PAD_FONTE["base"] + 31,
-        "base_x1": PAD_FONTE["esq"], "base_x2": LARGURA_FONTE - PAD_FONTE["dir"],
-        "grupos": grupos,
-    }
+    return geometria_barras(
+        list(EIXOS_FONTE), serie_previsto, serie_executado, destaque,
+        largura=LARGURA_FONTE, altura=ALTURA_FONTE, pad=PAD_FONTE,
+        larg_barra_max=LARGURA_BARRA_MAX, espaco=ESPACO_BARRAS, divisor=4,
+    )
 
 
 def geometria_consolidado(series, destaque):
     """3 séries por ano (PPI/AT/Outras executados). `destaque`: 0..3 ou None."""
     nomes = list(series.keys())
-    vals = {n: [_num(v) for v in series[n]] for n in nomes}
+    vals = {n: [float(v or 0) for v in series[n]] for n in nomes}
     teto = max([1, *[v for serie in vals.values() for v in serie]]) * 1.12
     plot_w = LARGURA_CONSOL - PAD_CONSOL["esq"] - PAD_CONSOL["dir"]
     plot_h = ALTURA_CONSOL - PAD_CONSOL["topo"] - PAD_CONSOL["base"]
