@@ -180,8 +180,10 @@ Outras 0/8 (0%), consolidado 34/68 (50%). Per-ano e por pilar conforme tabelas d
     (`numero_curto`).
 11. Shell (L10, paridade com o mockup): topbar full-width acima de tudo; sidebar
     abaixo do header sem scroll exclusivo (acompanha a página; drawer mobile
-    mantém scroll próprio); marca mantida na sidebar; toolbar em linha própria
-    alinhada à direita; rodapé full width.
+    mantém scroll próprio); marca mantida na sidebar; controles do painel em
+    três faixas à direita (filtros Ano+Base acima, chips, ações em linha
+    própria); só "Editar dados" é primário, demais botões brancos como
+    "Restaurar padrão" (L18); rodapé full width.
 
 ## 9. Painel por pilar (L12–L16)
 

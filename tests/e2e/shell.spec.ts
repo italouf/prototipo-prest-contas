@@ -245,3 +245,24 @@ test('L11 sidebar acompanha a rolagem principal (sem scroll exclusivo)', async (
   const overflow = await sidebar.evaluate((el) => getComputedStyle(el).overflowY);
   expect(overflow).toBe('visible');
 });
+
+test('L18 header anual: filtros acima dos chips; só Editar dados primário', async ({ page }) => {
+  await login(page);
+  for (const url of ['/?ano=todos&base=fin', '/pilar/1/']) {
+    await page.goto(url);
+    const geometria = await page.evaluate(() => {
+      const caixa = (sel: string) => (document.querySelector(sel) as HTMLElement).getBoundingClientRect();
+      return {
+        filtrosBase: Math.round(Math.max(caixa('#year-select').bottom, caixa('[data-testid="base-toggle"]').bottom)),
+        chipsTopo: Math.round(caixa('[data-testid="context-chips"]').top),
+      };
+    });
+    expect(geometria.chipsTopo).toBeGreaterThanOrEqual(geometria.filtrosBase - 1);
+    const botoes = page.locator('[role="toolbar"] a, [role="toolbar"] button');
+    await expect(botoes).toHaveCount(5);
+    const fundos = await botoes.evaluateAll((els) => els.map((el) => getComputedStyle(el).backgroundColor));
+    expect(fundos.filter((fundo) => fundo === 'rgb(4, 4, 126)')).toHaveLength(1);
+    await expect(page.locator('[role="toolbar"] [data-testid="btn-editar-dados"]'))
+      .toHaveCSS('background-color', 'rgb(4, 4, 126)');
+  }
+});

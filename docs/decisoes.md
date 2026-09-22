@@ -212,3 +212,8 @@
     `id="app-header"` atualizam o header inteiro via OOB a cada navegação,
     sem mexer no `#main`, no scroll nem nos listeners da sidebar (htmx 2.0.10
     processa OOB antes do `hx-select`; default `outerHTML`).
+33. **L18 — Header anual em 3 faixas (paridade com o mockup)**: Ano + Base de
+    análise em faixa própria acima dos chips (antes dividiam a linha);
+    toolbar com só "Editar dados" primário — Baixar dashboard/CSV e Imprimir
+    viram `ghost` (brancos, como "Restaurar padrão"); vale para o painel geral
+    e para o do pilar; sem variante nova no design system.
