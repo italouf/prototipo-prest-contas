@@ -20,3 +20,6 @@ static/fonts/panton/
 static/fonts/myriad-pro/
 # Binário do Tailwind CLI (auto-gerenciado)
 .django_tailwind_cli/
+# Impeccable
+.impeccable/
+
