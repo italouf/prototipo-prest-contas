@@ -266,3 +266,39 @@ test('L18 header anual: filtros acima dos chips; só Editar dados primário', as
       .toHaveCSS('background-color', 'rgb(4, 4, 126)');
   }
 });
+
+test('L19 barra do painel pode ser ocultada e o estado persiste', async ({ page }) => {
+  await login(page);
+  await page.goto('/?ano=todos&base=fin');
+  const alternador = page.getByTestId('barra-toggle');
+  const controles = page.getByTestId('dashboard-controls');
+  await expect(controles).toBeVisible();
+  await expect(alternador).toHaveAttribute('aria-expanded', 'true');
+
+  await alternador.click();
+  await expect(controles).toBeHidden();
+  await expect(alternador).toHaveAttribute('aria-expanded', 'false');
+  await expect(alternador).toHaveAttribute('aria-label', 'Mostrar filtros e ações');
+  expect(await page.evaluate(() => localStorage.getItem('quiin-barra'))).toBe('oculta');
+
+  await page.reload();
+  await expect(controles).toBeHidden();
+
+  // Oculto sobrevive à navegação com boost (header trocado via OOB).
+  await page.locator('#grp-pilares').getByRole('link', { name: /^PDI/ }).click();
+  await expect(page).toHaveURL(/pilar\/1\/$/);
+  await expect(controles).toBeHidden();
+  await expect(alternador).toHaveAttribute('aria-expanded', 'false');
+
+  await alternador.click();
+  await expect(controles).toBeVisible();
+  await expect(alternador).toHaveAttribute('aria-expanded', 'true');
+  await page.getByTestId('base-toggle').getByRole('link', { name: 'Físico' }).click();
+  await expect(page.getByTestId('context-chips')).toContainText('Unidade: quantidade de metas');
+  await expect(controles).toBeVisible();
+
+  // Página sem painel não tem o botão.
+  await page.getByTestId('sidebar').getByRole('link', { name: /^Mensal/ }).click();
+  await expect(page).toHaveURL(/prestacao\/mensal/);
+  await expect(alternador).toHaveCount(0);
+});

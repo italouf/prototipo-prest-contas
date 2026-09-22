@@ -24,6 +24,7 @@ Login como Master (exceto onde indicado).
 | P12 | AC-051 | URL inválida (`?ano=2030`) | 302 para `/pilar/<pk>/?ano=todos&base=fin` (preserva `periodo`) |
 | P13 | AC-056 | Pilar 1 → AT pela sidebar, trocar base; AT → Geral, trocar base; Geral → Mensal | toggle mira `/pilar/4/` e URL vira `/pilar/4/?ano=todos&base=fis`; no Geral o toggle volta a `/?ano=todos&base=fis`; na Mensal não há `base-toggle` (header OOB via `hx-select-oob`) |
 | P14 | AC-056 | Header do pilar (Master): filtros acima dos chips; toolbar | `context-chips` abaixo de Ano/Base; só "Editar dados" navy, demais botões brancos (L18, `shell.spec.ts`) |
+| P15 | AC-056 | Ocultar a barra do pilar pelo topbar e voltar | `barra-toggle` oculta `#dashboard-controls`; estado persiste no reload e na navegação; mensal não tem o botão (L19, `shell.spec.ts`) |
 
 ## Regressão a revalidar
 `portal.spec.ts` (heading do pilar), `shell.spec.ts` (teste L9: AT sai de Gestão),

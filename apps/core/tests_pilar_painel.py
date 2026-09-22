@@ -75,6 +75,7 @@ class PilarPainelViewTestes(TestCase):
         self.assertEqual(resposta.status_code, 200)
         self.assertContains(resposta, 'id="painel-pilar"')
         self.assertContains(resposta, "hx-swap-oob")
+        self.assertContains(resposta, 'data-testid="dashboard-controls"')
         self.assertNotContains(resposta, 'data-testid="app-header"')
 
     def test_navegacao_com_boost_recebe_pagina_completa(self):

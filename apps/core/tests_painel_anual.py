@@ -67,6 +67,7 @@ class PainelAnualViewTestes(TestCase):
         self.assertEqual(resposta.status_code, 200)
         self.assertContains(resposta, 'id="dashboard-panel"')
         self.assertContains(resposta, 'hx-swap-oob')
+        self.assertContains(resposta, 'data-testid="dashboard-controls"')
         self.assertContains(resposta, 'Ano 3: 2026')
         self.assertNotContains(resposta, 'data-testid="app-header"')
 
@@ -79,6 +80,13 @@ class PainelAnualViewTestes(TestCase):
         resposta = self.client.get(reverse("core:dashboard"))
         self.assertNotContains(resposta, 'data-testid="btn-editar-dados"')
         self.assertNotContains(resposta, '<section id="editor-dados"')
+
+    def test_toggle_da_barra_so_existe_com_painel(self):
+        self.client.force_login(self.master)
+        resposta = self.client.get(reverse("core:dashboard"))
+        self.assertContains(resposta, '<button type="button" data-testid="barra-toggle"')
+        resposta = self.client.get(reverse("core:mensal"))
+        self.assertNotContains(resposta, '<button type="button" data-testid="barra-toggle"')
 
     def test_exige_login(self):
         resposta = self.client.get(reverse("core:dashboard"))

@@ -250,3 +250,14 @@
 [data-aberto="true"] .sidebar {
   transform: none;
 }
+
+/* Barra do painel anual: o usuário pode ocultar filtros/chips/ações (localStorage 'quiin-barra'). */
+[data-barra-oculta="true"] #dashboard-controls {
+  display: none;
+}
+.barra-chevron {
+  transition: transform 0.15s ease;
+}
+[data-barra-oculta="true"] .barra-chevron {
+  transform: rotate(180deg);
+}

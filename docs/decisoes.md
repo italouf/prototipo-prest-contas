@@ -217,3 +217,12 @@
     toolbar com só "Editar dados" primário — Baixar dashboard/CSV e Imprimir
     viram `ghost` (brancos, como "Restaurar padrão"); vale para o painel geral
     e para o do pilar; sem variante nova no design system.
+34. **L19 — Barra do painel pode ser ocultada pelo topbar**: botão-ícone 32px
+    (chevron-up, padrão L11) antes do tema, só nas páginas com painel; estado
+    em `localStorage['quiin-barra']` com `data-barra-oculta` no `<html>`
+    (sobrevive a swaps OOB, boost e back/forward; sem flash via script no
+    `<head>`); `aria-expanded`/`aria-label` reaplicados em `htmx:afterSettle`.
+    De quebra, o teste achou que os fragmentos OOB substituíam
+    `#dashboard-controls` por um div sem classe/testid (regressão visual
+    silenciosa desde L3/L13) — `_fragmento*.html` agora espelham os atributos
+    do app_header, com guarda nos testes de fragmento.

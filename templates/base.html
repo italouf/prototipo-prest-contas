@@ -16,6 +16,9 @@
       if (tema === 'dark' || (!tema && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
         document.documentElement.classList.add('dark');
       }
+      if (localStorage.getItem('quiin-barra') === 'oculta') {
+        document.documentElement.setAttribute('data-barra-oculta', 'true');
+      }
     } catch (e) {}
   })();
 </script>
@@ -99,8 +102,26 @@
       });
     });
   }
-  document.addEventListener('DOMContentLoaded', function () { quiinAtivarNav(); quiinNavGrupos(); });
+  function quiinBarraOculta() {
+    try { return localStorage.getItem('quiin-barra') === 'oculta'; } catch (e) { return false; }
+  }
+  function quiinAplicarBarra() {
+    var oculta = quiinBarraOculta();
+    document.documentElement.setAttribute('data-barra-oculta', oculta ? 'true' : 'false');
+    var botao = document.querySelector('[data-testid="barra-toggle"]');
+    if (!botao) return;
+    botao.setAttribute('aria-expanded', oculta ? 'false' : 'true');
+    var rotulo = oculta ? 'Mostrar filtros e ações' : 'Ocultar filtros e ações';
+    botao.setAttribute('aria-label', rotulo);
+    botao.setAttribute('title', rotulo);
+  }
+  function quiinAlternarBarra() {
+    try { localStorage.setItem('quiin-barra', quiinBarraOculta() ? 'visivel' : 'oculta'); } catch (e) {}
+    quiinAplicarBarra();
+  }
+  document.addEventListener('DOMContentLoaded', function () { quiinAtivarNav(); quiinNavGrupos(); quiinAplicarBarra(); });
   document.addEventListener('htmx:afterSwap', quiinAtivarNav);
+  document.addEventListener('htmx:afterSettle', quiinAplicarBarra);
   function quiinAlternarEditor(forcar) {
     var ed = document.getElementById('editor-dados');
     if (!ed) return;
