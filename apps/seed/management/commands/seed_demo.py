@@ -202,6 +202,7 @@ class Command(BaseCommand):
         self._vinculos(usuarios, pilares)
         indicadores = self._indicadores(pilares)
         self._metas(indicadores)
+        self._reconciliar_indicadores()
 
         erica = usuarios["erica"]
         periodo_maio = self._periodo(date(2026, 5, 1))
@@ -301,6 +302,30 @@ class Command(BaseCommand):
                     "valor": Decimal(str(valor)),
                     "ativo": True,
                 },
+            )
+
+    def _reconciliar_indicadores(self):
+        """Conjunto canônico da demo (L25, decisão 4): 22 indicadores.
+
+        Desativa ativos fora do conjunto (ex.: `seed_operacionais`, que segue
+        opcional e fora do cenário padrão) e reativa os canônicos.
+        """
+        from apps.indicators.models import Indicador
+
+        canonicos = {codigo for _, codigo, *_ in INDICADORES}
+        desativados = (
+            Indicador.objects.filter(ativo=True)
+            .exclude(codigo__in=canonicos)
+            .update(ativo=False)
+        )
+        reativados = (
+            Indicador.objects.filter(codigo__in=canonicos, ativo=False)
+            .update(ativo=True)
+        )
+        if desativados or reativados:
+            self.stdout.write(
+                f"Indicadores reconciliados: {desativados} desativado(s), "
+                f"{reativados} reativado(s)."
             )
 
     def _periodo(self, competencia):

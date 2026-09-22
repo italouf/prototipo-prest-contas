@@ -259,3 +259,8 @@
     AT_LEI_TICS (I5: todo tipo cai em um balde); `_formatar_percentual` com
     1 casa sem arredondar para cima (exibição nunca contradiz o farol);
     relatório mensal filtra pilares visíveis no financeiro e nos totais.
+40. **L25 — Seed reconciliador + auditoria contínua**: `seed_demo` garante
+    os 22 indicadores canônicos e desativa extras (`seed_operacionais`
+    segue opcional, fora do padrão); números dourados operacionais em
+    `SeedReconciliaTestes`; `manage.py auditar_dashboards` (read-only,
+    sai 1 em divergência); matriz em `docs/auditoria-numeros.md`.

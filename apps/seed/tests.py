@@ -43,6 +43,38 @@ class SeedDemoTestes(TestCase):
         self.assertTrue(erica.groups.filter(name="Master").exists())
 
 
+class SeedReconciliaTestes(TestCase):
+    """Seed reconciliador + números dourados (L25, decisão 4)."""
+
+    def test_reconcilia_indicadores_fora_do_conjunto(self):
+        from apps.indicators.models import Indicador
+        from apps.pillars.models import Pilar
+
+        call_command("seed_demo")
+        pdi = Pilar.objects.get(codigo="PDI")
+        intruso = Indicador.objects.create(
+            pilar=pdi, codigo="XXX-INTRUSO", nome="Intruso", tipo="QTD")
+        call_command("seed_demo")
+        call_command("seed_demo")
+        self.assertEqual(Indicador.objects.filter(ativo=True).count(), 22)
+        intruso.refresh_from_db()
+        self.assertFalse(intruso.ativo)
+
+    def test_numeros_dourados_operacionais(self):
+        from apps.core.prestacao import contexto_mensal, painel_semestral
+
+        call_command("seed_demo")
+        erica = User.objects.get(username="erica")
+        junho = Periodo.objects.get(competencia="2026-06-01")
+        cm = contexto_mensal(junho, erica)
+        self.assertEqual(cm["cards"]["execucao"], Decimal("6000000"))
+        self.assertEqual(cm["cards"]["captacao_at"], Decimal("3000000"))
+        self.assertEqual(cm["cards"]["outras_fontes"], Decimal("4000000"))
+        cs = painel_semestral(2026, 1, erica)
+        self.assertEqual(cs["cards"]["executado"], Decimal("6000000"))
+        self.assertEqual(cs["cards"]["captado"], Decimal("7000000"))
+
+
 class SeedDemoTaskBTestes(TestCase):
     """Task B — seeds demo p/ crm_at, talentos e highlights (TDD)."""
 
