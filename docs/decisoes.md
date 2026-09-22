@@ -206,3 +206,9 @@
     AT volta para Pilares (é pilar) e Funil AT vai para Gestão; Outras Fontes
     fora; CSV do pilar com shape próprio por ano; banner `contexto-anual` sai
     (chips assumem); sem mudança de schema (reuso de `PlanoAnual`).
+32. **L17 — Header coerente na navegação com boost**: o boost da sidebar
+    trocava só `#main` e deixava `#dashboard-controls` obsoleto (toggle de base
+    apontava para o pilar anterior); `hx-select-oob="#app-header"` no `<nav>` +
+    `id="app-header"` atualizam o header inteiro via OOB a cada navegação,
+    sem mexer no `#main`, no scroll nem nos listeners da sidebar (htmx 2.0.10
+    processa OOB antes do `hx-select`; default `outerHTML`).

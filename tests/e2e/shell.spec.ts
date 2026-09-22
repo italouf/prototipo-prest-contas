@@ -202,6 +202,36 @@ test('L11 botoes-icone do header em 32px com icones 16px', async ({ page }) => {
   }
 });
 
+test('L17 navegacao com boost mantem o header coerente com a pagina', async ({ page }) => {
+  await login(page);
+  await page.goto('/pilar/1/?ano=2026&base=fin');
+
+  // Pilar 1 -> Pilar 4 (AT) pela sidebar: o toggle de base deve mirar o pilar 4.
+  await page.locator('#grp-pilares').getByRole('link', { name: /Associação Tecnológica/ }).click();
+  await expect(page).toHaveURL(/pilar\/4\/$/);
+  const fisicoAT = page.getByTestId('base-toggle').getByRole('link', { name: 'Físico' });
+  await expect(fisicoAT).toHaveAttribute('href', /pilar\/4\/.*base=fis/);
+  await fisicoAT.click();
+  await expect(page).toHaveURL(/pilar\/4\/\?.*ano=todos.*base=fis/);
+  await expect(page.getByTestId('context-chips')).toContainText('Unidade: quantidade de metas');
+  await expect(page.getByTestId('painel-pilar')).toContainText('Captado');
+
+  // Pilar 4 -> Geral: o toggle de base deve voltar ao escopo do dashboard.
+  await page.getByTestId('sidebar').getByRole('link', { name: /^Geral/ }).click();
+  await expect(page).toHaveURL(/127\.0\.0\.1:8000\/$/);
+  const fisicoGeral = page.getByTestId('base-toggle').getByRole('link', { name: 'Físico' });
+  await expect(fisicoGeral).toHaveAttribute('href', /^\/?\?ano=todos&base=fis$/);
+  await fisicoGeral.click();
+  await expect(page).toHaveURL(/\/\?ano=todos&base=fis/);
+  await expect(page.getByTestId('dashboard-panel')).toBeVisible();
+  await expect(page.getByTestId('context-chips')).toContainText('Base: Físico');
+
+  // Geral -> Mensal: pagina sem controles nao pode herdar o toggle antigo.
+  await page.getByTestId('sidebar').getByRole('link', { name: /^Mensal/ }).click();
+  await expect(page).toHaveURL(/prestacao\/mensal/);
+  await expect(page.getByTestId('base-toggle')).toHaveCount(0);
+});
+
 test('L11 sidebar acompanha a rolagem principal (sem scroll exclusivo)', async ({ page }) => {
   await login(page);
   await page.goto('/?ano=todos&base=fin');

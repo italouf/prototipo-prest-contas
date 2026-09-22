@@ -18,7 +18,7 @@
     </button>
   </div>
 
-  <nav class="flex-1 px-3" aria-label="Navegação principal" @click="aberto = false" hx-boost="true" hx-target="#main" hx-select="#main" hx-swap="innerHTML show:top" hx-push-url="true" hx-indicator="#progresso">
+  <nav class="flex-1 px-3" aria-label="Navegação principal" @click="aberto = false" hx-boost="true" hx-target="#main" hx-select="#main" hx-select-oob="#app-header" hx-swap="innerHTML show:top" hx-push-url="true" hx-indicator="#progresso">
     <p class="nav-secao-clara">Geral</p>
     <a href="{% url 'core:dashboard' %}" data-nav-link class="nav-clara {% if request.path == '/' %}nav-ativo{% endif %}" {% if request.path == '/' %}aria-current="page"{% endif %}>
       <c-ui.icon name="home" size="18" /><span class="nav-rotulo">Geral</span>
