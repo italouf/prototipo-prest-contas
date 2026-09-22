@@ -2,9 +2,10 @@
 
 Funções puras: recebem as `linhas` já calculadas pela view (sem novas queries).
 Farol alinhado ao painel anual (L20): ok ≥90 · parcial ≥50 · crítica <50.
+Exibição de % nunca arredonda para cima (L24): não contradiz o farol.
 """
 import json
-from decimal import Decimal
+from decimal import Decimal, ROUND_FLOOR
 
 from django.urls import reverse
 
@@ -23,7 +24,11 @@ def _nivel(percentual):
 def _formatar_percentual(percentual):
     if percentual is None:
         return "—"
-    return f"{percentual:.0f}%"
+    texto = format(
+        Decimal(percentual).quantize(Decimal("0.1"), rounding=ROUND_FLOOR).normalize(),
+        "f",
+    )
+    return texto.replace(".", ",") + "%"
 
 
 def kpi_por_pilar(linhas):
@@ -71,7 +76,7 @@ def heatmap_por_pilar(linhas):
             if item["percentual"] is None:
                 titulo += "sem valor/meta"
             else:
-                titulo += f"{realizado} de {meta} ({item['percentual']:.0f}%)"
+                titulo += f"{realizado} de {meta} ({_formatar_percentual(item['percentual'])})"
             celulas.append({"codigo": indicador.codigo, "titulo": titulo,
                             "faixa": faixa, "com_meta": meta is not None})
         denominador = [c for c in celulas if c["com_meta"]]

@@ -9,6 +9,7 @@ from django.utils import timezone
 from apps.core.calculos import itens_do_periodo
 from apps.core.dashboard import graficos_dados
 from apps.core.permissions import pilares_visiveis
+from apps.entries.models import Lancamento
 from apps.finance.models import FinanceiroConsolidado
 from apps.indicators.models import Indicador
 from apps.periods.models import Periodo
@@ -17,9 +18,10 @@ from apps.periods.models import Periodo
 @login_required
 def relatorio_mensal(request, periodo_pk):
     periodo = get_object_or_404(Periodo, pk=periodo_pk)
+    pilares = list(pilares_visiveis(request.user))
     secoes = []
     pilares_ok = 0
-    for pilar in pilares_visiveis(request.user):
+    for pilar in pilares:
         indicadores = list(Indicador.objects.filter(pilar=pilar, ativo=True).order_by("codigo"))
         itens = itens_do_periodo(indicadores, periodo)
         if itens and all(i["realizado"] is not None for i in itens if i["indicador"].tipo != "TXT"):
@@ -27,13 +29,14 @@ def relatorio_mensal(request, periodo_pk):
         secoes.append({"pilar": pilar, "itens": itens})
 
     financeiro = list(
-        FinanceiroConsolidado.objects.filter(periodo=periodo).select_related("pilar")
+        FinanceiroConsolidado.objects.filter(periodo=periodo, pilar__in=pilares).select_related("pilar")
     )
     totais = {
         "tc": sum((f.valor_captado or Decimal("0") for f in financeiro), Decimal("0")),
         "te": sum((f.valor_executado or Decimal("0") for f in financeiro), Decimal("0")),
     }
-    total_aprovados = periodo.lancamentos.filter(status="APROVADO").count()
+    total_aprovados = Lancamento.objects.filter(
+        periodo=periodo, status="APROVADO", indicador__pilar__in=pilares).count()
 
     por_pilar = {}
     por_mes = {}

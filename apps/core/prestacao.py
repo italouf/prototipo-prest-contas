@@ -181,7 +181,7 @@ def contexto_mensal(periodo, usuario, destaque_pilar=""):
     fin_ytd = [f for f in fin_ano if f.periodo.competencia <= periodo.competencia]
     for f in fin_ytd:
         cards["execucao"] += f.valor_executado or ZERO
-        if f.tipo_recurso == "AT":
+        if f.tipo_recurso in ("AT", "AT_LEI_TICS"):
             cards["captacao_at"] += f.valor_captado or ZERO
         elif f.tipo_recurso == "OUTRAS_FONTES":
             cards["outras_fontes"] += f.valor_captado or ZERO

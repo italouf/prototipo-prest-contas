@@ -49,3 +49,49 @@ class RelatorioR5Testes(RelatorioTestes):
         self.assertContains(resposta, 'data-testid="report-capa"')
         self.assertContains(resposta, 'data-testid="report-grafico-captacao"')
         self.assertContains(resposta, assinatura)
+
+
+class RelatorioRBACTestes(TestCase):
+    """Relatório mensal respeita pilares visíveis (L24, decisão 3)."""
+
+    def setUp(self):
+        from apps.entries.models import Lancamento
+        from apps.finance.models import FinanceiroConsolidado
+        from apps.pillars.models import UsuarioPilar
+
+        garantir_grupos()
+        self.master = adicionar_grupo(
+            User.objects.create_user(username="rep_master", password="x"), "Master")
+        self.pdi = Pilar.objects.create(codigo="PDI", nome="PDI / FCCT", ordem=1)
+        self.at = Pilar.objects.create(codigo="AT", nome="AT", ordem=2)
+        self.ind_pdi = Indicador.objects.create(
+            pilar=self.pdi, codigo="PDI-X", nome="X", tipo="QTD")
+        self.ind_at = Indicador.objects.create(
+            pilar=self.at, codigo="AT-X", nome="Y", tipo="QTD")
+        self.periodo = Periodo.objects.create(competencia=date(2026, 6, 1), status="ABERTO")
+        Lancamento.objects.create(
+            periodo=self.periodo, indicador=self.ind_pdi,
+            valor_numerico=1, status="APROVADO")
+        Lancamento.objects.create(
+            periodo=self.periodo, indicador=self.ind_at,
+            valor_numerico=2, status="APROVADO")
+        FinanceiroConsolidado.objects.create(
+            periodo=self.periodo, pilar=self.pdi, tipo_recurso="EMBRAPII",
+            valor_captado=0, valor_executado=100)
+        FinanceiroConsolidado.objects.create(
+            periodo=self.periodo, pilar=self.at, tipo_recurso="AT",
+            valor_captado=1000, valor_executado=200)
+        self.focal = adicionar_grupo(
+            User.objects.create_user(username="rep_focal", password="x"), "PontoFocal")
+        UsuarioPilar.objects.create(usuario=self.focal, pilar=self.pdi)
+
+    def test_focal_ve_so_propio_pilar_no_financeiro(self):
+        from decimal import Decimal
+
+        self.client.force_login(self.focal)
+        resposta = self.client.get(reverse("reports:mensal", args=[self.periodo.pk]))
+        self.assertEqual(resposta.status_code, 200)
+        self.assertEqual(resposta.context["total_executado"], Decimal("100"))
+        self.assertEqual(resposta.context["total_aprovados"], 1)
+        codigos = {d["codigo"] for d in resposta.context["chart_pilares"]}
+        self.assertEqual(codigos, {"PDI"})

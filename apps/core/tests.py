@@ -220,6 +220,22 @@ class DashboardR2HelpersTestes(TestCase):
         self.assertIn('"captado": 10.5', mensal)
         self.assertIn('"nome": "AT"', financeiro)
 
+    def test_exibicao_nunca_contradiz_o_farol_nas_fronteiras(self):
+        from apps.core.dashboard import _formatar_percentual
+        from apps.planning.services import faixa
+
+        def numerico(texto):
+            return Decimal(texto.rstrip("%").replace(",", "."))
+
+        self.assertEqual(_formatar_percentual(None), "—")
+        self.assertEqual(_formatar_percentual(Decimal("89.99")), "89,9%")
+        self.assertEqual(_formatar_percentual(Decimal("90")), "90%")
+        for bruto in ["0", "49.99", "50", "89.99", "90", "99.95", "100", "187.04"]:
+            exibido = numerico(_formatar_percentual(Decimal(bruto)))
+            self.assertEqual(exibido >= 90, faixa(Decimal(bruto)) == "ok", bruto)
+            self.assertEqual(
+                exibido >= 50, faixa(Decimal(bruto)) in ("ok", "parcial"), bruto)
+
 
 class DashboardR2ViewTestes(TestCase):
     def setUp(self):

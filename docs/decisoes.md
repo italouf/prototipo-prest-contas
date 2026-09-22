@@ -255,3 +255,7 @@
     MENSAL com lançamento; pendências = meta no último mês sem lançamento;
     heatmap `resumo` = "N/M com execução ≥ 90%" com M = indicadores com meta
     (critério "atingida" segue ≥100).
+39. **L24 — Robustez de exibição e contratos**: `captacao_at` soma AT +
+    AT_LEI_TICS (I5: todo tipo cai em um balde); `_formatar_percentual` com
+    1 casa sem arredondar para cima (exibição nunca contradiz o farol);
+    relatório mensal filtra pilares visíveis no financeiro e nos totais.

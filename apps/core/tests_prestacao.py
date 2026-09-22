@@ -184,6 +184,38 @@ def _base_semestre(master):
     return pdi, at, ind, anual, maio, junho, julho
 
 
+class CaptacaoBucketsTestes(TestCase):
+    """I5: todo tipo de recurso entra em exatamente um balde dos cards."""
+
+    def setUp(self):
+        garantir_grupos()
+        self.master = adicionar_grupo(
+            User.objects.create_user(username="cb_master", password="x"), "Master")
+        self.pdi = Pilar.objects.create(codigo="PDI", nome="PDI / FCCT", ordem=1)
+        self.junho = Periodo.objects.create(
+            competencia=date(2026, 6, 1), status="ABERTO", aberto_por=self.master)
+        for tipo, captado, executado in (
+                ("EMBRAPII", D(70), D(7)),
+                ("AT", D(1000), D(100)),
+                ("AT_LEI_TICS", D(500), D(50)),
+                ("OUTRAS_FONTES", D(200), D(20))):
+            FinanceiroConsolidado.objects.create(
+                periodo=self.junho, pilar=self.pdi, tipo_recurso=tipo,
+                valor_captado=captado, valor_executado=executado)
+
+    def test_captacao_at_inclui_lei_de_tics(self):
+        from apps.core.prestacao import contexto_mensal
+
+        ctx = contexto_mensal(self.junho, self.master)
+        self.assertEqual(ctx["cards"]["captacao_at"], D(1500))
+        self.assertEqual(ctx["cards"]["outras_fontes"], D(200))
+        self.assertEqual(ctx["cards"]["execucao"], D(177))
+        total_series = sum((p["captado"] for p in ctx["chart_mensal"]), D(0))
+        self.assertEqual(
+            total_series,
+            ctx["cards"]["captacao_at"] + ctx["cards"]["outras_fontes"] + D(70))
+
+
 class SemestreServicoTestes(TestCase):
     def setUp(self):
         garantir_grupos()
