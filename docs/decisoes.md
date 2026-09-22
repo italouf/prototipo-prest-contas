@@ -204,7 +204,7 @@
     ícones da sidebar mantidos em 18px (par com labels `text-sm`).
 31. **L12.0 - Painel por pilar**: mesmos componentes do geral (sem duplicar);
     AT volta para Pilares (é pilar) e Funil AT vai para Gestão; Outras Fontes
-    fora; CSV do pilar com shape próprio por ano; banner `contexto-anual` sai
+    fora;     CSV do pilar com shape próprio por ano; banner `contexto-anual` sai
     (chips assumem); sem mudança de schema (reuso de `PlanoAnual`).
 32. **L17 — Header coerente na navegação com boost**: o boost da sidebar
     trocava só `#main` e deixava `#dashboard-controls` obsoleto (toggle de base
@@ -245,3 +245,7 @@
     (`Mês;Pilar;Indicador;Meta;Realizado;% Executado`); drill-down meses ↔
     semestre (botão "Ver semestre" no mensal); orçamento ≤ 40 queries;
     `SemestralViewTestes` reescrito para o novo contrato.
+37. **L22 — Harness de paridade + fix da janela YTD em lote**: `tests_paridade.py`
+    (I1 lote==único, I2 Σ pilar==geral, I3 financeiro mensal==semestre);
+    `calculos._ytd` somava só os meses da lista — agora jan..mês-alvo do ano
+    (Semestral S2 mostrava 0% onde o Mensal mostra 200%).

@@ -5,7 +5,9 @@ Regras de cálculo:
 - Meta ANUAL/ACUMULADA ou indicador acumulado usa o somatório YTD aprovado.
 - Meta MENSAL usa apenas o valor do mês.
 - Indicadores de texto (TXT) não possuem percentual.
+- YTD soma janeiro..mês-alvo do ano (nunca a janela da lista em lote).
 """
+from datetime import date
 from decimal import Decimal
 
 ZERO = Decimal("0")
@@ -129,9 +131,10 @@ def itens_por_periodo(indicadores, periodos):
             item["total"] or ZERO)
 
     def _ytd(ind_pk, comp):
+        inicio = date(comp.year, 1, 1)
         return sum(
-            (somas.get((ind_pk, c), ZERO) for c in comps
-             if c <= comp and c.year == comp.year),
+            (valor for (pk, c), valor in somas.items()
+             if pk == ind_pk and inicio <= c <= comp),
             ZERO,
         )
 
