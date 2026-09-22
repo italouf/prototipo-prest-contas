@@ -25,7 +25,10 @@ permanecem para os testes atuais):
 - `kpis`/`heatmap`: `nivel` passa a usar as faixas do anual
   (`ok ≥90 · parcial ≥50 · crítica <50 · neutra`, via `planning.services.faixa`);
   atualiza `test_heatmap_classifica_niveis`.
-- `status_counts`: inalterado (`_status_counts` continua em `views.py` ou migra; RBAC por `pilares_visiveis`).
+- YTD/ANUAL sem lançamento aprovado no ano ⇒ `realizado/percentual = None`
+  (sem dado ≠ zero; conta como pendente); heatmap `resumo` = "N/M com
+  execução ≥ 90%" com M = indicadores com meta.
+- `status_counts`: migrado para `prestacao.py` (1 query agregada; RBAC por `pilares_visiveis`).
 - `geo_mensal`/`geo_pilares`: geometria via `apps/core/charts.py` (séries em **R$ mi**, `numero_curto`).
 - `chart_mensal_json`/`chart_financeiro_json`: **removidos** do contexto
   (atualiza `test_dashboard_expoe_kpis_heatmap_e_avisos` → asserts `geo_mensal`/`geo_pilares`).

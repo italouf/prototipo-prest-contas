@@ -16,7 +16,13 @@ Pré-condição: `seed_demo` (financeiro jan–mai/2026; lançamentos maio/junho
 ## 2. Serviço `apps/core/prestacao.py::painel_semestral(ano, semestre, usuario)`
 
 - `apps/core/calculos.py::itens_por_periodo(indicadores, periodos)` → `{pk: [itens]}` em **3 queries** (metas/lançamentos/somas YTD), mesma semântica de `itens_do_periodo`.
-- Por pilar: `pct` = média dos percentuais dos itens-mês não nulos; `atingidos` = itens-mês ≥100%; `pendentes` = itens-mês sem realizado; `meses` = meses com algum realizado; `faixa` do anual.
+- Por pilar: só entram meses **com lançamento aprovado**; **YTD** usa o valor do
+  **mês mais recente com lançamento** (não média de meses); **MENSAL** usa a
+  média dos meses com lançamento; `pct` = média dos valores usados;
+  `atingidos` = valores usados ≥100; `pendentes` = indicadores com meta no
+  **último mês** do semestre sem lançamento aprovado; `meses` = meses do
+  pilar com lançamento; `faixa` do anual. YTD sem lançamento no ano ⇒
+  `realizado/percentual = None` (sem dado ≠ zero).
 - Tabela por indicador usa `itens_do_periodo` do **último mês do semestre** (YTD p/ metas anuais).
 - Financeiro somado no semestre (por mês e por pilar); séries em R$ mi; geometria `core.charts` (6 grupos; destaque = último mês com dados, senão None).
 - Status = contagens agregadas no semestre; destaques = `DestaqueMensal` dos períodos (`[:6]`); `meses` = períodos do intervalo p/ drill-down.

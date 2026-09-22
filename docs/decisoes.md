@@ -249,3 +249,9 @@
     (I1 lote==único, I2 Σ pilar==geral, I3 financeiro mensal==semestre);
     `calculos._ytd` somava só os meses da lista — agora jan..mês-alvo do ano
     (Semestral S2 mostrava 0% onde o Mensal mostra 200%).
+38. **L23 — Semântica "sem dado ≠ zero" + critério único**: YTD sem lançamento
+    no ano ⇒ `realizado/percentual = None` (neutro; conta como pendente);
+    KPI semestral usa YTD do mês mais recente com lançamento e média dos
+    MENSAL com lançamento; pendências = meta no último mês sem lançamento;
+    heatmap `resumo` = "N/M com execução ≥ 90%" com M = indicadores com meta
+    (critério "atingida" segue ≥100).

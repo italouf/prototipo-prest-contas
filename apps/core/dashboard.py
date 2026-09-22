@@ -55,7 +55,10 @@ def kpi_por_pilar(linhas):
 
 
 def heatmap_por_pilar(linhas):
-    """Células de status por indicador (verde/amarelo/vermelho/cinza)."""
+    """Células de status por indicador (verde/amarelo/vermelho/cinza).
+
+    Resumo conta só indicadores com meta: "N/M com execução ≥ 90%".
+    """
     grupos = []
     for linha in linhas:
         celulas = []
@@ -69,13 +72,15 @@ def heatmap_por_pilar(linhas):
                 titulo += "sem valor/meta"
             else:
                 titulo += f"{realizado} de {meta} ({item['percentual']:.0f}%)"
-            celulas.append({"codigo": indicador.codigo, "titulo": titulo, "faixa": faixa})
-        ok = sum(1 for c in celulas if c["faixa"] == NIVEL_OK)
+            celulas.append({"codigo": indicador.codigo, "titulo": titulo,
+                            "faixa": faixa, "com_meta": meta is not None})
+        denominador = [c for c in celulas if c["com_meta"]]
+        ok = sum(1 for c in denominador if c["faixa"] == NIVEL_OK)
         grupos.append(
             {
                 "pilar": linha["pilar"],
                 "celulas": celulas,
-                "resumo": f"{ok}/{len(celulas)} indicadores na meta",
+                "resumo": f"{ok}/{len(denominador)} indicadores com execução ≥ 90%",
             }
         )
     return grupos

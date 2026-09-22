@@ -41,17 +41,25 @@ def valor_mensal(indicador, periodo):
 
 
 def valor_acumulado_ytd(indicador, periodo):
-    """Somatório aprovado de jan/ano até o período (meta anual/acumulada)."""
+    """Somatório aprovado de jan/ano até o período (meta anual/acumulada).
+
+    None quando não há nenhum lançamento aprovado no ano (sem dado ≠ zero).
+    """
     from apps.entries.models import Lancamento
 
     inicio = periodo.competencia.replace(month=1, day=1)
-    qs = Lancamento.objects.filter(
-        indicador=indicador,
-        status="APROVADO",
-        periodo__competencia__gte=inicio,
-        periodo__competencia__lte=periodo.competencia,
-    )
-    return sum((l.valor_numerico or ZERO) for l in qs)
+    valores = [
+        l.valor_numerico or ZERO
+        for l in Lancamento.objects.filter(
+            indicador=indicador,
+            status="APROVADO",
+            periodo__competencia__gte=inicio,
+            periodo__competencia__lte=periodo.competencia,
+        )
+    ]
+    if not valores:
+        return None
+    return sum(valores, ZERO)
 
 
 def meta_realizado_percentual(indicador, periodo):
@@ -132,11 +140,12 @@ def itens_por_periodo(indicadores, periodos):
 
     def _ytd(ind_pk, comp):
         inicio = date(comp.year, 1, 1)
-        return sum(
-            (valor for (pk, c), valor in somas.items()
-             if pk == ind_pk and inicio <= c <= comp),
-            ZERO,
-        )
+        total, achou = ZERO, False
+        for (pk, c), valor in somas.items():
+            if pk == ind_pk and inicio <= c <= comp:
+                total += valor
+                achou = True
+        return total if achou else None
 
     mapa = {}
     for periodo in periodos:
@@ -243,7 +252,7 @@ def itens_do_periodo(indicadores, periodo):
             continue
         ytd = bool(ind.acumulado) or (meta is not None and meta.periodicidade in ("ANUAL", "ACUMULADA"))
         if ytd:
-            realizado = ytd_somas.get(ind.pk, ZERO)
+            realizado = ytd_somas.get(ind.pk)  # None sem lançamento no ano
         else:
             realizado = lc.valor_numerico if lc else None
         percentual = None

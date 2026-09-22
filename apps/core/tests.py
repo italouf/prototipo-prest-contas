@@ -189,14 +189,15 @@ class DashboardR2HelpersTestes(TestCase):
         linha = self._linha(
             pilar,
             [
-                {"indicador": Indicador(codigo="A", nome="A"), "percentual": Decimal("120"), "realizado": 1},
-                {"indicador": Indicador(codigo="B", nome="B"), "percentual": Decimal("60"), "realizado": 1},
-                {"indicador": Indicador(codigo="C", nome="C"), "percentual": Decimal("10"), "realizado": 1},
+                {"indicador": Indicador(codigo="A", nome="A"), "percentual": Decimal("120"), "realizado": 1, "meta": 1},
+                {"indicador": Indicador(codigo="B", nome="B"), "percentual": Decimal("60"), "realizado": 1, "meta": 1},
+                {"indicador": Indicador(codigo="C", nome="C"), "percentual": Decimal("10"), "realizado": 1, "meta": 1},
                 {"indicador": Indicador(codigo="D", nome="D"), "percentual": None, "realizado": None},
             ],
         )
-        celulas = heatmap_por_pilar([linha])[0]["celulas"]
-        self.assertEqual([c["faixa"] for c in celulas], ["ok", "parcial", "critica", "neutra"])
+        grupo = heatmap_por_pilar([linha])[0]
+        self.assertEqual([c["faixa"] for c in grupo["celulas"]], ["ok", "parcial", "critica", "neutra"])
+        self.assertEqual(grupo["resumo"], "1/3 indicadores com execução ≥ 90%")
 
     def test_avisos_incluem_pendencias_e_pilares_incompletos(self):
         from apps.core.dashboard import avisos_do_dashboard

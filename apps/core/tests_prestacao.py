@@ -231,9 +231,9 @@ class SemestreServicoTestes(TestCase):
         ctx = painel_semestral(2026, 1, self.master)
         self.assertEqual(ctx["painel_semestral"]["rotulo_periodo"], "1º semestre de 2026")
         linha = next(t for t in ctx["tabela"] if t["pilar"].codigo == "PDI")
-        self.assertEqual(linha["pct"], D(35))  # média de 100, 0, 40 e 0
-        self.assertEqual(linha["faixa"], "critica")
-        self.assertEqual((linha["atingidos"], linha["pendentes"]), (1, 0))
+        self.assertEqual(linha["pct"], D(70))  # média MENSAL dos meses com dado
+        self.assertEqual(linha["faixa"], "parcial")
+        self.assertEqual((linha["atingidos"], linha["pendentes"]), (1, 1))
         self.assertEqual(linha["meses"], 2)
         self.assertEqual(len(ctx["geo_meses"]["grupos"]), 6)
         self.assertEqual(
@@ -246,8 +246,8 @@ class SemestreServicoTestes(TestCase):
         ctx = painel_semestral(2026, 2, self.master)
         self.assertEqual(ctx["painel_semestral"]["rotulo_periodo"], "2º semestre de 2026")
         linha_pdi = next(t for t in ctx["tabela"] if t["pilar"].codigo == "PDI")
-        self.assertEqual(linha_pdi["pct"], D(0))  # meta anual sem execução
-        self.assertEqual(linha_pdi["faixa"], "critica")
+        self.assertIsNone(linha_pdi["pct"])  # sem lançamento no semestre
+        self.assertEqual(linha_pdi["faixa"], "neutra")
         linha_at = next(t for t in ctx["tabela"] if t["pilar"].codigo == "AT")
         self.assertIsNone(linha_at["pct"])  # sem indicadores = sem denominador
         self.assertEqual(linha_at["faixa"], "neutra")

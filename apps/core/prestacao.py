@@ -311,18 +311,30 @@ def painel_semestral(ano, semestre, usuario):
         for p in periodos
     }
     meses_com_dados = sum(1 for p in periodos if lc_por_periodo[p.pk])
+    ult = periodos[-1] if periodos else None
+    ult_itens = {it["indicador"].pk: it for it in por_periodo.get(ult.pk, [])} if ult else {}
+    inds_por_pilar = {}
+    for ind in indicadores:
+        if ind.tipo != "TXT":
+            inds_por_pilar.setdefault(ind.pilar_id, []).append(ind)
     for pilar in pilares:
-        pcts = [it["percentual"] for p in periodos
-                for it in por_periodo.get(p.pk, [])
-                if it["indicador"].pilar_id == pilar.pk
-                and it["percentual"] is not None]
-        atingidos = sum(1 for p in pcts if p >= 100)
+        usados = []
+        for ind in inds_por_pilar.get(pilar.pk, []):
+            vals = [(p, it) for p in periodos for it in por_periodo.get(p.pk, [])
+                    if it["indicador"].pk == ind.pk and it["percentual"] is not None]
+            if not vals:
+                continue
+            if vals[-1][1]["ytd"]:
+                usados.append(vals[-1][1]["percentual"])
+            else:
+                usados.extend(it["percentual"] for _, it in vals)
+        pct = sum(usados, ZERO) / len(usados) if usados else None
+        atingidos = sum(1 for v in usados if v >= 100)
         pendentes = sum(
-            1 for p in periodos for it in por_periodo.get(p.pk, [])
-            if it["indicador"].pilar_id == pilar.pk
-            and it["indicador"].tipo != "TXT" and it["realizado"] is None)
+            1 for ind in inds_por_pilar.get(pilar.pk, [])
+            if (u := ult_itens.get(ind.pk)) is not None
+            and u["meta"] is not None and u["lc"] is None)
         meses = sum(1 for p in periodos if pilar.pk in lc_por_periodo[p.pk])
-        pct = sum(pcts, ZERO) / len(pcts) if pcts else None
         tabela.append({"pilar": pilar, "pct": pct, "faixa": faixa(pct),
                        "atingidos": atingidos, "pendentes": pendentes,
                        "meses": meses, "n_meses": len(periodos)})
