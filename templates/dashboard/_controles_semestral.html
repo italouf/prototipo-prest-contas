@@ -1,0 +1,49 @@
+{# Faixas de filtros/chips/toolbar da visão semestral (L21). Incluída no app_header e no fragmento htmx. #}
+{# Faixas alinhadas à direita como no mockup: filtros acima, chips em faixa própria, ações em linha própria. #}
+<div class="flex flex-col gap-y-2">
+  <div class="flex flex-wrap items-end justify-end gap-x-6 gap-y-2">
+    <form method="get" action="{% url 'core:semestral' %}"
+          hx-get="{% url 'core:semestral' %}" hx-target="#painel-semestral" hx-select="#painel-semestral"
+          hx-swap="outerHTML" hx-push-url="true" hx-indicator="#progresso, #skeleton-global"
+          class="flex flex-wrap items-end gap-x-4 gap-y-2">
+      <input type="hidden" name="semestre" value="{{ semestre }}">
+      <div>
+        <label for="semestre-ano" class="block text-[0.65rem] font-semibold uppercase tracking-widest text-text-muted">Ano</label>
+        <select id="semestre-ano" name="ano" data-testid="semestre-ano" onchange="this.form.requestSubmit()"
+                class="mt-1 rounded-md border border-border bg-surface px-3 py-2 text-sm text-text">
+          {% for a in anos %}
+          <option value="{{ a }}" {% if a == ano %}selected{% endif %}>{{ a }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </form>
+
+    <div>
+      <span id="semestre-rotulo" class="block text-[0.65rem] font-semibold uppercase tracking-widest text-text-muted">Semestre</span>
+      <div class="mt-1 inline-flex overflow-hidden rounded-md border border-border" role="group" aria-labelledby="semestre-rotulo" data-testid="semestre-toggle">
+        <a href="{% url 'core:semestral' %}?ano={{ ano }}&semestre=1"
+           hx-get="{% url 'core:semestral' %}?ano={{ ano }}&semestre=1" hx-target="#painel-semestral" hx-select="#painel-semestral"
+           hx-swap="outerHTML" hx-push-url="true" hx-indicator="#progresso, #skeleton-global"
+           {% if semestre == 1 %}aria-current="true"{% endif %}
+           class="px-4 py-2 text-sm font-semibold {% if semestre == 1 %}bg-quiin-navy text-white{% else %}bg-surface-2 text-text hover:bg-quiin-mist/40{% endif %}">1º semestre</a>
+        <a href="{% url 'core:semestral' %}?ano={{ ano }}&semestre=2"
+           hx-get="{% url 'core:semestral' %}?ano={{ ano }}&semestre=2" hx-target="#painel-semestral" hx-select="#painel-semestral"
+           hx-swap="outerHTML" hx-push-url="true" hx-indicator="#progresso, #skeleton-global"
+           {% if semestre == 2 %}aria-current="true"{% endif %}
+           class="border-l border-border px-4 py-2 text-sm font-semibold {% if semestre == 2 %}bg-quiin-navy text-white{% else %}bg-surface-2 text-text hover:bg-quiin-mist/40{% endif %}">2º semestre</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="flex flex-wrap justify-end gap-1.5" data-testid="context-chips">
+    <span class="rounded-full border border-border bg-quiin-mist/40 px-3 py-1 text-xs">Período: <strong>{{ painel_semestral.rotulo_periodo }}</strong></span>
+    <span class="rounded-full border border-border bg-quiin-mist/40 px-3 py-1 text-xs">Meses com dados: <strong>{{ painel_semestral.meses_dados }} de {{ painel_semestral.n_meses }}</strong></span>
+    <span class="rounded-full border border-border bg-quiin-mist/40 px-3 py-1 text-xs">Pilares: <strong>{{ painel_semestral.n_pilares }}</strong></span>
+  </div>
+
+  <div class="flex flex-wrap items-center justify-end gap-2" role="toolbar" aria-label="Ações do semestre">
+    <c-ui.button variant="ghost" size="toolbar" href="{% url 'core:semestral_csv' %}?ano={{ ano }}&semestre={{ semestre }}">Baixar dados (CSV)</c-ui.button>
+    <c-ui.button variant="ghost" size="toolbar" onclick="window.print()">Imprimir</c-ui.button>
+    <c-ui.button variant="ghost" size="toolbar" href="{% url 'core:semestral' %}">Restaurar padrão</c-ui.button>
+  </div>
+</div>

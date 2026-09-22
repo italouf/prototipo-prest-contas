@@ -95,6 +95,9 @@ class PainelAnualViewTestes(TestCase):
         resposta = self.client.get(reverse("core:mensal"))
         self.assertContains(resposta, '<button type="button" data-testid="barra-toggle"')
         resposta = self.client.get(reverse("core:semestral"))
+        self.assertContains(resposta, '<button type="button" data-testid="barra-toggle"')
+        Periodo.objects.all().delete()
+        resposta = self.client.get(reverse("core:semestral"))
         self.assertNotContains(resposta, '<button type="button" data-testid="barra-toggle"')
 
     def test_exige_login(self):

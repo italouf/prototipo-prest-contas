@@ -58,6 +58,7 @@
       {% endif %}
     {% endif %}
     <c-ui.button variant="ghost" size="toolbar" href="{% url 'reports:mensal' periodo.pk %}">Relatório mensal</c-ui.button>
+    <c-ui.button variant="ghost" size="toolbar" href="{% url 'core:semestral' %}?ano={{ periodo.competencia|date:'Y' }}&semestre={% if periodo.competencia.month <= 6 %}1{% else %}2{% endif %}">Ver semestre</c-ui.button>
     <c-ui.button variant="ghost" size="toolbar" onclick="window.print()">Imprimir</c-ui.button>
   </div>
 </div>

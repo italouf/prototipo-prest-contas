@@ -1,0 +1,6 @@
+{# Fragmento htmx da visão semestral: painel + controles (OOB) para manter header e URL coerentes. #}
+{# O div OOB precisa espelhar os atributos do #dashboard-controls do app_header: o swap outerHTML o substitui por inteiro. #}
+{% include 'dashboard/_painel_semestral.html' %}
+<div id="dashboard-controls" hx-swap-oob="true" class="border-t border-border px-4 py-2.5 lg:px-8" data-testid="dashboard-controls">
+  {% include 'dashboard/_controles_semestral.html' %}
+</div>

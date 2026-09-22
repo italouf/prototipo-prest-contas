@@ -162,3 +162,191 @@ class MensalContratoUrlTestes(TestCase):
         self.assertContains(resposta, 'data-testid="app-header"')
         self.assertContains(resposta, 'id="painel-mensal"')
         self.assertNotContains(resposta, "hx-swap-oob")
+
+
+def _base_semestre(master):
+    pdi = Pilar.objects.create(codigo="PDI", nome="PDI / FCCT", ordem=1)
+    at = Pilar.objects.create(codigo="AT", nome="Associação Tecnológica", ordem=2)
+    ind = Indicador.objects.create(
+        pilar=pdi, codigo="PDI-PROJ-INI", nome="Projetos iniciados", tipo="QTD")
+    Meta.objects.create(
+        indicador=ind, competencia_inicio=date(2026, 1, 1),
+        competencia_fim=date(2026, 12, 31), periodicidade="MENSAL", valor=10)
+    anual = Indicador.objects.create(
+        pilar=pdi, codigo="PDI-ANUAL", nome="Anual", tipo="QTD")
+    Meta.objects.create(
+        indicador=anual, competencia_inicio=date(2026, 1, 1),
+        competencia_fim=date(2026, 12, 31), periodicidade="ANUAL", valor=100)
+    maio = Periodo.objects.create(competencia=date(2026, 5, 1), status="FECHADO")
+    junho = Periodo.objects.create(
+        competencia=date(2026, 6, 1), status="ABERTO", aberto_por=master)
+    julho = Periodo.objects.create(competencia=date(2026, 7, 1), status="PLANEJADO")
+    return pdi, at, ind, anual, maio, junho, julho
+
+
+class SemestreServicoTestes(TestCase):
+    def setUp(self):
+        garantir_grupos()
+        self.master = adicionar_grupo(
+            User.objects.create_user(username="ps_master", password="x"), "Master")
+        (self.pdi, self.at, self.ind, self.anual,
+         self.maio, self.junho, self.julho) = _base_semestre(self.master)
+
+    def test_itens_por_periodo_em_lote(self):
+        from apps.core.calculos import itens_por_periodo
+
+        Lancamento.objects.create(
+            periodo=self.maio, indicador=self.ind, valor_numerico=D(10),
+            status="APROVADO")
+        mapa = itens_por_periodo([self.ind], [self.maio, self.junho])
+        self.assertEqual(set(mapa), {self.maio.pk, self.junho.pk})
+        self.assertEqual(mapa[self.maio.pk][0]["percentual"], D(100))
+        self.assertIsNone(mapa[self.junho.pk][0]["realizado"])
+
+    def test_itens_por_periodo_ytd_acumula_no_ano(self):
+        from apps.core.calculos import itens_por_periodo
+
+        Lancamento.objects.create(
+            periodo=self.maio, indicador=self.anual, valor_numerico=D(20),
+            status="APROVADO")
+        Lancamento.objects.create(
+            periodo=self.junho, indicador=self.anual, valor_numerico=D(30),
+            status="APROVADO")
+        mapa = itens_por_periodo([self.anual], [self.maio, self.junho])
+        self.assertEqual(mapa[self.maio.pk][0]["realizado"], D(20))
+        self.assertEqual(mapa[self.junho.pk][0]["realizado"], D(50))
+
+    def test_painel_semestral_agrega_meses(self):
+        from apps.core.prestacao import painel_semestral
+
+        Lancamento.objects.create(
+            periodo=self.maio, indicador=self.ind, valor_numerico=D(10),
+            status="APROVADO")
+        Lancamento.objects.create(
+            periodo=self.junho, indicador=self.ind, valor_numerico=D(4),
+            status="APROVADO")
+        FinanceiroConsolidado.objects.create(
+            periodo=self.maio, pilar=self.pdi, tipo_recurso="EMBRAPII",
+            valor_captado=D(1000), valor_executado=D(200))
+        ctx = painel_semestral(2026, 1, self.master)
+        self.assertEqual(ctx["painel_semestral"]["rotulo_periodo"], "1º semestre de 2026")
+        linha = next(t for t in ctx["tabela"] if t["pilar"].codigo == "PDI")
+        self.assertEqual(linha["pct"], D(35))  # média de 100, 0, 40 e 0
+        self.assertEqual(linha["faixa"], "critica")
+        self.assertEqual((linha["atingidos"], linha["pendentes"]), (1, 0))
+        self.assertEqual(linha["meses"], 2)
+        self.assertEqual(len(ctx["geo_meses"]["grupos"]), 6)
+        self.assertEqual(
+            [m.rotulo for m in ctx["meses"]], ["2026-05", "2026-06"])
+        self.assertEqual(ctx["status_counts"]["APROVADO"]["quantidade"], 2)
+
+    def test_semestre_vazio_tem_estrutura_neutra(self):
+        from apps.core.prestacao import painel_semestral
+
+        ctx = painel_semestral(2026, 2, self.master)
+        self.assertEqual(ctx["painel_semestral"]["rotulo_periodo"], "2º semestre de 2026")
+        linha_pdi = next(t for t in ctx["tabela"] if t["pilar"].codigo == "PDI")
+        self.assertEqual(linha_pdi["pct"], D(0))  # meta anual sem execução
+        self.assertEqual(linha_pdi["faixa"], "critica")
+        linha_at = next(t for t in ctx["tabela"] if t["pilar"].codigo == "AT")
+        self.assertIsNone(linha_at["pct"])  # sem indicadores = sem denominador
+        self.assertEqual(linha_at["faixa"], "neutra")
+        self.assertEqual(len(ctx["geo_meses"]["grupos"]), 6)
+        self.assertEqual(
+            [m.rotulo for m in ctx["meses"]], ["2026-07"])
+
+    def test_focal_ve_so_seu_pilar_no_semestre(self):
+        from apps.core.prestacao import painel_semestral
+
+        focal = adicionar_grupo(
+            User.objects.create_user(username="ps_focal", password="x"), "PontoFocal")
+        UsuarioPilar.objects.create(usuario=focal, pilar=self.pdi)
+        ctx = painel_semestral(2026, 1, focal)
+        self.assertEqual([t["pilar"].codigo for t in ctx["tabela"]], ["PDI"])
+
+
+class SemestreUrlTestes(TestCase):
+    def setUp(self):
+        garantir_grupos()
+        self.master = adicionar_grupo(
+            User.objects.create_user(username="ps_url", password="x"), "Master")
+        Periodo.objects.create(competencia=date(2026, 5, 1), status="FECHADO")
+        Periodo.objects.create(
+            competencia=date(2026, 6, 1), status="ABERTO", aberto_por=self.master)
+
+    def url(self, qs=""):
+        return reverse("core:semestral") + qs
+
+    def test_padrao_eh_semestre_do_periodo_aberto(self):
+        self.client.force_login(self.master)
+        resposta = self.client.get(reverse("core:semestral"))
+        self.assertEqual(resposta.status_code, 200)
+        self.assertEqual(resposta.context["painel_semestral"]["rotulo_periodo"],
+                         "1º semestre de 2026")
+
+    def test_invalido_redireciona_para_canonico(self):
+        self.client.force_login(self.master)
+        resposta = self.client.get(self.url("?ano=2030&semestre=9"))
+        self.assertRedirects(
+            resposta, "/prestacao/semestral/?ano=2026&semestre=1",
+            fetch_redirect_response=False)
+        resposta = self.client.get(self.url("?ano=2026"))
+        self.assertRedirects(
+            resposta, "/prestacao/semestral/?ano=2026&semestre=1",
+            fetch_redirect_response=False)
+
+    def test_hx_request_devolve_fragmento_com_oob_espelhado(self):
+        self.client.force_login(self.master)
+        resposta = self.client.get(
+            self.url("?ano=2026&semestre=1"), headers={"HX-Request": "true"})
+        self.assertEqual(resposta.status_code, 200)
+        self.assertContains(resposta, 'id="painel-semestral"')
+        self.assertContains(resposta, "hx-swap-oob")
+        self.assertContains(resposta, 'data-testid="dashboard-controls"')
+        self.assertNotContains(resposta, 'data-testid="app-header"')
+
+    def test_navegacao_com_boost_recebe_pagina_completa(self):
+        self.client.force_login(self.master)
+        resposta = self.client.get(
+            self.url("?ano=2026&semestre=1"),
+            headers={"HX-Request": "true", "HX-Boosted": "true"})
+        self.assertEqual(resposta.status_code, 200)
+        self.assertContains(resposta, 'data-testid="app-header"')
+        self.assertContains(resposta, 'id="painel-semestral"')
+        self.assertNotContains(resposta, "hx-swap-oob")
+
+    def test_csv_do_semestre_com_bom_e_escopo(self):
+        pdi = Pilar.objects.create(codigo="PDI", nome="PDI / FCCT", ordem=1)
+        ind = Indicador.objects.create(
+            pilar=pdi, codigo="PDI-PROJ-INI", nome="Projetos", tipo="QTD")
+        Meta.objects.create(
+            indicador=ind, competencia_inicio=date(2026, 1, 1),
+            competencia_fim=date(2026, 12, 31), periodicidade="MENSAL", valor=10)
+        Lancamento.objects.create(
+            periodo=Periodo.objects.get(competencia=date(2026, 5, 1)),
+            indicador=ind, valor_numerico=D(10), status="APROVADO")
+        self.client.force_login(self.master)
+        resposta = self.client.get(
+            reverse("core:semestral_csv"), {"ano": "2026", "semestre": "1"})
+        self.assertEqual(resposta.status_code, 200)
+        self.assertIn("text/csv", resposta["Content-Type"])
+        texto = resposta.content.decode("utf-8-sig")
+        linhas = texto.splitlines()
+        self.assertEqual(linhas[0], "Mês;Pilar;Indicador;Meta;Realizado;% Executado")
+        self.assertIn("2026-05;PDI;PDI-PROJ-INI;10;10;100%", linhas)
+
+    def test_csv_invalido_redireciona_para_canonico(self):
+        self.client.force_login(self.master)
+        resposta = self.client.get(reverse("core:semestral_csv"), {"ano": "x"})
+        self.assertRedirects(
+            resposta, "/prestacao/semestral/dados.csv?ano=2026&semestre=1",
+            fetch_redirect_response=False)
+
+    def test_pagina_cabe_no_orcamento_de_queries(self):
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
+
+        self.client.force_login(self.master)
+        with CaptureQueriesContext(connection) as capturadas:
+            self.client.get(self.url("?ano=2026&semestre=1"))
+        self.assertLessEqual(len(capturadas.captured_queries), 40)

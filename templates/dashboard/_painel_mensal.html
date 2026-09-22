@@ -56,11 +56,11 @@
 
   <div class="mt-4 grid gap-4 lg:grid-cols-2" aria-label="Execução financeira">
     <div class="rounded-xl border border-border bg-surface-2 p-5">
-      <c-dashboard.chart-fonte chave="mensal" titulo="Evolução financeira mensal — {{ periodo.competencia|date:'Y' }}" hint="Captação e execução mês a mês, em R$ milhões. O mês selecionado no filtro aparece em destaque." bloco="bloco_mensal" geo="geo_mensal" unidade="R$ mi" eixo_rotulo="por mês" legenda_a="Captado" legenda_b="Executado" />
+      <c-dashboard.chart-fonte chave="mensal" titulo="Evolução financeira mensal — {{ periodo.competencia|date:'Y' }}" hint="Captação e execução mês a mês, em R$ milhões. O mês selecionado no filtro aparece em destaque." :bloco="bloco_mensal" :geo="geo_mensal" unidade="R$ mi" eixo_rotulo="por mês" legenda_a="Captado" legenda_b="Executado" />
     </div>
     <div class="rounded-xl border border-border bg-surface-2 p-5">
       {% if geo_pilares %}
-      <c-dashboard.chart-fonte chave="pilares" titulo="Captação × execução por pilar — acumulado {{ periodo.competencia|date:'Y' }}" hint="Captação e execução por pilar no acumulado do ano, em R$ milhões." bloco="bloco_pilares" geo="geo_pilares" unidade="R$ mi" eixo_rotulo="por pilar" legenda_a="Captado" legenda_b="Executado" />
+      <c-dashboard.chart-fonte chave="pilares" titulo="Captação × execução por pilar — acumulado {{ periodo.competencia|date:'Y' }}" hint="Captação e execução por pilar no acumulado do ano, em R$ milhões." :bloco="bloco_pilares" :geo="geo_pilares" unidade="R$ mi" eixo_rotulo="por pilar" legenda_a="Captado" legenda_b="Executado" />
       {% else %}
       <h3 class="font-display text-base font-semibold">Captação × execução por pilar — acumulado {{ periodo.competencia|date:'Y' }}</h3>
       <p class="mt-1 text-sm text-text-muted">Sem dados financeiros para os pilares visíveis.</p>

@@ -19,6 +19,7 @@ const ROTAS = [
   '/talentos/organograma/',
   '/relatorio/mensal/2/',
   '/prestacao/mensal/',
+  '/prestacao/semestral/?ano=2026&semestre=1',
   '/auditoria/',
   '/busca/?q=artigos',
   '/dev/design-system/',

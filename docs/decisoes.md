@@ -236,3 +236,12 @@
     aposentado do dashboard (fica no relatório); filtro de destaques vira
     swap de painel com push-url; `|unlocalize` nos widths das barras
     (CSS/SVG não aceitam vírgula — inclusive nas barras de status legadas).
+36. **L21 — Visão geral semestral no padrão Geral/Pilares**: `?ano=&semestre=`
+    canônico (inválido ⇒ 302; legado `?ano=` idem; default = semestre do
+    período padrão); `calculos.itens_por_periodo` (batch de 3 queries) e
+    `prestacao.painel_semestral` (média dos meses, `meses` = meses com
+    lançamento aprovado, tabela do último mês p/ YTD); controles no header +
+    fragmento OOB + `#painel-semestral`; CSV próprio
+    (`Mês;Pilar;Indicador;Meta;Realizado;% Executado`); drill-down meses ↔
+    semestre (botão "Ver semestre" no mensal); orçamento ≤ 40 queries;
+    `SemestralViewTestes` reescrito para o novo contrato.

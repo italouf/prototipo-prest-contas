@@ -27,6 +27,7 @@ test('M01 mensal exibe KPIs, financeiro, SVG, heatmap, avisos e farol', async ({
   await expect(page.getByText('Captação × execução por pilar')).toBeVisible();
   await expect(page.getByTestId('chart-fonte-mensal')).toBeVisible();
   await expect(page.getByTestId('chart-fonte-pilares')).toBeVisible();
+  await expect(page.getByTestId('chart-fonte-mensal').locator('g[data-categoria="Jun 2026"]')).toHaveCount(1);
   await expect(page.getByTestId('status-distribuicao')).toBeVisible();
   await expect(page.getByText(/R\$ .* mi|R\$ \d+ mil/).first()).toBeVisible();
 });

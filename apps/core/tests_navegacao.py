@@ -82,11 +82,10 @@ class SemestralViewTestes(TestCase):
 
     def test_semestral_lista_periodos_por_semestre(self):
         self.client.force_login(self.master)
-        resposta = self.client.get(reverse("core:semestral"))
+        resposta = self.client.get(reverse("core:semestral"), {"ano": "2026", "semestre": "1"})
         self.assertEqual(resposta.status_code, 200)
         self.assertContains(resposta, "Semestral")
-        self.assertContains(resposta, "1º semestre")
-        self.assertContains(resposta, "2º semestre")
+        self.assertContains(resposta, "1º semestre de 2026")
         self.assertContains(resposta, "2026-03")
         self.assertContains(resposta, "/prestacao/mensal/?periodo=2026-03-01")
 

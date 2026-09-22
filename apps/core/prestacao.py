@@ -2,18 +2,19 @@
 
 Funções puras sobre os modelos operacionais (períodos, lançamentos,
 financeiro, destaques); a view `core:mensal` é casca fina. Reusa
-`itens_do_periodo` (batch, sem N+1), o farol de `planning.services` e a
-geometria de `core.charts`. Séries monetárias saem em R$ mi.
+`itens_do_periodo` (batch), o farol de `planning.services` e a geometria
+de `core.charts`. Séries monetárias saem em R$ mi.
 """
 from datetime import date
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 
 from django.db.models import Count, Q
 
-from apps.core.calculos import itens_do_periodo
+from apps.core.calculos import itens_do_periodo, itens_por_periodo
 from apps.core.charts import geometria_barras
 from apps.core.dashboard import avisos_do_dashboard, heatmap_por_pilar, kpi_por_pilar
 from apps.core.permissions import pilares_visiveis
+from apps.core.templatetags.core_extras import numero_curto
 from apps.entries.models import Lancamento
 from apps.finance.models import FinanceiroConsolidado
 from apps.highlights.models import DestaqueMensal
@@ -237,3 +238,202 @@ def contexto_mensal(periodo, usuario, destaque_pilar=""):
         "bloco_mensal": bloco_mensal, "bloco_pilares": bloco_pilares,
         "destaques": destaques_qs[:6], "destaque_pilar": destaque_pilar,
     }
+
+
+# ---------------------------------------------------------------------------
+# Prestação semestral (L21): visão geral do semestre no padrão do anual.
+# ---------------------------------------------------------------------------
+
+def anos_com_periodos():
+    """Anos com períodos, do mais recente ao mais antigo."""
+    return sorted(
+        {p.competencia.year for p in Periodo.objects.all()}, reverse=True)
+
+
+def meses_do_semestre(ano, semestre):
+    """Períodos do semestre em ordem cronológica."""
+    ini, fim = (1, 6) if semestre == 1 else (7, 12)
+    return list(
+        Periodo.objects.filter(
+            competencia__year=ano,
+            competencia__month__gte=ini,
+            competencia__month__lte=fim,
+        ).order_by("competencia")
+    )
+
+
+def resolver_semestre(params):
+    """(estado, ano, semestre): "ok" | "canonico" (302) | "vazio" (sem dados)."""
+    anos = anos_com_periodos()
+    padrao = periodo_padrao()
+    if not anos or padrao is None:
+        return "vazio", None, None
+    ano_bruto = (params.get("ano") or "").strip()
+    sem_bruto = (params.get("semestre") or "").strip()
+    ano = int(ano_bruto) if ano_bruto.isdigit() and int(ano_bruto) in anos else None
+    sem = int(sem_bruto) if sem_bruto in ("1", "2") else None
+    if ano is not None and sem is not None:
+        return "ok", ano, sem
+    if ano is None:
+        ano = padrao.competencia.year
+    if sem is None:
+        ult = Periodo.objects.filter(competencia__year=ano).order_by("-competencia").first()
+        sem = 1 if ult.competencia.month <= 6 else 2
+    return "canonico", ano, sem
+
+
+def _pct_csv(p):
+    if p is None:
+        return "—"
+    texto = format(
+        Decimal(p).quantize(Decimal("0.1"), rounding=ROUND_HALF_UP).normalize(), "f")
+    return texto.replace(".", ",") + "%"
+
+
+def painel_semestral(ano, semestre, usuario):
+    """Visão geral do semestre: KPIs, financeiro, status, destaques e meses."""
+    pilares = list(pilares_visiveis(usuario))
+    periodos = meses_do_semestre(ano, semestre)
+    indicadores = list(
+        Indicador.objects.filter(pilar__in=pilares, ativo=True)
+        .select_related("pilar")
+        .order_by("pilar__ordem", "codigo")
+    )
+    por_periodo = itens_por_periodo(indicadores, periodos) if periodos else {}
+    for itens in por_periodo.values():
+        for item in itens:
+            item["faixa"] = faixa(item["percentual"])
+
+    tabela = []
+    lc_por_periodo = {
+        p.pk: {it["indicador"].pilar_id for it in por_periodo.get(p.pk, [])
+               if it["lc"] is not None}
+        for p in periodos
+    }
+    meses_com_dados = sum(1 for p in periodos if lc_por_periodo[p.pk])
+    for pilar in pilares:
+        pcts = [it["percentual"] for p in periodos
+                for it in por_periodo.get(p.pk, [])
+                if it["indicador"].pilar_id == pilar.pk
+                and it["percentual"] is not None]
+        atingidos = sum(1 for p in pcts if p >= 100)
+        pendentes = sum(
+            1 for p in periodos for it in por_periodo.get(p.pk, [])
+            if it["indicador"].pilar_id == pilar.pk
+            and it["indicador"].tipo != "TXT" and it["realizado"] is None)
+        meses = sum(1 for p in periodos if pilar.pk in lc_por_periodo[p.pk])
+        pct = sum(pcts, ZERO) / len(pcts) if pcts else None
+        tabela.append({"pilar": pilar, "pct": pct, "faixa": faixa(pct),
+                       "atingidos": atingidos, "pendentes": pendentes,
+                       "meses": meses, "n_meses": len(periodos)})
+
+    ini, fim = (1, 6) if semestre == 1 else (7, 12)
+    fin = list(
+        FinanceiroConsolidado.objects.filter(
+            periodo__competencia__year=ano,
+            periodo__competencia__month__gte=ini,
+            periodo__competencia__month__lte=fim,
+            pilar__in=pilares)
+        .select_related("pilar", "periodo")
+    )
+    por_mes = {m: {"captado": ZERO, "executado": ZERO} for m in range(ini, fim + 1)}
+    for f in fin:
+        dados = por_mes[f.periodo.competencia.month]
+        dados["captado"] += f.valor_captado or ZERO
+        dados["executado"] += f.valor_executado or ZERO
+    meses_serie = [(m, por_mes[m]) for m in range(ini, fim + 1)]
+    eixos_meses = [(MESES_ABREV[m], str(ano)) for m in range(ini, fim + 1)]
+    meses_idx = list(range(ini, fim + 1))
+    pk_por_mes = {p.competencia.month: p.pk for p in periodos}
+    com_dados = [i for i, m in enumerate(meses_idx)
+                 if por_mes[m]["captado"] or por_mes[m]["executado"]
+                 or any(it["realizado"] is not None
+                        for it in por_periodo.get(pk_por_mes.get(m), []))]
+    geo_meses = geometria_barras(
+        eixos_meses,
+        [_em_milhoes(d["captado"]) for _, d in meses_serie],
+        [_em_milhoes(d["executado"]) for _, d in meses_serie],
+        com_dados[-1] if com_dados else None, **DIMENSOES_BARRA)
+    por_pilar = {}
+    for f in fin:
+        dados = por_pilar.setdefault(f.pilar_id, {
+            "nome": f.pilar.nome, "codigo": f.pilar.codigo,
+            "captado": ZERO, "executado": ZERO})
+        dados["captado"] += f.valor_captado or ZERO
+        dados["executado"] += f.valor_executado or ZERO
+    serie_pilares = sorted(por_pilar.values(), key=lambda d: d["codigo"])
+    geo_pilares = geometria_barras(
+        [(p["codigo"], "") for p in serie_pilares],
+        [_em_milhoes(p["captado"]) for p in serie_pilares],
+        [_em_milhoes(p["executado"]) for p in serie_pilares],
+        None, **DIMENSOES_BARRA) if serie_pilares else None
+
+    tot_cap = sum((p["captado"] for p in serie_pilares), ZERO)
+    tot_exec = sum((p["executado"] for p in serie_pilares), ZERO)
+    pct_sem = pct_inteiro(tot_exec, tot_cap)
+    cards = {"captado": tot_cap, "executado": tot_exec,
+             "outras_fontes": sum(
+                 (f.valor_captado or ZERO for f in fin
+                  if f.tipo_recurso == "OUTRAS_FONTES"), ZERO)}
+
+    agregado = Lancamento.objects.filter(
+        periodo__in=periodos, indicador__pilar__in=pilares).aggregate(
+        total=Count("pk"),
+        aprovado=Count("pk", filter=Q(status="APROVADO")),
+        enviado=Count("pk", filter=Q(status="ENVIADO")),
+        rascunho=Count("pk", filter=Q(status="RASCUNHO")),
+        devolvido=Count("pk", filter=Q(status="DEVOLVIDO")),
+    )
+    total = agregado["total"] or 0
+    status_counts = {
+        status: {"quantidade": agregado[chave] or 0,
+                 "pct": round(((agregado[chave] or 0) / total * 100), 1) if total else 0}
+        for status, chave in (("APROVADO", "aprovado"), ("ENVIADO", "enviado"),
+                              ("RASCUNHO", "rascunho"), ("DEVOLVIDO", "devolvido"))
+    }
+    status_counts["total"] = total
+    destaques = list(
+        DestaqueMensal.objects.filter(periodo__in=periodos)
+        .filter(Q(pilar__isnull=True) | Q(pilar__in=pilares))
+        .select_related("pilar")
+        .order_by("-criado_em")[:6]
+    )
+    ult = periodos[-1] if periodos else None
+    linhas = []
+    if ult is not None:
+        por_pilar_ult = {}
+        for item in por_periodo.get(ult.pk, []):
+            por_pilar_ult.setdefault(item["indicador"].pilar_id, []).append(item)
+        linhas = [{"pilar": pilar, "itens": por_pilar_ult.get(pilar.pk, [])}
+                 for pilar in pilares]
+    return {
+        "ano": ano, "semestre": semestre,
+        "painel_semestral": {
+            "rotulo_periodo": f"{semestre}º semestre de {ano}",
+            "n_meses": len(periodos), "n_pilares": len(pilares),
+            "meses_dados": meses_com_dados,
+        },
+        "periodos": periodos, "meses": periodos, "por_periodo": por_periodo,
+        "tabela": tabela, "linhas": linhas,
+        "cards": cards, "status_counts": status_counts,
+        "geo_meses": geo_meses, "geo_pilares": geo_pilares,
+        "bloco_meses": {"nome_previsto": "Captado", "nome_executado": "Executado",
+                        "rodape_pct": pct_sem, "rodape_faixa": faixa(pct_sem)},
+        "bloco_pilares": {"nome_previsto": "Captado", "nome_executado": "Executado",
+                          "rodape_pct": pct_sem, "rodape_faixa": faixa(pct_sem)},
+        "destaques": destaques,
+    }
+
+
+def linhas_csv_semestre(ano, semestre, usuario):
+    """Linhas `Mês;Pilar;Indicador;Meta;Realizado;% Executado` do semestre."""
+    ctx = painel_semestral(ano, semestre, usuario)
+    linhas = ["Mês;Pilar;Indicador;Meta;Realizado;% Executado"]
+    for periodo in ctx["meses"]:
+        for item in ctx["por_periodo"].get(periodo.pk, []):
+            ind = item["indicador"]
+            linhas.append(
+                f"{periodo.rotulo};{ind.pilar.codigo};{ind.codigo};"
+                f"{numero_curto(item['meta'])};{numero_curto(item['realizado'])};"
+                f"{_pct_csv(item['percentual'])}")
+    return linhas

@@ -34,7 +34,7 @@
     <div class="flex items-center gap-2">
       <c-ui.badge papel="{{ papel }}" class="hidden sm:inline-flex" data-testid="papel-badge">{{ papel }}</c-ui.badge>
       <span class="hidden text-sm font-medium xl:inline">{{ user.nome_exibicao }}</span>
-      {% if painel or painel_pilar or painel_mensal %}
+      {% if painel or painel_pilar or painel_mensal or painel_semestral %}
       <button type="button" data-testid="barra-toggle" aria-controls="dashboard-controls" aria-expanded="true"
               aria-label="Ocultar filtros e ações" title="Ocultar filtros e ações" onclick="quiinAlternarBarra()"
               class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-surface-2 text-text hover:bg-quiin-mist/40 dark:hover:bg-white/5">
@@ -70,6 +70,10 @@
   {% elif painel_mensal %}
   <div id="dashboard-controls" class="border-t border-border px-4 py-2.5 lg:px-8" data-testid="dashboard-controls">
     {% include 'dashboard/_controles_mensal.html' %}
+  </div>
+  {% elif painel_semestral %}
+  <div id="dashboard-controls" class="border-t border-border px-4 py-2.5 lg:px-8" data-testid="dashboard-controls">
+    {% include 'dashboard/_controles_semestral.html' %}
   </div>
   {% endif %}
 </header>

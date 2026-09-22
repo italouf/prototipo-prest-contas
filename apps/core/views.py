@@ -19,7 +19,15 @@ from .permissions import (
     sem_permissao,
     usuario_pode_pilar,
 )
-from .prestacao import contexto_mensal, resolver_destaque, resolver_periodo
+from .prestacao import (
+    anos_com_periodos,
+    contexto_mensal,
+    linhas_csv_semestre,
+    painel_semestral,
+    resolver_destaque,
+    resolver_periodo,
+    resolver_semestre,
+)
 from .utils import periodo_selecionado
 
 URL_PADRAO_PAINEL = "/?ano=todos&base=fin"
@@ -84,19 +92,41 @@ def mensal(request):
 
 @login_required
 def semestral(request):
-    """Visão mínima semestral: períodos do ano agrupados por semestre (L4)."""
-    anos = sorted({p.competencia.year for p in Periodo.objects.all()}, reverse=True)
-    ano = None
-    if request.GET.get("ano", "").isdigit() and int(request.GET["ano"]) in anos:
-        ano = int(request.GET["ano"])
-    elif anos:
-        ano = anos[0]
-    periodos = list(Periodo.objects.filter(competencia__year=ano).order_by("competencia")) if ano else []
-    return render(request, "dashboard/semestral.html", {
-        "ano": ano, "anos": anos,
-        "s1": [p for p in periodos if p.competencia.month <= 6],
-        "s2": [p for p in periodos if p.competencia.month > 6],
-    })
+    """Visão geral semestral no padrão do painel anual (L21): `?ano=&semestre=`."""
+    params = request.GET
+    estado, ano, semestre = resolver_semestre(params)
+    if estado == "vazio":
+        return render(request, "dashboard/semestral.html", {
+            "anos": [], "ano": None, "semestre": None, "painel_semestral": None,
+        })
+    if estado == "canonico" and params:
+        return redirect(f"/prestacao/semestral/?ano={ano}&semestre={semestre}")
+    contexto = {"anos": anos_com_periodos(), "ano": ano, "semestre": semestre}
+    contexto.update(painel_semestral(ano, semestre, request.user))
+    if _hx_parcial(request):
+        return render(request, "dashboard/_fragmento_semestral.html", contexto)
+    return render(request, "dashboard/semestral.html", contexto)
+
+
+@login_required
+def semestral_csv(request):
+    """CSV do semestre: `Mês;Pilar;Indicador;Meta;Realizado;% Executado`."""
+    from django.http import HttpResponse
+
+    estado, ano, semestre = resolver_semestre(request.GET)
+    if estado == "vazio":
+        return redirect("core:semestral")
+    if estado == "canonico" and request.GET:
+        return redirect(
+            f"/prestacao/semestral/dados.csv?ano={ano}&semestre={semestre}")
+    linhas = linhas_csv_semestre(ano, semestre, request.user)
+    hoje = date.today().isoformat()
+    resposta = HttpResponse(
+        "﻿" + "\n".join(linhas) + "\n", content_type="text/csv; charset=utf-8")
+    resposta["Content-Disposition"] = (
+        f"attachment; filename=dados_quiin_semestre_{ano}_s{semestre}_{hoje}.csv"
+    )
+    return resposta
 
 
 @login_required

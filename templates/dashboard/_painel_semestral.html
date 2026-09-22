@@ -1,0 +1,137 @@
+{# Painel da visão semestral no padrão do anual (L21): KPIs, financeiro, SVG, status, tabela, destaques, meses. #}
+{% load core_extras l10n %}
+<div id="painel-semestral" data-testid="painel-semestral" class="mt-4">
+  <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3" aria-label="Indicadores-chave por pilar no semestre">
+    {% for t in tabela %}
+    <a href="{% url 'core:pilar' t.pilar.pk %}" data-testid="kpi-sem-{{ t.pilar.codigo|lower }}"
+       class="anim-entrada block rounded-xl border border-border bg-surface-2 p-5 shadow-sm transition-shadow hover:shadow-md">
+      <div class="flex items-center justify-between gap-2">
+        <span class="text-xs font-semibold uppercase tracking-wide text-text-muted">{{ t.pilar.nome }}</span>
+        <c-ui.badge pillar="{{ t.pilar.codigo }}">{{ t.pilar.codigo }}</c-ui.badge>
+      </div>
+      <p class="numerico mt-3 text-3xl font-bold">{% if t.pct is not None %}{{ t.pct|pct }}{% else %}—{% endif %}</p>
+      <p class="text-xs text-text-muted">média do semestre · {{ t.atingidos }} metas atingidas · {{ t.pendentes }} pendentes · {{ t.meses }}/{{ t.n_meses }} meses com dados</p>
+      <div class="mt-3 flex items-center gap-2">
+        <c-dashboard.farol-badge faixa="{{ t.faixa }}" rotulo="{% if t.pct is not None %}{{ t.pct|pct }}{% else %}—{% endif %}" />
+      </div>
+    </a>
+    {% endfor %}
+  </section>
+
+  <section class="mt-4 grid gap-4 sm:grid-cols-3" aria-label="Execução financeira do semestre">
+    <c-ui.card>
+      <p class="text-xs font-semibold uppercase tracking-wide text-text-muted">Captação {{ ano }}</p>
+      <p class="numerico mt-1 text-2xl font-bold">{{ cards.captado|escala_ptbr }}</p>
+      <p class="text-xs text-text-muted">{{ cards.captado|moeda_ptbr }} captado no semestre</p>
+    </c-ui.card>
+    <c-ui.card>
+      <p class="text-xs font-semibold uppercase tracking-wide text-text-muted">Execução {{ ano }}</p>
+      <p class="numerico mt-1 text-2xl font-bold">{{ cards.executado|escala_ptbr }}</p>
+      <p class="text-xs text-text-muted">{{ cards.executado|moeda_ptbr }} executado no semestre</p>
+    </c-ui.card>
+    <c-ui.card>
+      <p class="text-xs font-semibold uppercase tracking-wide text-text-muted">Outras fontes</p>
+      <p class="numerico mt-1 text-2xl font-bold">{{ cards.outras_fontes|escala_ptbr }}</p>
+      <p class="text-xs text-text-muted">{{ cards.outras_fontes|moeda_ptbr }} captado no semestre</p>
+    </c-ui.card>
+  </section>
+
+  <div class="mt-4 grid gap-4 lg:grid-cols-2" aria-label="Execução financeira">
+    <div class="rounded-xl border border-border bg-surface-2 p-5">
+      <c-dashboard.chart-fonte chave="meses" titulo="Captação × execução por mês — {{ painel_semestral.rotulo_periodo }}" hint="Captação e execução mês a mês, em R$ milhões. O mês mais recente com dados aparece em destaque." :bloco="bloco_meses" :geo="geo_meses" unidade="R$ mi" eixo_rotulo="por mês" legenda_a="Captado" legenda_b="Executado" />
+    </div>
+    <div class="rounded-xl border border-border bg-surface-2 p-5">
+      {% if geo_pilares %}
+      <c-dashboard.chart-fonte chave="pilares" titulo="Captação × execução por pilar — {{ painel_semestral.rotulo_periodo }}" hint="Captação e execução por pilar no semestre, em R$ milhões." :bloco="bloco_pilares" :geo="geo_pilares" unidade="R$ mi" eixo_rotulo="por pilar" legenda_a="Captado" legenda_b="Executado" />
+      {% else %}
+      <h3 class="font-display text-base font-semibold">Captação × execução por pilar — {{ painel_semestral.rotulo_periodo }}</h3>
+      <p class="mt-1 text-sm text-text-muted">Sem dados financeiros para os pilares visíveis.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <section class="mt-4 rounded-xl border border-border bg-surface-2 p-5" data-testid="status-semestre" aria-label="Distribuição de lançamentos por status no semestre">
+    <h2 class="font-display text-lg font-semibold">Lançamentos — {{ painel_semestral.rotulo_periodo }}</h2>
+    <div class="mt-3 flex h-3 overflow-hidden rounded-full bg-quiin-mist/60" role="img" aria-label="Distribuição de lançamentos por status">
+      <div class="bg-quiin-quantum-green" style="width: {{ status_counts.APROVADO.pct|unlocalize }}%" title="Aprovados: {{ status_counts.APROVADO.quantidade }}"></div>
+      <div class="bg-quiin-blue" style="width: {{ status_counts.ENVIADO.pct|unlocalize }}%" title="Enviados: {{ status_counts.ENVIADO.quantidade }}"></div>
+      <div class="bg-quiin-mist" style="width: {{ status_counts.RASCUNHO.pct|unlocalize }}%" title="Rascunhos: {{ status_counts.RASCUNHO.quantidade }}"></div>
+      <div class="bg-amber-400" style="width: {{ status_counts.DEVOLVIDO.pct|unlocalize }}%" title="Devolvidos: {{ status_counts.DEVOLVIDO.quantidade }}"></div>
+    </div>
+    <ul class="mt-2 flex flex-wrap gap-4 text-xs text-text-muted">
+      <li>Aprovado — {{ status_counts.APROVADO.quantidade }}</li>
+      <li>Enviado — {{ status_counts.ENVIADO.quantidade }}</li>
+      <li>Rascunho — {{ status_counts.RASCUNHO.quantidade }}</li>
+      <li>Devolvido — {{ status_counts.DEVOLVIDO.quantidade }}</li>
+    </ul>
+  </section>
+
+  <section class="mt-4 overflow-x-auto rounded-xl border border-border bg-surface-2" aria-label="Consolidado por pilar no semestre" data-testid="tabela-semestre">
+    <h2 class="px-5 pt-5 font-display text-lg font-semibold">Consolidado por pilar — {{ painel_semestral.rotulo_periodo }}</h2>
+    {% for linha in linhas %}
+    <div class="px-5 pt-4">
+      <h3 class="font-display text-sm font-semibold text-quiin-royal">{{ linha.pilar.nome }}</h3>
+      <div class="mt-2 overflow-x-auto">
+        <table class="w-full border-collapse text-sm">
+          <thead>
+            <tr class="border-b border-border text-left text-xs uppercase tracking-wide text-text-muted">
+              <th class="py-2 pr-3">Indicador</th><th class="py-2 pr-3">Un.</th><th class="py-2 pr-3">Meta</th>
+              <th class="py-2 pr-3">Realizado</th><th class="py-2 pr-3">% execução</th><th class="py-2 pr-3">Farol</th><th class="py-2">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in linha.itens %}
+            <tr class="border-b border-border/60 {% if item.percentual is not None and item.percentual < 100 %}bg-amber-50/60{% endif %}">
+              <td class="py-2 pr-3"><strong>{{ item.indicador.nome }}</strong><br><span class="text-xs text-text-muted">{{ item.indicador.codigo }}</span></td>
+              <td class="py-2 pr-3">{{ item.indicador.unidade }}</td>
+              <td class="py-2 pr-3 numerico">{% if item.meta is not None %}{{ item.meta|numero_ptbr }}{% else %}—{% endif %}</td>
+              <td class="py-2 pr-3 numerico">{{ item.realizado|numero_ptbr }}{% if item.ytd %} <span class="text-xs text-text-muted">(YTD)</span>{% endif %}</td>
+              <td class="py-2 pr-3 numerico">{% if item.percentual is not None %}{{ item.percentual|pct }}{% else %}—{% endif %}</td>
+              <td class="py-2 pr-3"><c-dashboard.farol-badge faixa="{{ item.faixa }}" rotulo="{% if item.percentual is not None %}{{ item.percentual|pct }}{% else %}—{% endif %}" /></td>
+              <td class="py-2"><c-ui.badge tone="{% if item.lc.status == 'APROVADO' %}success{% elif item.lc.status == 'ENVIADO' %}info{% elif item.lc.status == 'DEVOLVIDO' %}warn{% else %}neutral{% endif %}">{{ item.lc.status|default:'Pendente'|status_lancamento }}</c-ui.badge></td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="7" class="py-3 text-sm text-text-muted">Nenhum indicador ativo neste pilar.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endfor %}
+    <div class="h-5"></div>
+  </section>
+
+  <div class="mt-4 grid gap-4 lg:grid-cols-2">
+    <section class="rounded-xl border border-border bg-surface-2 p-5" aria-label="Destaques do semestre">
+      <h2 class="font-display text-lg font-semibold">Destaques do semestre</h2>
+      <div id="feed-semestre" data-testid="feed-semestre" class="mt-4 space-y-3">
+        {% for d in destaques %}
+        <article class="rounded-lg border border-border p-3">
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="text-sm font-semibold">{{ d.titulo }}</span>
+            <c-ui.badge tone="info">{{ d.get_tipo_display }}</c-ui.badge>
+            {% if d.pilar %}<c-ui.badge pillar="{{ d.pilar.codigo }}">{{ d.pilar.codigo }}</c-ui.badge>{% endif %}
+          </div>
+          <p class="mt-1 text-sm text-text-muted">{{ d.descricao }}</p>
+        </article>
+        {% empty %}
+        <p class="text-sm text-text-muted">Nenhum destaque neste semestre.</p>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="rounded-xl border border-border bg-surface-2 p-5" aria-label="Meses do semestre">
+      <h2 class="font-display text-lg font-semibold">Meses do semestre</h2>
+      <ul class="mt-4 space-y-2" data-testid="meses-semestre">
+        {% for p in meses %}
+        <li class="flex flex-wrap items-center gap-2 text-sm">
+          <a class="font-semibold underline" href="{% url 'core:mensal' %}?periodo={{ p.competencia|date:'Y-m-d' }}">{{ p.rotulo }}</a>
+          <c-ui.badge tone="{% if p.status == 'ABERTO' or p.status == 'REABERTO' %}info{% elif p.status == 'FECHADO' %}success{% else %}neutral{% endif %}">{{ p.get_status_display }}</c-ui.badge>
+        </li>
+        {% empty %}
+        <li class="text-sm text-text-muted">Sem períodos neste semestre.</li>
+        {% endfor %}
+      </ul>
+    </section>
+  </div>
+</div>

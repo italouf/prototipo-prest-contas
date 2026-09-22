@@ -82,6 +82,99 @@ def meta_realizado_percentual(indicador, periodo):
     }
 
 
+def itens_por_periodo(indicadores, periodos):
+    """`{periodo_pk: [itens]}` em lote (3 queries, sem N+1).
+
+    Mesma semântica de `itens_do_periodo` para cada período; YTD usa
+    janeiro do ano de cada período como base.
+    """
+    from apps.entries.models import Lancamento
+    from apps.indicators.models import Meta
+    from django.db.models import Sum
+
+    indicadores = list(indicadores)
+    periodos = sorted(list(periodos), key=lambda p: p.competencia)
+    if not indicadores or not periodos:
+        return {}
+    ids = [i.pk for i in indicadores]
+    comps = [p.competencia for p in periodos]
+    min_comp, max_comp = comps[0], comps[-1]
+    anos = {c.year for c in comps}
+
+    metas_todas = list(
+        Meta.objects.filter(
+            indicador_id__in=ids,
+            ativo=True,
+            competencia_inicio__lte=max_comp,
+            competencia_fim__gte=min_comp,
+        ).order_by("indicador_id", "-versao", "-competencia_inicio")
+    )
+    lancamentos = {
+        (lc.indicador_id, lc.periodo_id): lc
+        for lc in Lancamento.objects.filter(
+            indicador_id__in=ids, periodo__in=periodos, status="APROVADO")
+    }
+    somas = {}
+    for item in (
+        Lancamento.objects.filter(
+            indicador_id__in=ids,
+            status="APROVADO",
+            periodo__competencia__year__in=anos,
+            periodo__competencia__lte=max_comp,
+        )
+        .values("indicador_id", "periodo__competencia")
+        .annotate(total=Sum("valor_numerico"))
+    ):
+        somas[(item["indicador_id"], item["periodo__competencia"])] = (
+            item["total"] or ZERO)
+
+    def _ytd(ind_pk, comp):
+        return sum(
+            (somas.get((ind_pk, c), ZERO) for c in comps
+             if c <= comp and c.year == comp.year),
+            ZERO,
+        )
+
+    mapa = {}
+    for periodo in periodos:
+        comp = periodo.competencia
+        itens = []
+        for ind in indicadores:
+            meta = next(
+                (m for m in metas_todas
+                 if m.indicador_id == ind.pk
+                 and m.competencia_inicio <= comp <= m.competencia_fim),
+                None,
+            )
+            lc = lancamentos.get((ind.pk, periodo.pk))
+            if ind.tipo == "TXT":
+                itens.append({
+                    "indicador": ind, "meta": None,
+                    "realizado": lc.valor_texto if lc else None,
+                    "percentual": None, "ytd": False,
+                    "meta_obj": meta, "lc": lc,
+                })
+                continue
+            ytd = bool(ind.acumulado) or (
+                meta is not None and meta.periodicidade in ("ANUAL", "ACUMULADA"))
+            realizado = _ytd(ind.pk, comp) if ytd else (
+                lc.valor_numerico if lc else None)
+            percentual = None
+            if meta is not None and meta.valor and realizado is not None:
+                percentual = (realizado / meta.valor) * 100
+            itens.append({
+                "indicador": ind,
+                "meta": meta.valor if meta else None,
+                "realizado": realizado,
+                "percentual": percentual,
+                "ytd": ytd,
+                "meta_obj": meta,
+                "lc": lc,
+            })
+        mapa[periodo.pk] = itens
+    return mapa
+
+
 def itens_do_periodo(indicadores, periodo):
     """Versão em lote de `meta_realizado_percentual` (3 queries, sem N+1).
 
