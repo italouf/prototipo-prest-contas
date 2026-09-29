@@ -105,12 +105,14 @@ class IngestaoFinanceiroTestes(TestCase):
 # acima são mantidos literalmente como no brief; estes complementam — nunca
 # substituem. Os imports extras ficam aqui para não tocar no bloco do brief.
 import tempfile  # noqa: E402
+from datetime import date  # noqa: E402
 
 from openpyxl import Workbook  # noqa: E402
 
 from apps.audit.models import AuditLog  # noqa: E402
 
-from ..models import CentroCompetencia, OverrideAcompanhamento  # noqa: E402
+from ..models import (CentroCompetencia, DespesaAcompanhamento,  # noqa: E402
+                      OverrideAcompanhamento)
 
 
 class RulingsIngestaoTestes(TestCase):
@@ -254,6 +256,63 @@ def _workbook_financeiro(caminho, nomes_projetos):
     wb.save(caminho)
 
 
+# Abas obrigatórias do v2 (SDD §6): sem as 8 o parser acusa aba ausente.
+_ABAS_V2 = (
+    "3. Conta Ação - AFCCT",
+    "4. Conta Ação - FCRH",
+    "5. Conta Ação - ACS",
+    "6. Conta Ação - AT",
+    "6.1 Conta Ação - AT (Lei TICs)",
+    "7. Conta Ação - Outras Fontes",
+    "8. Conta Ação - Infraestrutura",
+    "9. Ampliação de Infraestrutura",
+)
+
+# Uma linha de despesa nas abas-alvo, com as colunas que o SDD §6 mapeia
+# (inclui quantidade/valor unitário de 3 casas e data para o teste de round trip).
+_DADOS_V2 = {
+    "3. Conta Ação - AFCCT": (
+        ["Linha", "Informação do código do projeto de AFCCT", "Conta do projeto",
+         "Data do pagamento", "Credor", "Valor (R$)", "Observação"],
+        [1, "PDI-01", "CTA-1", date(2024, 4, 15), "Fornecedor X", 123.45, "ok"]),
+    "9. Ampliação de Infraestrutura": (
+        ["Linha", "Descrição do item", "Quantidade",
+         "Valor unitário do item na Nota Fiscal ou Invoice (R$)",
+         "Valor total dos itens na Nota Fiscal ou Invoice (R$)",
+         "Número patrimonial do bem"],
+        [1, "Servidor", 2, 61.725, 123.45, "PAT-9"]),
+}
+
+
+def _workbook_v2(caminho, com_metadados=True):
+    """Workbook do Acompanhamento Financeiro (v2) com despesas nas abas 3 e 9.
+
+    Estilo das fixtures de ``test_parsers_acompanhamento``: as outras abas
+    trazem só o cabeçalho ``Linha`` (aba e cabeçalho são obrigatórios) e os
+    rótulos de metadados ficam no ``0. Sumário``, fonte primária da conferência
+    de centro/período (SDD §6). ``com_metadados=False`` simula um template com
+    rótulos ilegíveis (Ruling 22).
+    """
+    wb = Workbook()
+    wb.remove(wb.active)
+    ws0 = wb.create_sheet("0. Sumário")
+    if com_metadados:
+        ws0.cell(2, 2, "Centro de Competência")
+        ws0.cell(2, 3, CENTRO)
+        ws0.cell(3, 2, "Período de referência")
+        ws0.cell(3, 3, REFERENCIA)
+        ws0.cell(4, 2, "Termo de cooperação")
+        ws0.cell(4, 3, "053/2023")
+    for nome in _ABAS_V2:
+        aba = wb.create_sheet(nome)
+        cabecalhos, dados = _DADOS_V2.get(nome, (["Linha"], [1]))
+        for coluna, texto in enumerate(cabecalhos, start=1):
+            aba.cell(5, coluna, texto)
+        for coluna, valor in enumerate(dados, start=1):
+            aba.cell(6, coluna, valor)
+    wb.save(caminho)
+
+
 def _instantaneo():
     """Snapshot das linhas de resumo/projeto para comparar antes e depois."""
     resumos = list(ResumoFinanceiro.objects.order_by(
@@ -340,3 +399,79 @@ class RollbackNoMeioDaGravacaoTestes(TestCase):
         self.assertEqual(ProjetoFinanceiro.objects.count(), 33)
         self.assertEqual(ImportacaoAcompanhamento.objects.filter(status="SUCESSO").count(), 1)
         self.assertEqual(ImportacaoAcompanhamento.objects.filter(status="ERRO").count(), 1)
+
+
+class DespesasV2Testes(TestCase):
+    """Parser → services → banco para ``DespesaAcompanhamento``.
+
+    O v2 real não tem lançamentos (SDD §11): sem esta fixture o caminho de
+    gravação de despesas — a razão de existir da metade v2 — nunca seria
+    exercitado de ponta a ponta.
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        garantir_grupos()
+        User = get_user_model()
+        cls.user = adicionar_grupo(
+            User.objects.create_user(username="despesasv2", password="x"), "Master")
+        for codigo, nome in (("PDI", "PDI"), ("FORMACAO", "Formação FCRH"),
+                             ("STARTUPS", "ACS"), ("INFRA", "Infraestrutura"),
+                             ("AT", "AT"), ("OUTRASFONTES", "Outras Fontes")):
+            Pilar.objects.create(codigo=codigo, nome=nome)
+
+    def test_despesas_gravadas_com_valores_e_precisao(self):
+        with tempfile.TemporaryDirectory() as pasta:
+            caminho = Path(pasta) / "v2.xlsx"
+            _workbook_v2(caminho)
+            imp = services.ingestar("ACOMPANHAMENTO_V2", caminho, CENTRO, REFERENCIA, self.user)
+        self.assertEqual(imp.status, "SUCESSO")
+        self.assertEqual(imp.resumo, {"despesas": 2})
+        self.assertNotIn("não encontrados no arquivo", imp.avisos)  # metadados conferidos
+        self.assertEqual(DespesaAcompanhamento.objects.count(), 2)
+
+        afcct = DespesaAcompanhamento.objects.get(aba="3. Conta Ação - AFCCT")
+        self.assertEqual(afcct.linha, 6)
+        self.assertEqual(afcct.pilar.codigo, "PDI")
+        self.assertEqual(afcct.tipo_recurso, "EMBRAPII")
+        self.assertEqual(afcct.codigo_projeto, "PDI-01")
+        self.assertEqual(afcct.conta_projeto, "CTA-1")
+        self.assertEqual(afcct.credor, "Fornecedor X")
+        self.assertEqual(afcct.data_pagamento, date(2024, 4, 15))
+        self.assertEqual(afcct.valor, Decimal("123.45"))
+        self.assertEqual(afcct.observacao, "ok")
+
+        ampliacao = DespesaAcompanhamento.objects.get(aba="9. Ampliação de Infraestrutura")
+        self.assertEqual(ampliacao.linha, 6)
+        self.assertEqual(ampliacao.pilar.codigo, "INFRA")
+        self.assertEqual(ampliacao.tipo_recurso, "EMBRAPII")
+        self.assertEqual(ampliacao.descricao, "Servidor")
+        self.assertEqual(ampliacao.quantidade, Decimal("2"))
+        self.assertEqual(ampliacao.valor_unitario, Decimal("61.725"))  # 3 casas preservadas
+        self.assertEqual(ampliacao.valor, Decimal("123.45"))
+        self.assertEqual(ampliacao.numero_patrimonial, "PAT-9")
+
+    def test_reimportar_v2_substitui_despesas_sem_tocar_nas_demas_fontes(self):
+        services.ingestar("FINANCEIRO_GERAL", FINANCEIRO, CENTRO, REFERENCIA, self.user)
+        services.ingestar("INDICADORES_PE", INDICADORES, CENTRO, REFERENCIA, self.user)
+        with tempfile.TemporaryDirectory() as pasta:
+            caminho = Path(pasta) / "v2.xlsx"
+            _workbook_v2(caminho)
+            services.ingestar("ACOMPANHAMENTO_V2", caminho, CENTRO, REFERENCIA, self.user)
+            services.ingestar("ACOMPANHAMENTO_V2", caminho, CENTRO, REFERENCIA, self.user)
+        self.assertEqual(DespesaAcompanhamento.objects.count(), 2)  # substitui, não duplica
+        self.assertEqual(ResumoFinanceiro.objects.count(), 9)        # demais fontes intactas
+        self.assertEqual(ProjetoFinanceiro.objects.count(), 33)
+        self.assertEqual(KpiAcompanhamento.objects.count(), 10)
+
+    def test_v2_sem_metadados_importa_com_aviso_de_validacao_impossivel(self):
+        with tempfile.TemporaryDirectory() as pasta:
+            caminho = Path(pasta) / "sem_metadados.xlsx"
+            _workbook_v2(caminho, com_metadados=False)
+            imp = services.ingestar("ACOMPANHAMENTO_V2", caminho, CENTRO, REFERENCIA, self.user)
+        self.assertEqual(imp.status, "SUCESSO")  # aviso, nunca erro
+        self.assertEqual(imp.resumo, {"despesas": 2})
+        self.assertIn(
+            "Metadados de centro/período não encontrados no arquivo; "
+            "validação contra o arquivo não foi possível.", imp.avisos)
+        self.assertEqual(ImportacaoAcompanhamento.objects.filter(status="ERRO").count(), 0)

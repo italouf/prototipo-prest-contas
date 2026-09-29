@@ -18,6 +18,8 @@ Regras duras:
   delete do escopo inteiro da fonte antes do insert é o que impede duplicatas.
 - Valores vazios viram ``NULL`` (numéricos) ou ``""`` (texto ``blank``); nunca
   ``0`` implícito. Nada do Excel é executado — só lido.
+- Ruling 22: v2 sem metadados legíveis importa com os valores do formulário e
+  um aviso de que a validação contra o arquivo não foi possível (nunca erro).
 """
 
 from __future__ import annotations
@@ -84,6 +86,13 @@ _ROTULO_METADADO = {
     "periodo_referencia": "Período de referência",
     "termo": "Termo de cooperação",
 }
+
+# Ruling 22: v2 sem metadados legíveis importa com os valores do formulário,
+# mas registra que a validação contra o arquivo não foi possível (aviso, nunca
+# erro) — para nunca importar silenciosamente sem conferência.
+_AVISO_METADADOS_AUSENTES = (
+    "Metadados de centro/período não encontrados no arquivo; "
+    "validação contra o arquivo não foi possível.")
 
 # Campos por modelo: valores anuláveis (Decimal/data/int) e textos ``blank``
 # (que precisam de ``""`` — o banco não aceita NULL nos CharField).
@@ -205,6 +214,7 @@ def ingestar(tipo_fonte: str, caminho: Path | str, centro_nome: str,
         avisos = payload["avisos"]
         if payload["erros"]:
             raise IngestaoError(" | ".join(payload["erros"]))
+        _avisar_metadados_ausentes(tipo_fonte, payload)
         divergencias = _metadados_divergentes(
             payload, centro_nome, periodo_referencia, caminho)
         if divergencias:
@@ -384,6 +394,21 @@ def _codigo_centro(nome: str) -> str:
 
 
 # ------------------------------------------------------------------- metadados
+
+def _avisar_metadados_ausentes(tipo_fonte: str, payload: dict) -> None:
+    """Ruling 22: v2 sem metadados legíveis importa, mas com aviso registrado.
+
+    Só o ``ACOMPANHAMENTO_V2`` traz metadados; em ``FINANCEIRO_GERAL`` e
+    ``INDICADORES_PE`` os argumentos do formulário são a fonte da verdade por
+    desenho (SDD §1) e nada é avisado. Vira ``ImportacaoAcompanhamento.avisos``
+    — nunca ``erros``.
+    """
+    if tipo_fonte != "ACOMPANHAMENTO_V2":
+        return
+    metadados = payload.get("metadados") or {}
+    if not metadados.get("centro") or not metadados.get("periodo_referencia"):
+        payload["avisos"].append(_AVISO_METADADOS_AUSENTES)
+
 
 def _metadados_divergentes(payload: dict, centro_nome: str, periodo_referencia: str,
                            caminho: Path | str) -> list[str]:
