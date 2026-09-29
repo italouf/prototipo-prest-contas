@@ -289,3 +289,93 @@ class PainelViewTestes(BasePanelTestes):
         assert resposta.status_code == 200
         assert resposta.context["acompanhamento"] is None
         assert 'data-testid="acompanhamento-select"' not in resposta.content.decode()
+
+
+# ---------------------------------------------------------------------------
+# Ruling 25: exports CSV/HTML refletem a mesma fonte do painel da tela.
+# ---------------------------------------------------------------------------
+
+class ExportacoesComAcompanhamentoTestes(BasePanelTestes):
+    def _semear_plano_diferente(self):
+        """PlanoAnual com valores distintos — não pode vazar para as exportações."""
+        pilar = Pilar.objects.get(codigo="PDI")
+        PlanoAnual.objects.create(ano=2024, pilar=pilar, base="financeiro",
+                                  previsto=Decimal("123456.78"), executado=Decimal("999999.99"))
+
+    def test_csv_exporta_os_numeros_importados(self):
+        from django.urls import reverse
+        self._semear_plano_diferente()
+        self.client.force_login(self.user)
+        resposta = self.client.get(reverse("planning:csv"), {
+            "ano": "todos", "base": "fin", "acompanhamento": str(self.acomp.pk)})
+        assert resposta.status_code == 200
+        conteudo = resposta.content.decode()
+        assert "29.000.000" in conteudo       # PDI previsto (recurso_ou_meta, TAB. 1)
+        assert "17.675.109,56" in conteudo    # PDI executado (realizado, TAB. 1)
+        assert "5.616.700" in conteudo        # AT captado (TAB. 9)
+        assert "123.456,78" not in conteudo   # PlanoAnual semeado não vaza
+        assert "999.999,99" not in conteudo
+
+    def test_html_standalone_exporta_os_numeros_importados(self):
+        from django.urls import reverse
+        self._semear_plano_diferente()
+        self.client.force_login(self.user)
+        resposta = self.client.get(reverse("planning:export_html"), {
+            "ano": "todos", "base": "fin", "acompanhamento": str(self.acomp.pk)})
+        assert resposta.status_code == 200
+        conteudo = resposta.content.decode()
+        assert "34.975.229,95" in conteudo
+        assert "123.456,78" not in conteudo
+        assert "999.999,99" not in conteudo
+
+    def test_exportacoes_sem_parametro_usam_o_mais_recente(self):
+        from django.urls import reverse
+        self.client.force_login(self.user)
+        for url in (reverse("planning:csv"), reverse("planning:export_html")):
+            with self.subTest(url=url):
+                resposta = self.client.get(url, {"ano": "todos", "base": "fin"})
+                assert resposta.status_code == 200
+                assert "29.000.000" in resposta.content.decode()  # PDI importado
+
+    def test_exportacoes_rejeitam_acompanhamento_desconhecido(self):
+        from django.urls import reverse
+        self.client.force_login(self.user)
+        for url in (reverse("planning:csv"), reverse("planning:export_html")):
+            for pk in ("abc", str(self.acomp.pk + 999)):
+                with self.subTest(url=url, pk=pk):
+                    resposta = self.client.get(
+                        url, {"ano": "todos", "base": "fin", "acompanhamento": pk})
+                    assert resposta.status_code == 404
+
+    def test_csv_do_pilar_continua_legado(self):
+        # Escopo (spec §12): /pilar/<pk>/ e `_csv_pilar` não são migrados.
+        from django.urls import reverse
+        self._semear_plano_diferente()
+        self.client.force_login(self.user)
+        pilar = Pilar.objects.get(codigo="PDI")
+        resposta = self.client.get(reverse("planning:csv"), {
+            "ano": "todos", "base": "fin", "pilar": str(pilar.pk),
+            "acompanhamento": str(self.acomp.pk)})
+        assert resposta.status_code == 200
+        conteudo = resposta.content.decode()
+        assert "123.456,78" in conteudo       # PlanoAnual semeado (caminho legado)
+        assert "34.975.229,95" not in conteudo
+
+
+class ExportacoesLegadasTestes(TestCase):
+    def test_exportacoes_sem_acompanhamento_usam_plano_anual(self):
+        from django.urls import reverse
+        garantir_grupos()
+        user = adicionar_grupo(
+            get_user_model().objects.create_user(username="legexp", password="x"), "Master")
+        pilar = Pilar.objects.create(codigo="PDI", nome="PDI", ordem=1)
+        PlanoAnual.objects.create(ano=2024, pilar=pilar, base="financeiro",
+                                  previsto=Decimal("123456.78"), executado=Decimal("999999.99"))
+        self.client.force_login(user)
+        for url in (reverse("planning:csv"), reverse("planning:export_html")):
+            with self.subTest(url=url):
+                resposta = self.client.get(url, {"ano": "todos", "base": "fin"})
+                assert resposta.status_code == 200
+                conteudo = resposta.content.decode()
+                assert "123.456,78" in conteudo
+                assert "999.999,99" in conteudo

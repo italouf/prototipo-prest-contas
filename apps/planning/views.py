@@ -5,12 +5,13 @@ from decimal import Decimal, InvalidOperation
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
-from django.http import HttpResponse
+from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
 from apps.audit.services import registrar_auditoria
 from apps.accountability import panel as painel_prestacao
+from apps.accountability.models import Acompanhamento
 from apps.core.permissions import (
     pilares_editaveis_painel,
     pode_editar_painel,
@@ -73,6 +74,30 @@ def contexto_painel(ano_param, base_param, usuario, acompanhamento=None):
         "acompanhamento": acompanhamento,
         "acompanhamentos": painel_prestacao.lista_acompanhamentos(),
     }
+
+
+def _resolver_acomp_exportacao(request):
+    """Acompanhamento da exportação (Ruling 25): parâmetro explícito senão o mais recente.
+
+    Mesma resolução do painel da tela (`contexto_painel`); `None` mantém o
+    fluxo legado sobre `PlanoAnual`. Lê GET ou POST (o editor envia o pk por
+    POST ao "Aplicar e baixar"). pk malformado/desconhecido ⇒ 404, como no
+    painel — link obsoleto nunca exporta silenciosamente outro acompanhamento.
+    """
+    bruto = (request.GET.get("acompanhamento")
+             or request.POST.get("acompanhamento") or "").strip()
+    if not bruto:
+        return painel_prestacao.acompanhamento_padrao()
+    if not bruto.isdigit():
+        raise Http404("Acompanhamento inválido.")
+    return get_object_or_404(Acompanhamento, pk=int(bruto))
+
+
+def _painel_exportacao(ano, base_param, acomp):
+    """DTO da exportação — a mesma fonte do painel da tela (Ruling 25)."""
+    if acomp is not None:
+        return painel_prestacao.painel_acompanhamento(ano, base_param, acomp)
+    return painel_anual(ano, base_param)
 
 
 def _filtros_ou_padrao(params):
@@ -216,9 +241,9 @@ def exportar_csv(request):
     if erro is not None:
         return erro
     if pilar_escopo is not None:
-        return _csv_pilar(request, pilar_escopo, ano_param, base_param)
+        return _csv_pilar(request, pilar_escopo, ano_param, base_param)  # pilar segue legado (§12)
     ano = None if ano_param == "todos" else int(ano_param)
-    painel = painel_anual(ano, base_param)
+    painel = _painel_exportacao(ano, base_param, _resolver_acomp_exportacao(request))
     unidade = "R$ milhoes" if painel["base"] == "financeiro" else "metas"
     periodo = painel["rotulo_periodo"]
     linhas = ["Bloco;Item;Indicador;Unidade;Período;Valor"]
@@ -259,14 +284,14 @@ def _csv_pilar(request, pilar, ano_param, base_param):
     return resposta
 
 
-def _html_standalone(ano_param, base_param, usuario, pilar=None):
+def _html_standalone(ano_param, base_param, usuario, pilar=None, acompanhamento=None):
     import re
 
     from django.contrib.staticfiles.finders import find
     from django.template.loader import render_to_string
 
     if pilar is None:
-        contexto = contexto_painel(ano_param, base_param, usuario)
+        contexto = contexto_painel(ano_param, base_param, usuario, acompanhamento)
         template = "dashboard/standalone.html"
     else:
         contexto = contexto_pilar(pilar, ano_param, base_param, usuario)
@@ -291,7 +316,9 @@ def exportar_html(request, ano_param="todos", base_param="fin", pilar_pk=None):
         pilar, erro = _resolver_pilar_escopo(request, {"pilar": str(pilar_pk)})
         if erro is not None:
             return erro
-    html = _html_standalone(ano_param, base_param, request.user, pilar)
+    # Pilar continua legado (§12); o painel geral exporta a visão corrente (Ruling 25).
+    acompanhamento = None if pilar is not None else _resolver_acomp_exportacao(request)
+    html = _html_standalone(ano_param, base_param, request.user, pilar, acompanhamento)
     hoje = date.today().isoformat()
     sufixo = f"_{pilar.codigo}" if pilar is not None else ""
     resposta = HttpResponse(html, content_type="text/html; charset=utf-8")
