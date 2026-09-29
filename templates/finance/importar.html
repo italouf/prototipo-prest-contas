@@ -9,7 +9,10 @@
       <h1 class="text-2xl font-bold">Importação de financeiro consolidado</h1>
       <p class="text-sm text-text-muted">Baixe o modelo, preencha e importe de forma atômica (RF-082).</p>
     </div>
-    <c-ui.button href="{% url 'finance:modelo_csv' %}" variant="ghost" data-testid="baixar-modelo-csv">Baixar modelo CSV</c-ui.button>
+    <div class="flex flex-wrap items-end gap-3">
+      <c-ui.button href="{% url 'finance:modelo_csv' %}" variant="ghost" data-testid="baixar-modelo-csv">Baixar modelo CSV</c-ui.button>
+      <c-ui.button href="{% url 'accountability:importar' %}" data-testid="importar-prestacao">Importar planilhas de prestação</c-ui.button>
+    </div>
   </div>
 
   <div class="mt-4 rounded-xl border border-border bg-surface-2 p-5">

@@ -11,6 +11,7 @@ urlpatterns = [
     path("periodos/", include("apps.periods.urls", namespace="periods")),
     path("", include("apps.entries.urls", namespace="entries")),
     path("financeiro/", include("apps.finance.urls", namespace="finance")),
+    path("financeiro/prestacao/", include("apps.accountability.urls", namespace="accountability")),
     path("relatorio/", include("apps.reports.urls", namespace="reports")),
     path("crm-at/", include("apps.crm_at.urls", namespace="crm_at")),
     path("talentos/", include("apps.talentos.urls", namespace="talentos")),
