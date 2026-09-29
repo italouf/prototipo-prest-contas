@@ -3,9 +3,10 @@ from datetime import date
 
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
-from django.http import HttpResponseForbidden
+from django.http import Http404, HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 
+from apps.accountability.models import Acompanhamento
 from apps.highlights.models import DestaqueMensal
 from apps.indicators.models import Indicador
 from apps.pillars.models import Pilar
@@ -42,6 +43,19 @@ def _hx_parcial(request):
     return bool(request.headers.get("HX-Request")) and not request.headers.get("HX-Boosted")
 
 
+def _resolver_acompanhamento(params):
+    """Resolve `?acompanhamento=<pk>` (deep-link do painel importado, SDD §8).
+
+    `None` sem parâmetro; 404 para pk desconhecido ou malformado.
+    """
+    bruto = (params.get("acompanhamento") or "").strip()
+    if not bruto:
+        return None
+    if not bruto.isdigit():
+        raise Http404("Acompanhamento inválido.")
+    return get_object_or_404(Acompanhamento, pk=int(bruto))
+
+
 @login_required
 def dashboard(request):
     """Painel anual (RF-107/RF-108/RF-118): `?ano=todos|2024..2027&base=fin|fis`."""
@@ -53,18 +67,20 @@ def dashboard(request):
             ano_legado = None
         destino = f"/?ano={ano_legado}&base=fin" if ano_legado in ANOS else URL_PADRAO_PAINEL
         return redirect(destino, permanent=True)
+    acompanhamento = _resolver_acompanhamento(params)
+    sufixo_acomp = f"&acompanhamento={acompanhamento.pk}" if acompanhamento else ""
     if params:
         base_crua = (params.get("base") or "").strip().lower()
         if base_crua in ALIASES_BASE:
             form_previa = PainelFiltroForm({"ano": params.get("ano") or "todos"})
             ano_previo = form_previa["ano"].value() if form_previa.is_valid() else "todos"
-            return redirect(f"/?ano={ano_previo}&base={ALIASES_BASE[base_crua]}")
+            return redirect(f"/?ano={ano_previo}&base={ALIASES_BASE[base_crua]}{sufixo_acomp}")
     form = PainelFiltroForm(params or None)
     if params and not form.is_valid():
         return redirect(URL_PADRAO_PAINEL)
     ano_param = form.cleaned_data["ano"] if params else "todos"
     base_param = form.cleaned_data["base"] if params else BASE_FIN
-    contexto = contexto_painel(ano_param, base_param, request.user)
+    contexto = contexto_painel(ano_param, base_param, request.user, acompanhamento)
     if _hx_parcial(request):
         return render(request, "dashboard/_fragmento.html", contexto)
     return render(request, "dashboard/anual.html", contexto)

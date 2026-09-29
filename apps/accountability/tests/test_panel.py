@@ -1,0 +1,291 @@
+"""Painel anual alimentado pelos snapshots importados (Task 7, SDD §8)."""
+from decimal import Decimal
+from pathlib import Path
+
+from django.contrib.auth import get_user_model
+from django.test import TestCase
+
+from apps.core.permissions import adicionar_grupo, garantir_grupos
+from apps.planning.models import PlanoAnual
+from apps.pillars.models import Pilar
+from .. import panel, services
+from ..models import Acompanhamento, CentroCompetencia, KpiAcompanhamento, ResumoFinanceiro
+
+RAIZ = Path(__file__).resolve().parents[3]
+FINANCEIRO = RAIZ / "mockup" / "exemplos_arquivos" / "FINANCEIRO GERAL.xlsx"
+INDICADORES = RAIZ / "mockup" / "exemplos_arquivos" / "Indicadores Gerais do Termo de Retificação do PE.xlsx"
+CENTRO = "Centro de Competência Embrapii CIMATEC em Tecnologias Quânticas - Quiin"
+
+
+class BasePanelTestes(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        garantir_grupos()
+        User = get_user_model()
+        cls.user = adicionar_grupo(User.objects.create_user(username="panel", password="x"), "Master")
+        for codigo, nome in (("PDI", "PDI"), ("FORMACAO", "Formação FCRH"),
+                             ("STARTUPS", "ACS"), ("INFRA", "Infraestrutura"),
+                             ("AT", "AT"), ("OUTRASFONTES", "Outras Fontes")):
+            Pilar.objects.create(codigo=codigo, nome=nome)
+        services.ingestar("FINANCEIRO_GERAL", FINANCEIRO, CENTRO, "2T/2024", cls.user)
+        services.ingestar("INDICADORES_PE", INDICADORES, CENTRO, "2T/2024", cls.user)
+        cls.acomp = Acompanhamento.objects.get()
+
+
+class PainelFinanceiroTestes(BasePanelTestes):
+    def test_painel_e_alimentado_pelo_acompanhamento(self):
+        p = panel.painel_acompanhamento(None, "financeiro", self.acomp)
+        assert set(p) >= {"ano", "base", "unidade", "rotulo_periodo", "cards",
+                          "graficos", "tabela", "consolidado"}
+        assert set(p["graficos"]) == {"ppi", "at", "outras"}
+        assert len(p["cards"]) == 4
+
+    def test_card_ppi_usa_somente_os_quatro_pilares_ppi(self):
+        p = panel.painel_acompanhamento(None, "financeiro", self.acomp)
+        ppi = next(c for c in p["cards"] if c["chave"] == "ppi")
+        assert ppi["executado"] == Decimal("34975229.95")
+        assert ppi["previsto"] == Decimal("60000000")
+
+    def test_card_at_usa_captado_como_denominador(self):
+        p = panel.painel_acompanhamento(None, "financeiro", self.acomp)
+        at = next(c for c in p["cards"] if c["chave"] == "at")
+        assert at["executado"] == Decimal("220597")
+        assert at["previsto"] == Decimal("5616700")
+
+    def test_ano_sem_linha_importada_exibe_traco(self):
+        p = panel.painel_acompanhamento(2024, "financeiro", self.acomp)
+        linha = next(l for l in p["tabela"]["grupos"][0]["linhas"] if l["rotulo"] == "PDI")
+        assert linha["executado"] is None
+        assert linha["pct"] is None
+        assert linha["faixa"] == "neutra"
+
+    def test_totais_de_reconciliacao_nao_sao_somados(self):
+        p = panel.painel_acompanhamento(None, "financeiro", self.acomp)
+        ppi = next(c for c in p["cards"] if c["chave"] == "ppi")
+        # TAB. 3 repete o realizado do PDI; somá-la dobraria o total.
+        assert ppi["executado"] == Decimal("34975229.95")
+
+
+class PainelFisicoTestes(BasePanelTestes):
+    def test_fisico_vira_lista_de_kpis_por_unidade(self):
+        p = panel.painel_acompanhamento(None, "fisico", self.acomp)
+        rotulos = [l["rotulo"] for g in p["tabela"]["grupos"] for l in g["linhas"]]
+        assert any("Número absoluto" in r for r in rotulos)
+        assert any("Percentual" in r for r in rotulos)
+
+    def test_kpi_sem_executado_no_ano_exibe_traco(self):
+        p = panel.painel_acompanhamento(2026, "fisico", self.acomp)
+        linha = next(l for l in p["tabela"]["grupos"][0]["linhas"]
+                     if l["rotulo"].startswith("Projetos de PD&I"))
+        assert linha["previsto"] == Decimal("5")
+        assert linha["executado"] is None
+        assert linha["pct"] is None
+        assert linha["faixa"] == "neutra"
+
+    def test_acumulado_usa_meta_total_e_acumulado(self):
+        p = panel.painel_acompanhamento(None, "fisico", self.acomp)
+        linha = next(l for l in p["tabela"]["grupos"][0]["linhas"]
+                     if l["rotulo"].startswith("Projetos de PD&I"))
+        assert linha["previsto"] == Decimal("18")
+        assert linha["executado"] == Decimal("15")
+
+
+class PainelLegadoTestes(TestCase):
+    def test_painel_sem_acompanhamento_usa_plano_legado(self):
+        from apps.planning.views import contexto_painel
+        garantir_grupos()
+        user = adicionar_grupo(get_user_model().objects.create_user(username="leg", password="x"), "Master")
+        pilar = Pilar.objects.create(codigo="PDI", nome="PDI", ordem=1)
+        PlanoAnual.objects.create(ano=2026, pilar=pilar, base="financeiro",
+                                  previsto=10, executado=9)
+        contexto = contexto_painel("2026", "fin", user)
+        assert contexto["painel"] is not None
+        assert contexto.get("acompanhamento") is None
+        linha = next(l for l in contexto["painel"]["tabela"]["grupos"][0]["linhas"]
+                     if l["rotulo"] == "PDI")
+        assert linha["previsto"] == Decimal("10")
+
+
+# ---------------------------------------------------------------------------
+# Testes complementares (Ruling 1/12: o brief é piso — asserções acima são
+# verbatim e nunca são alteradas; as abaixo pinam decisões de implementação).
+# ---------------------------------------------------------------------------
+
+class PainelFinanceiroComplementarTestes(BasePanelTestes):
+    def test_tabela_consolidada_usa_recurso_ou_meta_e_realizado(self):
+        p = panel.painel_acompanhamento(None, "financeiro", self.acomp)
+        linha = next(l for l in p["tabela"]["grupos"][0]["linhas"] if l["rotulo"] == "PDI")
+        assert linha["previsto"] == Decimal("29000000")
+        assert linha["executado"] == Decimal("17675109.56")
+
+    def test_card_outras_fontes_usa_captado_da_tab9(self):
+        p = panel.painel_acompanhamento(None, "financeiro", self.acomp)
+        outras = next(c for c in p["cards"] if c["chave"] == "outras")
+        assert outras["previsto"] == Decimal("10226768")
+        assert outras["executado"] == Decimal("242112")
+
+    def test_card_total_soma_os_tres_blocos(self):
+        p = panel.painel_acompanhamento(None, "financeiro", self.acomp)
+        total = next(c for c in p["cards"] if c["chave"] == "total")
+        assert total["previsto"] == Decimal("75843468")
+        assert total["executado"] == Decimal("35437938.95")
+
+    def test_series_dos_graficos_sao_sempre_numericas(self):
+        # contexto_painel faz float(v) em geometria_fonte/geometria_consolidado;
+        # None quebraria o render — a representação de gráfico é sempre numérica.
+        p = panel.painel_acompanhamento(2027, "financeiro", self.acomp)
+        for bloco in p["graficos"].values():
+            assert len(bloco["serie_previsto"]) == 5
+            assert len(bloco["serie_executado"]) == 5
+            for valor in bloco["serie_previsto"] + bloco["serie_executado"]:
+                assert isinstance(valor, Decimal)
+        for serie in p["consolidado"]["series"]:
+            assert len(serie["valores"]) == 4
+            for valor in serie["valores"]:
+                assert isinstance(valor, Decimal)
+
+    def test_ponto_acumulado_do_grafico_usa_o_consolidado(self):
+        p = panel.painel_acompanhamento(None, "financeiro", self.acomp)
+        assert p["graficos"]["ppi"]["serie_previsto"][4] == Decimal("60000000")
+        assert p["graficos"]["ppi"]["serie_executado"][4] == Decimal("34975229.95")
+        assert p["graficos"]["at"]["serie_previsto"][4] == Decimal("5616700")
+        assert p["graficos"]["at"]["serie_executado"][4] == Decimal("220597")
+
+    def test_linha_consolidada_da_tab11_nao_vira_ano(self):
+        # Ruling 9: linhas TAB. 1.1 só alimentam anos quando `ano` está preenchido.
+        pilar = Pilar.objects.get(codigo="PDI")
+        ResumoFinanceiro.objects.create(
+            acompanhamento=self.acomp, origem="TAB. 1.1", pilar=pilar, ano=None,
+            recurso_ou_meta=Decimal("100"), projetado=Decimal("77"))
+        p_2024 = panel.painel_acompanhamento(2024, "financeiro", self.acomp)
+        linha = next(l for l in p_2024["tabela"]["grupos"][0]["linhas"] if l["rotulo"] == "PDI")
+        assert linha["previsto"] is None
+        assert linha["executado"] is None
+        p_todos = panel.painel_acompanhamento(None, "financeiro", self.acomp)
+        linha = next(l for l in p_todos["tabela"]["grupos"][0]["linhas"] if l["rotulo"] == "PDI")
+        assert linha["previsto"] == Decimal("29000000")  # segue vindo da TAB. 1
+
+    def test_rodape_dos_graficos_reflete_o_periodo(self):
+        p = panel.painel_acompanhamento(None, "financeiro", self.acomp)
+        bloco = p["graficos"]["ppi"]
+        assert bloco["rodape_pct"] == 58  # 34.975.229,95 de 60.000.000
+        assert bloco["rodape_faixa"] == "parcial"
+        p_2024 = panel.painel_acompanhamento(2024, "financeiro", self.acomp)
+        assert p_2024["graficos"]["ppi"]["rodape_pct"] is None
+        assert p_2024["graficos"]["ppi"]["rodape_faixa"] == "neutra"
+
+
+class PainelFisicoComplementarTestes(BasePanelTestes):
+    def test_valores_kpi_nunca_sao_quantizados_para_duas_casas(self):
+        # Ruling 11: KPIs são Decimal(18,6) — 0,0016 não pode virar 0,00.
+        p = panel.painel_acompanhamento(None, "fisico", self.acomp)
+        linhas = [l for g in p["tabela"]["grupos"] for l in g["linhas"]]
+        linha = next(l for l in linhas
+                     if l["rotulo"].startswith("Recursos financeiros realizados de outras fontes"))
+        kpi = KpiAcompanhamento.objects.get(codigo="PE-02")
+        assert linha["previsto"] == kpi.meta_total == Decimal("0.6251")
+        assert linha["executado"] == kpi.acumulado == Decimal("0.0016")
+
+    def test_cards_sem_executado_no_ano_ficam_neutros(self):
+        # Review Focus #4: 2026/2027 só têm projeção — nunca "0%" nem "Execução crítica".
+        p = panel.painel_acompanhamento(2026, "fisico", self.acomp)
+        for card in p["cards"]:
+            assert card["executado"] is None
+            assert card["pct"] is None
+            assert card["faixa"] == "neutra"
+            assert card["barra"] == 0
+
+    def test_blocos_de_grafico_somam_so_a_unidade_majoritaria(self):
+        # PPI tem 5 KPIs "Número absoluto" e 2 "Percentual" — só os primeiros somam.
+        p = panel.painel_acompanhamento(None, "fisico", self.acomp)
+        assert p["graficos"]["ppi"]["serie_previsto"][4] == Decimal("903")
+        assert p["graficos"]["ppi"]["serie_executado"][4] == Decimal("2198")
+
+    def test_linha_acumulada_calcula_saldo_pct_e_faixa(self):
+        p = panel.painel_acompanhamento(None, "fisico", self.acomp)
+        linhas = [l for g in p["tabela"]["grupos"] for l in g["linhas"]]
+        linha = next(l for l in linhas if l["rotulo"].startswith("Projetos de PD&I"))
+        assert linha["saldo"] == Decimal("3")
+        assert linha["pct"] == 83
+        assert linha["faixa"] == "parcial"
+
+
+class AcompanhamentoPadraoTestes(TestCase):
+    def test_padrao_e_o_mais_recente(self):
+        centro_a = CentroCompetencia.objects.create(codigo="centro-a", nome="Centro A")
+        centro_b = CentroCompetencia.objects.create(codigo="centro-b", nome="Centro B")
+        Acompanhamento.objects.create(centro=centro_a, periodo_referencia="1T/2024")
+        novo = Acompanhamento.objects.create(centro=centro_b, periodo_referencia="2T/2024")
+        assert panel.acompanhamento_padrao() == novo
+
+    def test_sem_acompanhamento_devolve_none(self):
+        assert panel.acompanhamento_padrao() is None
+
+
+class ContextoComAcompanhamentoTestes(BasePanelTestes):
+    def test_contexto_painel_prefere_o_acompanhamento_importado(self):
+        from apps.planning.views import contexto_painel
+        contexto = contexto_painel("todos", "fin", self.user)
+        assert contexto["acompanhamento"] == self.acomp
+        assert list(contexto["acompanhamentos"]) == [self.acomp]
+        assert contexto["grade_edicao"] == []  # Task 8 preenche a grade
+        assert contexto["painel"]["base"] == "financeiro"
+        assert contexto["geo_fonte"] and contexto["geo_consolidado"]
+        linha = next(l for l in contexto["painel"]["tabela"]["grupos"][0]["linhas"]
+                     if l["rotulo"] == "PDI")
+        assert linha["previsto"] == Decimal("29000000")
+
+    def test_contexto_painel_aceita_acompanhamento_explicito(self):
+        from apps.planning.views import contexto_painel
+        contexto = contexto_painel("2026", "fis", self.user, self.acomp)
+        assert contexto["acompanhamento"] == self.acomp
+        assert contexto["painel"]["base"] == "fisico"
+        assert contexto["painel"]["ano"] == 2026
+
+
+class PainelViewTestes(BasePanelTestes):
+    def test_dashboard_oferece_seletor_de_acompanhamento(self):
+        self.client.force_login(self.user)
+        resposta = self.client.get("/")
+        assert resposta.status_code == 200
+        assert resposta.context["acompanhamento"] == self.acomp
+        assert 'data-testid="acompanhamento-select"' in resposta.content.decode()
+
+    def test_dashboard_aplica_o_acompanhamento_escolhido(self):
+        self.client.force_login(self.user)
+        resposta = self.client.get("/", {"acompanhamento": str(self.acomp.pk)})
+        assert resposta.status_code == 200
+        assert resposta.context["acompanhamento"] == self.acomp
+        conteudo = resposta.content.decode()
+        assert f'value="{self.acomp.pk}" selected' in conteudo
+        # os links de base e de exportação propagam a seleção (deep-link)
+        assert f"&acompanhamento={self.acomp.pk}" in conteudo
+
+    def test_dashboard_rejeita_acompanhamento_desconhecido(self):
+        self.client.force_login(self.user)
+        for pk in (str(self.acomp.pk + 999), "abc"):
+            with self.subTest(pk=pk):
+                resposta = self.client.get("/", {"acompanhamento": pk})
+                assert resposta.status_code == 404
+
+    def test_ano_sem_executado_renderiza_traco_nunca_zero_porcento(self):
+        # Review Focus #4 no render: 2026 (físico) só tem projeção.
+        self.client.force_login(self.user)
+        conteudo = self.client.get("/", {"ano": "2026", "base": "fis"}).content.decode()
+        assert ">—<" in conteudo
+        assert ">0%<" not in conteudo
+        assert 'rotulo="0%"' not in conteudo
+
+    def test_pagina_do_pilar_continua_legada_sem_seletor(self):
+        self.client.force_login(self.user)
+        pilar = Pilar.objects.get(codigo="PDI")
+        conteudo = self.client.get(f"/pilar/{pilar.pk}/").content.decode()
+        assert 'data-testid="acompanhamento-select"' not in conteudo
+
+    def test_dashboard_sem_acompanhamento_nao_mostra_seletor(self):
+        Acompanhamento.objects.all().delete()
+        self.client.force_login(self.user)
+        resposta = self.client.get("/")
+        assert resposta.status_code == 200
+        assert resposta.context["acompanhamento"] is None
+        assert 'data-testid="acompanhamento-select"' not in resposta.content.decode()

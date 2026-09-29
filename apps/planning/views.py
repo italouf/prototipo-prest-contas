@@ -10,6 +10,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
 from apps.audit.services import registrar_auditoria
+from apps.accountability import panel as painel_prestacao
 from apps.core.permissions import (
     pilares_editaveis_painel,
     pode_editar_painel,
@@ -28,15 +29,28 @@ LIMITE_VALOR = Decimal(10) ** 10
 ACAO_BAIXAR = "baixar"
 
 
-def contexto_painel(ano_param, base_param, usuario):
-    """Contexto completo do painel anual (usado pela view `/` e pelo export)."""
+def contexto_painel(ano_param, base_param, usuario, acompanhamento=None):
+    """Contexto completo do painel anual (usado pela view `/` e pelo export).
+
+    Com acompanhamento importado (o mais recente quando não indicado), o painel
+    lê os snapshots via `apps.accountability.panel` (SDD §8) e a grade de
+    edição fica vazia (Task 8). Sem nenhum acompanhamento no banco, o fluxo
+    legado sobre `PlanoAnual` segue inalterado.
+    """
     ano = None if ano_param == "todos" else int(ano_param)
-    painel = painel_anual(ano, base_param)
+    if acompanhamento is None:
+        acompanhamento = painel_prestacao.acompanhamento_padrao()
+    if acompanhamento is not None:
+        painel = painel_prestacao.painel_acompanhamento(ano, base_param, acompanhamento)
+        grade = []
+    else:
+        painel = painel_anual(ano, base_param)
+        editaveis = (
+            set(pilares_editaveis_painel(usuario).values_list("codigo", flat=True))
+            if usuario and usuario.is_authenticated else set()
+        )
+        grade = grade_edicao(base_param, editaveis or None)
     destaque = None if ano is None else ANOS.index(ano)
-    editaveis = (
-        set(pilares_editaveis_painel(usuario).values_list("codigo", flat=True))
-        if usuario and usuario.is_authenticated else set()
-    )
     return {
         "painel": painel,
         "ano_param": ano_param,
@@ -53,9 +67,11 @@ def contexto_painel(ano_param, base_param, usuario):
             {s["nome"]: [float(v) for v in s["valores"]] for s in painel["consolidado"]["series"]},
             destaque,
         ),
-        "grade_edicao": grade_edicao(base_param, editaveis or None),
+        "grade_edicao": grade,
         "base_plano": painel["base"],
         "pode_editar_painel": pode_editar_painel(usuario),
+        "acompanhamento": acompanhamento,
+        "acompanhamentos": painel_prestacao.lista_acompanhamentos(),
     }
 
 

@@ -16,6 +16,7 @@
     {% csrf_token %}
     <input type="hidden" name="ano" value="{{ ano_param }}">
     <input type="hidden" name="base" value="{{ base_param }}">
+    {% if acompanhamento %}<input type="hidden" name="acompanhamento" value="{{ acompanhamento.pk }}">{% endif %}
     {% if pilar_pk %}<input type="hidden" name="pilar" value="{{ pilar_pk }}">{% endif %}
     {% for bloco in grade_edicao %}
     <div>

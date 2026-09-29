@@ -7,6 +7,9 @@
         hx-swap="outerHTML" hx-push-url="true" hx-indicator="#progresso, #skeleton-global"
         class="flex flex-wrap items-end gap-x-4 gap-y-2">
     <input type="hidden" name="base" value="{{ base_param }}">
+    {% if acompanhamento and not acompanhamentos %}
+    <input type="hidden" name="acompanhamento" value="{{ acompanhamento.pk }}">
+    {% endif %}
     <div>
       <label for="year-select" class="block text-[0.65rem] font-semibold uppercase tracking-widest text-text-muted">Ano</label>
       <select id="year-select" name="ano" data-testid="year-select" onchange="this.form.requestSubmit()"
@@ -18,18 +21,30 @@
         <option value="2027" {% if ano_param == '2027' %}selected{% endif %}>Ano 4: 2027</option>
       </select>
     </div>
+    {% if acompanhamentos %}
+    <div>
+      <label for="acompanhamento-select" class="block text-[0.65rem] font-semibold uppercase tracking-widest text-text-muted">Acompanhamento</label>
+      <select id="acompanhamento-select" name="acompanhamento" data-testid="acompanhamento-select"
+              onchange="this.form.requestSubmit()"
+              class="mt-1 rounded-md border border-border bg-surface px-3 py-2 text-sm text-text">
+        {% for a in acompanhamentos %}
+        <option value="{{ a.pk }}" {% if a.pk == acompanhamento.pk %}selected{% endif %}>{{ a.centro.nome }} · {{ a.periodo_referencia }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    {% endif %}
   </form>
 
   <div>
     <span id="base-rotulo" class="block text-[0.65rem] font-semibold uppercase tracking-widest text-text-muted">Base de análise</span>
     <div class="mt-1 inline-flex overflow-hidden rounded-md border border-border" role="group" aria-labelledby="base-rotulo" data-testid="base-toggle">
-      <a href="{% url 'core:dashboard' %}?ano={{ ano_param }}&base=fin"
-         hx-get="{% url 'core:dashboard' %}?ano={{ ano_param }}&base=fin" hx-target="#dashboard-panel" hx-select="#dashboard-panel"
+      <a href="{% url 'core:dashboard' %}?ano={{ ano_param }}&base=fin{% if acompanhamento %}&acompanhamento={{ acompanhamento.pk }}{% endif %}"
+         hx-get="{% url 'core:dashboard' %}?ano={{ ano_param }}&base=fin{% if acompanhamento %}&acompanhamento={{ acompanhamento.pk }}{% endif %}" hx-target="#dashboard-panel" hx-select="#dashboard-panel"
          hx-swap="outerHTML" hx-push-url="true" hx-indicator="#progresso, #skeleton-global"
          {% if base_param == 'fin' %}aria-current="true"{% endif %}
          class="px-4 py-2 text-sm font-semibold {% if base_param == 'fin' %}bg-quiin-navy text-white{% else %}bg-surface-2 text-text hover:bg-quiin-mist/40{% endif %}">Financeiro</a>
-      <a href="{% url 'core:dashboard' %}?ano={{ ano_param }}&base=fis"
-         hx-get="{% url 'core:dashboard' %}?ano={{ ano_param }}&base=fis" hx-target="#dashboard-panel" hx-select="#dashboard-panel"
+      <a href="{% url 'core:dashboard' %}?ano={{ ano_param }}&base=fis{% if acompanhamento %}&acompanhamento={{ acompanhamento.pk }}{% endif %}"
+         hx-get="{% url 'core:dashboard' %}?ano={{ ano_param }}&base=fis{% if acompanhamento %}&acompanhamento={{ acompanhamento.pk }}{% endif %}" hx-target="#dashboard-panel" hx-select="#dashboard-panel"
          hx-swap="outerHTML" hx-push-url="true" hx-indicator="#progresso, #skeleton-global"
          {% if base_param == 'fis' %}aria-current="true"{% endif %}
          class="border-l border-border px-4 py-2 text-sm font-semibold {% if base_param == 'fis' %}bg-quiin-navy text-white{% else %}bg-surface-2 text-text hover:bg-quiin-mist/40{% endif %}">Físico</a>
@@ -47,8 +62,8 @@
     {% if pode_editar_painel %}
     <c-ui.button variant="primary" size="toolbar" data-testid="btn-editar-dados" data-editor-toggle onclick="quiinAlternarEditor()">Editar dados</c-ui.button>
     {% endif %}
-    <c-ui.button variant="ghost" size="toolbar" href="{% url 'planning:export_html' %}?ano={{ ano_param }}&base={{ base_param }}">Baixar dashboard</c-ui.button>
-    <c-ui.button variant="ghost" size="toolbar" href="{% url 'planning:csv' %}?ano={{ ano_param }}&base={{ base_param }}">Baixar dados (CSV)</c-ui.button>
+    <c-ui.button variant="ghost" size="toolbar" href="{% url 'planning:export_html' %}?ano={{ ano_param }}&base={{ base_param }}{% if acompanhamento %}&acompanhamento={{ acompanhamento.pk }}{% endif %}">Baixar dashboard</c-ui.button>
+    <c-ui.button variant="ghost" size="toolbar" href="{% url 'planning:csv' %}?ano={{ ano_param }}&base={{ base_param }}{% if acompanhamento %}&acompanhamento={{ acompanhamento.pk }}{% endif %}">Baixar dados (CSV)</c-ui.button>
     <c-ui.button variant="ghost" size="toolbar" onclick="window.print()">Imprimir</c-ui.button>
     <c-ui.button size="toolbar" variant="ghost" href="{% url 'core:dashboard' %}">Restaurar padrão</c-ui.button>
   </div>
