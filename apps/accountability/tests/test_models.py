@@ -54,3 +54,35 @@ class OverrideChaveTestes(TestCase):
             ano=2025, campo="executado", valor=5, chave="fis|?|2025|executado")
         with self.assertRaises(ValidationError):
             invalido.full_clean()
+
+    def test_override_financeiro_com_pilar_e_sem_kpi_passa(self):
+        objeto = OverrideAcompanhamento(
+            acompanhamento=self.acomp, base="financeiro", pilar=self.pilar,
+            ano=2026, campo="executado", valor=10, chave="fin|PDI|2026|executado")
+        objeto.full_clean()
+
+    def test_override_financeiro_exige_pilar_e_rejeita_kpi(self):
+        sem_pilar = OverrideAcompanhamento(
+            acompanhamento=self.acomp, base="financeiro",
+            ano=2026, campo="previsto", valor=10, chave="fin|?|2026|previsto")
+        with self.assertRaises(ValidationError):
+            sem_pilar.full_clean()
+
+        kpi = KpiAcompanhamento.objects.create(
+            acompanhamento=self.acomp, codigo="PE-01", sequencia=1,
+            nome="Projetos de PD&I", unidade="Número absoluto", pilar=self.pilar)
+        com_kpi = OverrideAcompanhamento(
+            acompanhamento=self.acomp, base="financeiro", pilar=self.pilar, kpi=kpi,
+            ano=2026, campo="previsto", valor=10, chave="fin|PDI|2026|previsto")
+        with self.assertRaises(ValidationError):
+            com_kpi.full_clean()
+
+    def test_override_fisico_com_pilar_e_rejeitado(self):
+        kpi = KpiAcompanhamento.objects.create(
+            acompanhamento=self.acomp, codigo="PE-01", sequencia=1,
+            nome="Projetos de PD&I", unidade="Número absoluto", pilar=self.pilar)
+        objeto = OverrideAcompanhamento(
+            acompanhamento=self.acomp, base="fisico", kpi=kpi, pilar=self.pilar,
+            ano=2025, campo="previsto", valor=5, chave="fis|PE-01|2025|previsto")
+        with self.assertRaises(ValidationError):
+            objeto.full_clean()
