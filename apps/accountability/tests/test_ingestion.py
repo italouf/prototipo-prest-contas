@@ -104,6 +104,10 @@ class IngestaoFinanceiroTestes(TestCase):
 # Adições ao piso do brief (Rulings 2, 5 e 7, metadados e auditoria). Os testes
 # acima são mantidos literalmente como no brief; estes complementam — nunca
 # substituem. Os imports extras ficam aqui para não tocar no bloco do brief.
+import tempfile  # noqa: E402
+
+from openpyxl import Workbook  # noqa: E402
+
 from apps.audit.models import AuditLog  # noqa: E402
 
 from ..models import CentroCompetencia, OverrideAcompanhamento  # noqa: E402
@@ -202,3 +206,137 @@ class CentroCodigoTestes(TestCase):
         centro.full_clean()   # levanta se codigo exceder max_length
         self.assertLessEqual(
             len(centro.codigo), CentroCompetencia._meta.get_field("codigo").max_length)
+
+
+# ------------------------------------------------------- fixtures sintéticas
+
+def _workbook_financeiro(caminho, nomes_projetos):
+    """Workbook ``FINANCEIRO GERAL`` sintético (estilo das fixtures da suíte).
+
+    A TAB. 1 traz uma única linha de resumo (INFRA) e a TAB. 2 traz os
+    projetos PDI pedidos — assim o pilar dos projetos não aparece em nenhum
+    ``resumo``/``kpi``/``despesa``. Os blocos obrigatórios restantes aparecem
+    só com título (e rótulo de pilar em TAB. 3/5/8) para o parser não acusar
+    bloco ausente nem rótulo desconhecido.
+    """
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "FINANCEIRO "
+    ws["C1"] = "TAB. 1 - Consolidado"
+    ws["C2"] = "Ação"
+    ws["C4"] = "INFRAESTRUTURA"
+    ws["D4"] = 100
+    ws["E4"] = 50
+    ws["M6"] = "TAB. 1.1 - Anual"
+    ws["M7"] = "Ação"
+    ws["C9"] = "TAB. 2 - Projetos"
+    ws["C10"] = "PROJETO"
+    for indice, nome in enumerate(nomes_projetos):
+        linha = 12 + indice
+        ws[f"B{linha}"] = indice + 1
+        ws[f"C{linha}"] = nome
+        ws[f"D{linha}"] = "Em execução"
+        ws[f"G{linha}"] = 10
+        ws[f"H{linha}"] = 5
+    proximo = 14 + len(nomes_projetos)
+    ws[f"C{proximo}"] = "TAB. 3 - Reconciliação"
+    ws[f"E{proximo}"] = "AFCCT / PD&I"
+    ws[f"C{proximo + 2}"] = "TAB. 4 - Projetos FCRH"
+    ws[f"C{proximo + 3}"] = "PROJETO"
+    ws[f"C{proximo + 5}"] = "TAB. 5 - Reconciliação FCRH"
+    ws[f"E{proximo + 5}"] = "FCRH"
+    ws[f"C{proximo + 7}"] = "TAB. 6 - Projetos ACS"
+    ws[f"C{proximo + 8}"] = "PROJETO"
+    ws[f"C{proximo + 10}"] = "TAB. 8 - Reconciliação ACS"
+    ws[f"E{proximo + 10}"] = "ACS"
+    ws[f"C{proximo + 12}"] = "TAB. 9 - AT e Outras Fontes"
+    ws[f"C{proximo + 13}"] = "Pilar"
+    wb.save(caminho)
+
+
+def _instantaneo():
+    """Snapshot das linhas de resumo/projeto para comparar antes e depois."""
+    resumos = list(ResumoFinanceiro.objects.order_by(
+        "origem", "pilar__codigo", "ano").values_list(
+            "origem", "pilar__codigo", "ano", "recurso_ou_meta", "captado",
+            "realizado"))
+    projetos = list(ProjetoFinanceiro.objects.order_by(
+        "origem", "sequencia", "nome").values_list(
+            "origem", "pilar__codigo", "sequencia", "nome", "orcado",
+            "realizado"))
+    return resumos, projetos
+
+
+class PilarSoEmProjetosTestes(TestCase):
+    """Pilar que só aparece em ``projetos`` precisa entrar na resolução."""
+
+    @classmethod
+    def setUpTestData(cls):
+        garantir_grupos()
+        User = get_user_model()
+        cls.user = adicionar_grupo(
+            User.objects.create_user(username="pilarprojeto", password="x"), "Master")
+        Pilar.objects.create(codigo="INFRA", nome="Infraestrutura")
+
+    def test_pilar_somente_de_projeto_e_resolvido(self):
+        Pilar.objects.create(codigo="PDI", nome="PDI")
+        with tempfile.TemporaryDirectory() as pasta:
+            caminho = Path(pasta) / "sintetico.xlsx"
+            _workbook_financeiro(caminho, ["Projeto Alfa"])
+            imp = services.ingestar("FINANCEIRO_GERAL", caminho, CENTRO, REFERENCIA, self.user)
+        self.assertEqual(imp.status, "SUCESSO")
+        self.assertEqual(imp.resumo, {"resumos": 1, "projetos": 1})
+        self.assertEqual(ProjetoFinanceiro.objects.get().pilar.codigo, "PDI")
+        self.assertEqual(ResumoFinanceiro.objects.get().pilar.codigo, "INFRA")
+
+    def test_pilar_somente_de_projeto_ausente_vira_validation_error(self):
+        with tempfile.TemporaryDirectory() as pasta:
+            caminho = Path(pasta) / "sintetico.xlsx"
+            _workbook_financeiro(caminho, ["Projeto Alfa"])
+            with self.assertRaises(ValidationError) as ctx:
+                services.ingestar("FINANCEIRO_GERAL", caminho, CENTRO, REFERENCIA, self.user)
+        self.assertIn(  # mensagem mandatória, não KeyError
+            "Pilar 'PDI' não encontrado. Cadastre o pilar antes de aplicar.",
+            str(ctx.exception))
+        self.assertEqual(ResumoFinanceiro.objects.count(), 0)
+        self.assertEqual(ProjetoFinanceiro.objects.count(), 0)
+        self.assertEqual(ImportacaoAcompanhamento.objects.filter(status="ERRO").count(), 1)
+
+
+class RollbackNoMeioDaGravacaoTestes(TestCase):
+    """Falha depois de gravar fatos dentro da transação não pode deixar parcial."""
+
+    @classmethod
+    def setUpTestData(cls):
+        garantir_grupos()
+        User = get_user_model()
+        cls.user = adicionar_grupo(
+            User.objects.create_user(username="rollbackreal", password="x"), "Master")
+        for codigo, nome in (("PDI", "PDI"), ("FORMACAO", "Formação FCRH"),
+                             ("STARTUPS", "ACS"), ("INFRA", "Infraestrutura"),
+                             ("AT", "AT"), ("OUTRASFONTES", "Outras Fontes")):
+            Pilar.objects.create(codigo=codigo, nome=nome)
+
+    def test_falha_apos_gravar_fatos_restaura_as_linhas_anteriores(self):
+        services.ingestar("FINANCEIRO_GERAL", FINANCEIRO, CENTRO, REFERENCIA, self.user)
+        resumos_antes, projetos_antes = _instantaneo()
+        self.assertEqual(len(resumos_antes), 9)
+        self.assertEqual(len(projetos_antes), 33)
+
+        # Dois projetos com o mesmo (origem, nome): o bulk_create dos projetos
+        # estoura IntegrityError DEPOIS de os resumos já terem sido recriados
+        # dentro da transação — o rollback tem que restaurar tudo.
+        with tempfile.TemporaryDirectory() as pasta:
+            caminho = Path(pasta) / "duplicado.xlsx"
+            _workbook_financeiro(caminho, ["Projeto Beta", "Projeto Beta"])
+            with self.assertRaises(services.IngestaoError):
+                services.ingestar("FINANCEIRO_GERAL", caminho, CENTRO, REFERENCIA, self.user)
+
+        resumos_depois, projetos_depois = _instantaneo()
+        self.assertEqual(resumos_depois, resumos_antes)   # linhas pré-existentes idênticas
+        self.assertEqual(projetos_depois, projetos_antes)
+        self.assertFalse(ProjetoFinanceiro.objects.filter(nome="Projeto Beta").exists())
+        self.assertEqual(ResumoFinanceiro.objects.count(), 9)
+        self.assertEqual(ProjetoFinanceiro.objects.count(), 33)
+        self.assertEqual(ImportacaoAcompanhamento.objects.filter(status="SUCESSO").count(), 1)
+        self.assertEqual(ImportacaoAcompanhamento.objects.filter(status="ERRO").count(), 1)

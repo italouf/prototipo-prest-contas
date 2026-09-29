@@ -74,6 +74,11 @@ _LISTA_PRINCIPAL = {
     "ACOMPANHAMENTO_V2": "despesas",
 }
 
+# Todas as listas de fatos do payload. A resolução de pilares varre todas —
+# inclusive ``projetos``, cujos blocos trazem pilares próprios (PDI/FORMACAO/
+# STARTUPS) que podem não aparecer em ``resumos``/``kpis``/``despesas``.
+_LISTAS_FATOS = ("resumos", "projetos", "kpis", "despesas")
+
 _ROTULO_METADADO = {
     "centro": "Centro de Competência",
     "periodo_referencia": "Período de referência",
@@ -189,40 +194,37 @@ def ingestar(tipo_fonte: str, caminho: Path | str, centro_nome: str,
             rollback total e log de ERRO.
     """
     arquivo_nome = Path(caminho).name
+    avisos: list[str] = []
+    acomp = None
     try:
         abas = _abas_arquivo(caminho)
         detectado = detejar_tipo_arquivo(abas)
         if tipo_fonte not in _PARSERS or detectado != tipo_fonte:
             raise IngestaoError(_mensagem_tipo(arquivo_nome, abas, tipo_fonte, detectado))
         payload = _PARSERS[tipo_fonte](caminho)
+        avisos = payload["avisos"]
+        if payload["erros"]:
+            raise IngestaoError(" | ".join(payload["erros"]))
+        divergencias = _metadados_divergentes(
+            payload, centro_nome, periodo_referencia, caminho)
+        if divergencias:
+            raise IngestaoError(" | ".join(divergencias))
+        centro, _ = CentroCompetencia.objects.get_or_create(
+            codigo=_codigo_centro(centro_nome), defaults={"nome": centro_nome})
+        acomp, _ = Acompanhamento.objects.get_or_create(
+            centro=centro, periodo_referencia=periodo_referencia)
     except IngestaoError as exc:
-        _falha(None, tipo_fonte, arquivo_nome, usuario, [], str(exc))
+        _falha(acomp, tipo_fonte, arquivo_nome, usuario, avisos, str(exc))
         raise
     except ArquivoInvalidoError as exc:
         erro = IngestaoError(
             f'Upload rejeitado: não foi possível ler "{arquivo_nome}": {exc}')
-        _falha(None, tipo_fonte, arquivo_nome, usuario, [], str(erro))
+        _falha(acomp, tipo_fonte, arquivo_nome, usuario, avisos, str(erro))
         raise erro from exc
     except Exception as exc:  # noqa: BLE001 — falha inesperada também vira log ERRO
-        erro = IngestaoError(f"Falha ao ler {arquivo_nome}: {exc}")
-        _falha(None, tipo_fonte, arquivo_nome, usuario, [], str(erro))
+        erro = IngestaoError(f"Falha ao preparar a importação de {arquivo_nome}: {exc}")
+        _falha(acomp, tipo_fonte, arquivo_nome, usuario, avisos, str(erro))
         raise erro from exc
-
-    if payload["erros"]:
-        log = " | ".join(payload["erros"])
-        _falha(None, tipo_fonte, arquivo_nome, usuario, payload["avisos"], log)
-        raise IngestaoError(log)
-
-    divergencias = _metadados_divergentes(payload, centro_nome, periodo_referencia, caminho)
-    if divergencias:
-        log = " | ".join(divergencias)
-        _falha(None, tipo_fonte, arquivo_nome, usuario, payload["avisos"], log)
-        raise IngestaoError(log)
-
-    centro, _ = CentroCompetencia.objects.get_or_create(
-        codigo=_codigo_centro(centro_nome), defaults={"nome": centro_nome})
-    acomp, _ = Acompanhamento.objects.get_or_create(
-        centro=centro, periodo_referencia=periodo_referencia)
 
     try:
         with transaction.atomic():
@@ -338,7 +340,7 @@ def _resolver_pilares(payload: dict) -> dict[str, Pilar]:
     """
     codigos = {
         item["pilar"]
-        for lista in _LISTA_PRINCIPAL.values()
+        for lista in _LISTAS_FATOS
         for item in payload[lista]
     }
     pilares: dict[str, Pilar] = {}
