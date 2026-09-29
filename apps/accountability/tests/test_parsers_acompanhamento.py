@@ -2,6 +2,10 @@
 
 Scaffolding em ``unittest`` (o runner do ``manage.py test`` não injeta
 ``tmp_path``); as asserções e valores esperados vêm literalmente do brief.
+Rulings do controlador aplicados sobre o brief: Ruling 14 (``test_celula_
+obrigatoria_invalida...`` planta o ``#REF!`` em coluna mapeada — a coluna
+``valor`` — e não mais em Q11, não mapeada) e Ruling 15 (a regra 18 casa o
+radical ``acao esta relacionad``); casos novos cobrem ambos.
 """
 
 import tempfile
@@ -157,10 +161,40 @@ class ParseAcompanhamentoV2Testes(unittest.TestCase):
     def test_celula_obrigatoria_invalida_aponta_linha_e_coluna(self):
         caminho = Path(self.tmp.name) / "v2.xlsx"
         wb = _workbook_despesas()
-        wb["3. Conta Ação - AFCCT"].cell(11, 17, "#REF!")
+        # Ruling 14: o erro tem de estar em coluna MAPEADA — a coluna `valor`
+        # (coluna G) da linha de dados da aba 3 na fixture.
+        wb["3. Conta Ação - AFCCT"].cell(11, 7, "#REF!")
         wb.save(caminho)
         p = parse_acompanhamento_v2(caminho)
         assert any("AFCCT" in e and "linha" in e.lower() for e in p["erros"])
+
+    def test_ref_em_coluna_nao_mapeada_de_linha_de_dados_vira_aviso(self):
+        # Ruling 14: o template real traz "#REF!" na coluna "Ano" (não mapeada)
+        # da aba 8 em todas as linhas; não pode bloquear a importação (SDD §7).
+        caminho = Path(self.tmp.name) / "v2.xlsx"
+        wb = _workbook_despesas()
+        aba = wb["8. Conta Ação - Infraestrutura"]
+        aba.cell(10, 15, "Ano")
+        aba.cell(11, 15, "#REF!")
+        wb.save(caminho)
+        p = parse_acompanhamento_v2(caminho)
+        assert p["erros"] == []
+        assert any("#REF!" in a for a in p["avisos"])
+        assert len(p["despesas"]) == 8
+
+    def test_cabecalho_real_acao_relacionado_masculino_mapeia(self):
+        # Ruling 15: o template real escreve "Informar a qual ação está
+        # relacionado" (masculino); a regra 18 casa o radical "acao esta
+        # relacionad" e cobre os dois gêneros.
+        caminho = Path(self.tmp.name) / "v2.xlsx"
+        wb = _workbook_despesas()
+        wb["6.1 Conta Ação - AT (Lei TICs)"].cell(10, 2, "Informar a qual ação está relacionado")
+        wb.save(caminho)
+        p = parse_acompanhamento_v2(caminho)
+        assert p["erros"] == []
+        por_aba = {d["aba"]: d for d in p["despesas"]}
+        assert por_aba["6.1 Conta Ação - AT (Lei TICs)"]["acao_relacionada"] == "Associação"
+        assert por_aba["6. Conta Ação - AT"]["acao_relacionada"] == "Associação"
 
     def test_quantidade_e_valor_unitario_preservam_precisao(self):
         # Guarda da Ruling 11: quantidade/valor_unitário não são moeda —

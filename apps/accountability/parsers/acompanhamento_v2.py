@@ -250,17 +250,21 @@ def _montar_despesa(
 ) -> dict:
     """Monta o dict da despesa validando erros de fórmula e o campo ``valor``.
 
-    Erro de fórmula em qualquer célula da linha de dados (mesmo em coluna não
-    mapeada) vira erro citando aba, linha e coluna (SDD §7).
+    Erro de fórmula em coluna **mapeada** vira erro citando aba, linha e
+    coluna (SDD §7); em coluna não mapeada vira aviso e nunca bloqueia — o
+    template real traz ``#REF!`` na coluna ``Ano`` (não mapeada) da aba 8
+    (Ruling 14).
     """
     erros = payload["erros"]
+    mapeadas = set(colunas.values())
     for indice, celula in enumerate(linha):
         bruto = _valor_da_celula(celula)
-        if eh_erro_formula(bruto):
+        if indice in mapeadas and eh_erro_formula(bruto):
             erros.append(
                 f'{aba}: linha {numero}, coluna {get_column_letter(indice + 1)}:'
                 f' erro de fórmula "{texto_limpo(bruto)}".'
             )
+    _avisar_formulas_nao_mapeadas(payload, aba, numero, linha, colunas)
 
     despesa = {"aba": aba, "linha": numero, "pilar": pilar,
                "tipo_recurso": tipo_recurso}
@@ -339,7 +343,7 @@ def _campo_do_cabecalho(texto: str) -> str | None:
         return "tipo_despesa"                                # 16
     if "marco" in texto:
         return "marco"                                       # 17
-    if "acao esta relacionada" in texto:
+    if "acao esta relacionad" in texto:  # radical: o template real usa o masculino
         return "acao_relacionada"                            # 18
     if "fonte recurso" in texto:
         return "fonte_recurso"                               # 19
@@ -365,7 +369,7 @@ def _indice_coluna_sequencia(linha: tuple) -> int | None:
 def _avisar_formulas_nao_mapeadas(
     payload: dict, aba: str, numero: int, linha: tuple, colunas: dict[str, int]
 ) -> None:
-    """Erro de fórmula em coluna não mapeada da linha que encerra a leitura."""
+    """Erro de fórmula em coluna não mapeada vira aviso, nunca erro (SDD §7)."""
     mapeadas = set(colunas.values())
     for indice, celula in enumerate(linha):
         bruto = _valor_da_celula(celula)
