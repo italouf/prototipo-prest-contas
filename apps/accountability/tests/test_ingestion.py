@@ -106,7 +106,7 @@ class IngestaoFinanceiroTestes(TestCase):
 # substituem. Os imports extras ficam aqui para não tocar no bloco do brief.
 from apps.audit.models import AuditLog  # noqa: E402
 
-from ..models import OverrideAcompanhamento  # noqa: E402
+from ..models import CentroCompetencia, OverrideAcompanhamento  # noqa: E402
 
 
 class RulingsIngestaoTestes(TestCase):
@@ -133,6 +133,18 @@ class RulingsIngestaoTestes(TestCase):
         with self.assertRaises(services.IngestaoError) as ctx:
             services.ingestar(None, V2, CENTRO, REFERENCIA, self.user)
         self.assertIn("não foi possível identificar", str(ctx.exception))
+
+    def test_rejeicao_registra_o_tipo_tentado_verbatim(self):
+        with self.assertRaises(services.IngestaoError):
+            services.ingestar("inventado", V2, CENTRO, REFERENCIA, self.user)
+        log = ImportacaoAcompanhamento.objects.get(status="ERRO")
+        self.assertEqual(log.tipo_fonte, "inventado")  # Ruling 20: sem coerção
+
+    def test_ingestao_atribui_o_slug_do_centro_real(self):
+        services.ingestar("FINANCEIRO_GERAL", FINANCEIRO, CENTRO, REFERENCIA, self.user)
+        self.assertEqual(
+            Acompanhamento.objects.get().centro.codigo,
+            "centro-de-competencia-embrapii-cimatec-em-tecnologias-quanticas-quiin")
 
     def test_kpi_upsert_preserva_pk_e_overrides_do_usuario(self):
         services.ingestar("INDICADORES_PE", INDICADORES, CENTRO, REFERENCIA, self.user)
@@ -179,3 +191,14 @@ class RulingsIngestaoTestes(TestCase):
         payload = services.resumo_json("INDICADORES_PE", INDICADORES, CENTRO, REFERENCIA)
         self.assertEqual(payload["tipo_fonte"], "INDICADORES_PE")
         self.assertEqual(payload["contagens"], {"kpis": 10})
+
+
+class CentroCodigoTestes(TestCase):
+    def test_codigo_do_centro_real_cabe_no_max_length(self):
+        from django.core.exceptions import ValidationError
+        centro = CentroCompetencia.objects.create(
+            codigo="centro-de-competencia-embrapii-cimatec-em-tecnologias-quanticas-quiin",
+            nome="Centro de Competência Embrapii CIMATEC em Tecnologias Quânticas - Quiin")
+        centro.full_clean()   # levanta se codigo exceder max_length
+        self.assertLessEqual(
+            len(centro.codigo), CentroCompetencia._meta.get_field("codigo").max_length)

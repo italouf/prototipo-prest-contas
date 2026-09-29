@@ -26,6 +26,7 @@ from pathlib import Path
 
 from django.core.exceptions import ValidationError
 from django.db import transaction
+from django.utils.text import slugify
 
 from apps.audit.services import registrar_auditoria
 from apps.pillars.models import Pilar
@@ -369,8 +370,15 @@ def _mensagem_sucesso(tipo_fonte: str, contagens: dict, periodo: str) -> str:
 
 
 def _codigo_centro(nome: str) -> str:
-    """Código do centro: ``normalizar`` sem espaços (slug; SDD §3)."""
-    return normalizar(nome).replace(" ", "")
+    """Código do centro: ``slugify`` do nome normalizado (SDD §3; Ruling 19).
+
+    O slug real do centro tem 69 caracteres
+    (``centro-de-competencia-embrapii-cimatec-em-tecnologias-quanticas-quiin``)
+    e cabe no ``SlugField(max_length=200)``; nunca truncar — centros distintos
+    colidiriam. ``slugify`` também garante charset válido de ``SlugField``
+    para nomes com ``&``/``/``.
+    """
+    return slugify(normalizar(nome))
 
 
 # ------------------------------------------------------------------- metadados
@@ -428,10 +436,15 @@ def _procedencia_metadados(caminho: Path | str) -> dict[str, tuple[str, str]]:
 
 def _falha(acomp, tipo_fonte, arquivo_nome: str, usuario,
            avisos: list[str], log: str) -> ImportacaoAcompanhamento:
-    """Registra o ERRO **fora** da transação que falhou e audita (SDD §7)."""
+    """Registra o ERRO **fora** da transação que falhou e audita (SDD §7).
+
+    Ruling 20: o ``tipo_fonte`` tentado é gravado **verbatim** (as ``choices``
+    são metadado de formulário, não restrição de banco) — o histórico mostra o
+    que foi tentado; ``None`` (sem tipo) vira ``""`` por ser NOT NULL.
+    """
     importacao = ImportacaoAcompanhamento.objects.create(
         acompanhamento=acomp,
-        tipo_fonte=tipo_fonte if tipo_fonte in _PARSERS else "",
+        tipo_fonte=tipo_fonte or "",
         arquivo_nome=arquivo_nome,
         status="ERRO",
         log=log or "",

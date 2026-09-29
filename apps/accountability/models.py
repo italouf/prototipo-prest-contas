@@ -29,7 +29,10 @@ BASES_OVERRIDE = [
 class CentroCompetencia(models.Model):
     """Centro de competência citado nos arquivos (código = nome normalizado em slug)."""
 
-    codigo = models.SlugField("Código", max_length=50, unique=True)
+    # max_length=200 = nome (CharField(200)), fonte do slug (Ruling 19): o slug
+    # real do centro tem 68 caracteres e estourava 50 no Postgres (o SQLite não
+    # valida varchar). Nunca truncar — centros distintos colidiriam.
+    codigo = models.SlugField("Código", max_length=200, unique=True)
     nome = models.CharField("Nome", max_length=200)
     ativo = models.BooleanField("Ativo", default=True)
 
