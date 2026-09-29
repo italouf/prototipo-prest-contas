@@ -211,6 +211,32 @@ class ParseAcompanhamentoV2Testes(unittest.TestCase):
         assert ampliacao["quantidade"] == Decimal("2.5")
         assert ampliacao["valor"] == Decimal("123.45")
 
+    def test_conteudo_abaixo_do_terminador_vira_aviso(self):
+        # Item 1: a linha com só a sequência encerra a leitura (regra mantida),
+        # mas conteúdo real abaixo dela não pode sumir em silêncio.
+        caminho = Path(self.tmp.name) / "v2.xlsx"
+        wb = _workbook_despesas()
+        wb["3. Conta Ação - AFCCT"].cell(13, 7, 99.99)  # abaixo do terminador (linha 12)
+        wb.save(caminho)
+        p = parse_acompanhamento_v2(caminho)
+        assert p["erros"] == []
+        assert len(p["despesas"]) == 8
+        assert not [d for d in p["despesas"]
+                    if d["aba"] == "3. Conta Ação - AFCCT" and d["linha"] == 13]
+        assert any("3. Conta Ação - AFCCT" in a and "encerrou na linha 12" in a
+                   for a in p["avisos"])
+
+    def test_conta_projeto_capturada_ao_lado_do_codigo(self):
+        # Ruling 17: a regra 2 foi dividida — "Conta do projeto" vira
+        # `conta_projeto` em vez de ser descartada por "primeira coluna vence".
+        caminho = Path(self.tmp.name) / "v2.xlsx"
+        _workbook_despesas().save(caminho)
+        p = parse_acompanhamento_v2(caminho)
+        assert p["erros"] == []
+        afcct = next(d for d in p["despesas"] if d["aba"] == "3. Conta Ação - AFCCT")
+        assert afcct["codigo_projeto"] == "PDI-01"
+        assert afcct["conta_projeto"] == "AFCCT-01"
+
 
 if __name__ == "__main__":
     unittest.main()

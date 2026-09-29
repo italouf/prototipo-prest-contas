@@ -19,6 +19,7 @@ no banco. Por desempenho, a varredura de cada aba cobre no máximo
 
 from __future__ import annotations
 
+import warnings
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any
@@ -70,10 +71,10 @@ _MARCADORES_VAZIOS = ("-", "–", "—")
 _CAMPOS_DATA = ("data_nota", "data_pagamento", "data_movimento")
 _CAMPOS_NUMEROS = ("quantidade", "valor_unitario", "valor")
 _CAMPOS_DESPESA = (
-    "sequencia", "acao_relacionada", "codigo_projeto", "marco", "tipo_despesa",
-    "credor", "documento", "numero_nota", "link_documento", "numero_patrimonial",
-    "descricao", "descricao_atividade", "observacao", "fonte_recurso",
-    "data_nota", "data_pagamento", "data_movimento",
+    "sequencia", "acao_relacionada", "codigo_projeto", "conta_projeto", "marco",
+    "tipo_despesa", "credor", "documento", "numero_nota", "link_documento",
+    "numero_patrimonial", "descricao", "descricao_atividade", "observacao",
+    "fonte_recurso", "data_nota", "data_pagamento", "data_movimento",
     "quantidade", "valor_unitario", "valor",
 )
 
@@ -85,27 +86,37 @@ def parse_acompanhamento_v2(caminho: Path | str) -> dict:
     do arquivo propaga ``comum.ArquivoInvalidoError``.
     """
     payload = novo_payload()
-    wb = abrir_workbook(caminho)
-    try:
-        presentes = [aba for aba in ABAS_DESPESA if aba in wb.sheetnames]
-        if not presentes:
-            payload["erros"].append(
-                "Não foi possível identificar o tipo do arquivo: nenhuma das abas"
-                " do Acompanhamento Financeiro (v2) foi encontrada"
-                f" (esperado: {', '.join(repr(a) for a in ABAS_DESPESA)})."
-            )
-            return payload
-        for aba in ABAS_DESPESA:
-            if aba not in wb.sheetnames:
+    with warnings.catch_warnings():
+        # Consumir as linhas até o fim do XML faz o openpyxl avisar que
+        # extensões de validação de dados são descartadas do seu modelo — é
+        # irrelevante aqui (o parser só lê valores e nunca grava o workbook)
+        # e poluiria o log de todo upload.
+        warnings.filterwarnings(
+            "ignore",
+            message=r"Data Validation extension is not supported.*",
+            category=UserWarning,
+        )
+        wb = abrir_workbook(caminho)
+        try:
+            presentes = [aba for aba in ABAS_DESPESA if aba in wb.sheetnames]
+            if not presentes:
                 payload["erros"].append(
-                    f'A aba "{aba}" não foi encontrada.'
-                    " Verifique se é o template correto da EMBRAPII."
+                    "Não foi possível identificar o tipo do arquivo: nenhuma das abas"
+                    " do Acompanhamento Financeiro (v2) foi encontrada"
+                    f" (esperado: {', '.join(repr(a) for a in ABAS_DESPESA)})."
                 )
-        _ler_metadados(wb, payload)
-        for aba in presentes:
-            _ler_aba_despesa(payload, wb[aba], aba)
-    finally:
-        wb.close()
+                return payload
+            for aba in ABAS_DESPESA:
+                if aba not in wb.sheetnames:
+                    payload["erros"].append(
+                        f'A aba "{aba}" não foi encontrada.'
+                        " Verifique se é o template correto da EMBRAPII."
+                    )
+            _ler_metadados(wb, payload)
+            for aba in presentes:
+                _ler_aba_despesa(payload, wb[aba], aba)
+        finally:
+            wb.close()
     return payload
 
 
@@ -201,17 +212,21 @@ def _ler_aba_despesa(payload: dict, ws, aba: str) -> None:
     erros = payload["erros"]
     cabecalho: int | None = None
     colunas: dict[str, int] = {}  # campo -> índice 0-based (primeira coluna vence)
+    mapeados: set[int] = set()  # toda coluna cujo cabeçalho casa alguma regra
     linhas = ws.iter_rows(
         min_row=1, max_row=_MAX_LINHA_CABECALHO + _MAX_LINHAS_DADOS + 1,
         min_col=1, max_col=_MAX_COLUNAS)
     lidas = 0
+    termino: int | None = None
+    ignoradas = 0
+    primeira_ignorada: int | None = None
     for numero, linha in enumerate(linhas, start=1):
         if cabecalho is None:
             if numero <= _MAX_LINHA_CABECALHO:
                 indice = _indice_coluna_sequencia(linha)
                 if indice is not None:
                     cabecalho = numero
-                    colunas = _mapear_colunas(linha)
+                    colunas, mapeados = _mapear_colunas(linha)
                 continue
             erros.append(
                 f'A aba "{aba}": cabeçalho "Linha" não encontrado nas primeiras'
@@ -221,12 +236,21 @@ def _ler_aba_despesa(payload: dict, ws, aba: str) -> None:
             return
         if numero <= cabecalho:
             continue
-        if not any(_tem_valor(_valor_da_celula(linha[idx]))
-                   for campo, idx in colunas.items() if campo != "sequencia"):
+        tem_conteudo = _tem_conteudo_mapeado(linha, colunas, mapeados)
+        if termino is not None:
+            # Após o terminador: só procura conteúdo real que ficou para trás —
+            # ele vira aviso (nunca erro) e a regra de término permanece.
+            if tem_conteudo:
+                ignoradas += 1
+                if primeira_ignorada is None:
+                    primeira_ignorada = numero
+            continue
+        if not tem_conteudo:
             # Linha do template com só a sequência (ou vazia): encerra a leitura.
             # Erro de fórmula em coluna não mapeada vira aviso, nunca erro (SDD §7).
+            termino = numero
             _avisar_formulas_nao_mapeadas(payload, aba, numero, linha, colunas)
-            return
+            continue
         lidas += 1
         if lidas > _MAX_LINHAS_DADOS:
             payload["avisos"].append(
@@ -237,6 +261,12 @@ def _ler_aba_despesa(payload: dict, ws, aba: str) -> None:
         despesa = _montar_despesa(payload, aba, numero, linha, colunas,
                                   pilar, tipo_recurso)
         payload["despesas"].append(despesa)
+    if ignoradas:
+        payload["avisos"].append(
+            f"{aba}: leitura encerrou na linha {termino}; conteúdo presente abaixo"
+            f" foi ignorado ({ignoradas} linha(s) com valor em coluna mapeada,"
+            f" primeira na linha {primeira_ignorada})."
+        )
 
 
 def _montar_despesa(
@@ -294,25 +324,34 @@ def _montar_despesa(
     return despesa
 
 
-def _mapear_colunas(linha: tuple) -> dict[str, int]:
-    """Campo → índice 0-based pelas 23 regras do SDD §6 (primeira casa vence)."""
+def _mapear_colunas(linha: tuple) -> tuple[dict[str, int], set[int]]:
+    """Campo → índice 0-based pelas 23 regras do SDD §6 (primeira casa vence).
+
+    Devolve também o conjunto de **todas** as colunas cujo cabeçalho casa
+    alguma regra — inclusive a que perdeu o campo por "primeira coluna vence" —
+    para o conteúdo nunca ser descartado em silêncio.
+    """
     colunas: dict[str, int] = {}
+    mapeados: set[int] = set()
     for indice, celula in enumerate(linha):
         texto = normalizar(_valor_da_celula(celula))
         if not texto:
             continue
         campo = _campo_do_cabecalho(texto)
         if campo is not None:
+            mapeados.add(indice)
             colunas.setdefault(campo, indice)  # primeira coluna vence
-    return colunas
+    return colunas, mapeados
 
 
 def _campo_do_cabecalho(texto: str) -> str | None:
     """Aplica as 23 regras de coluna do SDD §6 em ordem (primeira casa vence)."""
     if texto == "linha":
         return "sequencia"                                   # 1
-    if "codigo do projeto" in texto or "conta do projeto" in texto:
-        return "codigo_projeto"                              # 2
+    if "codigo do projeto" in texto:
+        return "codigo_projeto"                              # 2 — código do projeto
+    if "conta do projeto" in texto:
+        return "conta_projeto"                               # 2 — conta do projeto
     if "data do pagamento" in texto:
         return "data_pagamento"                              # 3
     if texto.startswith("data da nota"):
@@ -364,6 +403,24 @@ def _indice_coluna_sequencia(linha: tuple) -> int | None:
         if normalizar(_valor_da_celula(celula)) == "linha":
             return indice
     return None
+
+
+def _tem_conteudo_mapeado(
+    linha: tuple, colunas: dict[str, int], mapeados: set[int]
+) -> bool:
+    """``True`` quando alguma coluna mapeada além de ``sequencia`` tem valor.
+
+    O valor é o conteúdo *bruto* da célula (o que o parser não reconhece ainda
+    conta como conteúdo) e vale para toda coluna cujo cabeçalho casa uma regra,
+    inclusive a descartada por "primeira coluna vence" — linhas de dados nunca
+    ficam vazias por erro de mapeamento.
+    """
+    sequencia = colunas.get("sequencia")
+    return any(
+        _tem_valor(_valor_da_celula(linha[indice]))
+        for indice in mapeados
+        if indice != sequencia
+    )
 
 
 def _avisar_formulas_nao_mapeadas(
