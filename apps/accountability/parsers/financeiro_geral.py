@@ -76,13 +76,13 @@ _COLUNAS_RESUMO_TAB11 = {
     "percentual": ("V", "percentual"),
     "farol": ("W", "texto"),
 }
-# Colunas anuais de TAB. 1.1: (coluna, ano, campo, tipo).
+# Colunas anuais de TAB. 1.1: (coluna, ano, campo). "S" ("projetado total")
+# nunca vira ano — alimenta a linha consolidada (ano=None) do pilar.
 _ANUAIS_TAB11 = (
-    ("O", 2024, "realizado", "dinheiro"),
-    ("P", 2025, "realizado", "dinheiro"),
-    ("Q", 2026, "realizado", "dinheiro"),
-    ("R", 2026, "projetado", "dinheiro"),
-    ("S", 2027, "projetado", "dinheiro"),
+    ("O", 2024, "realizado"),
+    ("P", 2025, "realizado"),
+    ("Q", 2026, "realizado"),
+    ("R", 2026, "projetado"),
 )
 _COLUNAS_RESUMO_RECONCILIACAO = {
     "recurso_ou_meta": ("D", "dinheiro"),
@@ -384,18 +384,32 @@ def _emitir_tab11(
     mapa: dict[str, tuple[str, str]],
     aba: str,
 ) -> None:
-    """TAB. 1.1 só gera linhas ``ano`` quando há valor anual (O:S) no pilar."""
+    """TAB. 1.1 só gera linhas quando há valor em ``O:S`` no pilar.
+
+    Linhas ``ano`` vêm só de O/P/Q/R; ``S`` ("projetado total") alimenta uma
+    linha consolidada por pilar (``ano=None``) com N/T/U/V/W (SDD §4).
+    """
     valores = {
         campo: _valor(celulas, _coord(col, linha), tipo, aba, payload["erros"])
         for campo, (col, tipo) in mapa.items()
     }
     anuais: dict[int, dict[str, Any]] = {}
-    for col, ano, campo, tipo in _ANUAIS_TAB11:
-        valor = _valor(celulas, _coord(col, linha), tipo, aba, payload["erros"])
-        if valor is None:
-            continue
-        anuais.setdefault(ano, {"recurso_ou_meta": valores["recurso_ou_meta"]})[
-            campo] = valor
+    for col, ano, campo in _ANUAIS_TAB11:
+        valor = _valor(celulas, _coord(col, linha), "dinheiro", aba, payload["erros"])
+        if valor is not None:
+            anuais.setdefault(ano, {})[campo] = valor
+    projetado_total = _valor(
+        celulas, _coord("S", linha), "dinheiro", aba, payload["erros"])
+    if not anuais and projetado_total is None:
+        return  # O:S vazios: nenhuma linha; o aviso global cobre a aba
+    payload["resumos"].append(_montar(_CAMPOS_RESUMO, origem, pilar, {
+        "recurso_ou_meta": valores["recurso_ou_meta"],
+        "projetado": projetado_total,
+        "realizado_mais_projetado": valores["realizado_mais_projetado"],
+        "diferenca": valores["diferenca"],
+        "percentual": valores["percentual"],
+        "farol": valores["farol"],
+    }))
     for ano, campos in sorted(anuais.items()):
         payload["resumos"].append(_montar(_CAMPOS_RESUMO, origem, pilar, campos, ano))
 

@@ -92,3 +92,35 @@ class ParseFinanceiroGeralTestes(unittest.TestCase):
             p = parse_financeiro_geral(caminho)
             assert p["erros"], "cabeçalho divergente deve virar erro"
             assert any("TAB. 1" in e for e in p["erros"])
+
+    def test_tab11_valores_anuais_e_projetado_total(self):
+        from openpyxl import Workbook
+        with tempfile.TemporaryDirectory() as tmp_path:
+            wb = Workbook()
+            ws = wb.active
+            ws.title = "FINANCEIRO "
+            ws["M1"] = "TAB. 1.1 - VISÃO CONSOLIDADA POR ANO"
+            ws["M3"] = "AÇÃO"
+            ws["M5"] = "AFCCT / PD&I"
+            ws["N5"] = 29000000
+            ws["O5"] = 111.11
+            ws["P5"] = 222.22
+            ws["Q5"] = 333.33
+            ws["R5"] = 444.44
+            ws["S5"] = 777.77
+            ws["T5"] = 1222.21
+            ws["U5"] = -28999222.23
+            ws["V5"] = 0.6094865365517241
+            ws["W5"] = "VERDE"
+            caminho = Path(tmp_path) / "anual.xlsx"
+            wb.save(caminho)
+            p = parse_financeiro_geral(caminho)
+            anuais = {r["ano"]: r for r in p["resumos"]
+                      if r["origem"] == "TAB. 1.1" and r["ano"] is not None}
+            assert anuais[2024]["realizado"] == Decimal("111.11")
+            assert anuais[2025]["realizado"] == Decimal("222.22")
+            assert anuais[2026]["realizado"] == Decimal("333.33")
+            assert anuais[2026]["projetado"] == Decimal("444.44")
+            assert not [r for r in p["resumos"] if r["ano"] == 2027]
+            consolidado = _resumo(p, "TAB. 1.1", "PDI")
+            assert consolidado["projetado"] == Decimal("777.77")
