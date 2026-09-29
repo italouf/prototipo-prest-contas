@@ -49,3 +49,13 @@ class ParseIndicadoresPeTestes(unittest.TestCase):
 
     def test_arquivo_real_nao_gera_erro(self):
         assert self.p["erros"] == []
+
+    def test_preserva_precisao_dos_valores_fracionarios(self):
+        kpi2 = self.p["kpis"][1]   # "Recursos financeiros realizados de outras fontes…", unidade Percentual
+        assert kpi2["meta_2024"] == Decimal("0.0029")
+        assert kpi2["meta_2025"] == Decimal("0.0603")
+        assert kpi2["meta_total"] == Decimal("0.6251")
+        assert kpi2["gap"] == Decimal("-0.6234999999999999")
+        kpi10 = self.p["kpis"][9]  # "Implantação e operacionalização da infraestrutura…"
+        assert kpi10["meta_2026"] == Decimal("0.95")
+        assert kpi10["meta_2024"] == Decimal("0.7")
