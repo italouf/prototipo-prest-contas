@@ -1,0 +1,56 @@
+from django.core.exceptions import ValidationError
+from django.db import IntegrityError, transaction
+from django.test import TestCase
+
+from apps.pillars.models import Pilar
+from ..models import Acompanhamento, CentroCompetencia, KpiAcompanhamento, OverrideAcompanhamento
+
+
+class AcompanhamentoUnicidadeTestes(TestCase):
+    def test_centro_e_periodo_referencia_sao_unicos(self):
+        centro = CentroCompetencia.objects.create(codigo="quiin", nome="QuIIN")
+        Acompanhamento.objects.create(centro=centro, periodo_referencia="2T/2024")
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            Acompanhamento.objects.create(centro=centro, periodo_referencia="2T/2024")
+
+    def test_mesmo_periodo_para_centros_diferentes_e_permitido(self):
+        Acompanhamento.objects.create(
+            centro=CentroCompetencia.objects.create(codigo="quiin", nome="QuIIN"),
+            periodo_referencia="2T/2024")
+        Acompanhamento.objects.create(
+            centro=CentroCompetencia.objects.create(codigo="outro-cc", nome="Outro CC"),
+            periodo_referencia="2T/2024")
+        self.assertEqual(Acompanhamento.objects.count(), 2)
+
+
+class OverrideChaveTestes(TestCase):
+    def setUp(self):
+        self.acomp = Acompanhamento.objects.create(
+            centro=CentroCompetencia.objects.create(codigo="quiin", nome="QuIIN"),
+            periodo_referencia="2T/2024")
+        self.pilar = Pilar.objects.create(codigo="PDI", nome="PDI")
+
+    def test_chave_unica_para_mesmo_acompanhamento(self):
+        pilar = self.pilar
+        OverrideAcompanhamento.objects.create(
+            acompanhamento=self.acomp, base="financeiro", pilar=pilar,
+            ano=2026, campo="executado", valor=10, chave="fin|PDI|2026|executado")
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            OverrideAcompanhamento.objects.create(
+                acompanhamento=self.acomp, base="financeiro", pilar=pilar,
+                ano=2026, campo="executado", valor=11, chave="fin|PDI|2026|executado")
+
+    def test_override_fisico_exige_kpi_e_rejeita_pilar(self):
+        kpi = KpiAcompanhamento.objects.create(
+            acompanhamento=self.acomp, codigo="PE-01", sequencia=1,
+            nome="Projetos de PD&I", unidade="Número absoluto", pilar=self.pilar)
+        objeto = OverrideAcompanhamento(
+            acompanhamento=self.acomp, base="fisico", kpi=kpi,
+            ano=2025, campo="executado", valor=5, chave="fis|PE-01|2025|executado")
+        objeto.full_clean()
+
+        invalido = OverrideAcompanhamento(
+            acompanhamento=self.acomp, base="fisico",
+            ano=2025, campo="executado", valor=5, chave="fis|?|2025|executado")
+        with self.assertRaises(ValidationError):
+            invalido.full_clean()

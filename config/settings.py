@@ -36,6 +36,7 @@ INSTALLED_APPS = [
     "apps.periods",
     "apps.entries",
     "apps.finance",
+    "apps.accountability",
     "apps.reports",
     "apps.audit",
     "apps.highlights",
