@@ -208,7 +208,10 @@ com ela. Divergência ⇒ erro nomeando aba e célula.
 ordem** (primeira casa vence) sobre o texto normalizado do cabeçalho:
 
 1. `== linha` → `sequencia`
-2. contém `código do projeto` ou `conta do projeto` → `codigo_projeto`
+2. contém `código do projeto` → `codigo_projeto` (checado **antes** da regra
+     de `conta`, para `Informar o código do projeto/atividade` das abas 6/6.1/7
+     continuar caindo aqui) · contém `conta do projeto` → `conta_projeto` —
+     são colunas distintas na aba 3 (`C` e `D`) e o modelo §3 tem os dois campos
 3. contém `data do pagamento` → `data_pagamento`
 4. começa com `data da nota` → `data_nota`
 5. `== data` → `data_movimento`
@@ -224,7 +227,8 @@ ordem** (primeira casa vence) sobre o texto normalizado do cabeçalho:
 15. contém `credor` e não `estrangeiro` → `credor`
 16. contém `tipo de despesa` → `tipo_despesa`
 17. contém `marco` → `marco`
-18. contém `ação está relacionada` → `acao_relacionada`
+18. contém `ação está relacionad` (radical: casa `relacionada`/`relacionado`;
+     o template real usa `Informar a qual ação está relacionado`) → `acao_relacionada`
 19. contém `fonte recurso` → `fonte_recurso`
 20. contém `breve descritivo` → `descricao_atividade`
 21. contém `breve descrição` → `descricao`
