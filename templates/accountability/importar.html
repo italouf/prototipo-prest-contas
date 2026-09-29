@@ -12,17 +12,6 @@
     </div>
   </div>
 
-  {% if messages %}
-  <div class="mt-4 space-y-2">
-    {% for message in messages %}
-      <div role="alert" data-testid="mensagem-importar"
-           class="rounded-xl border border-border bg-surface-2 p-4 text-sm {% if 'error' in message.tags %}text-red-600{% else %}text-status-aprovado-texto{% endif %}">
-        {{ message }}
-      </div>
-    {% endfor %}
-  </div>
-  {% endif %}
-
   <div class="mt-4 rounded-xl border border-border bg-surface-2 p-5">
     <h2 class="font-display text-lg font-semibold">Abas obrigatórias por template</h2>
     <ul class="mt-2 space-y-1 text-sm">
