@@ -207,24 +207,24 @@ class KpiAcompanhamento(models.Model):
     )
     descricao = models.TextField("Descrição", blank=True)
     unidade = models.CharField("Unidade", max_length=50, blank=True)
-    meta_2024 = models.DecimalField("Meta 2024", max_digits=18, decimal_places=2, null=True, blank=True)
-    meta_2025 = models.DecimalField("Meta 2025", max_digits=18, decimal_places=2, null=True, blank=True)
-    meta_2026 = models.DecimalField("Meta 2026", max_digits=18, decimal_places=2, null=True, blank=True)
-    meta_2027 = models.DecimalField("Meta 2027", max_digits=18, decimal_places=2, null=True, blank=True)
-    meta_total = models.DecimalField("Meta total", max_digits=18, decimal_places=2, null=True, blank=True)
+    meta_2024 = models.DecimalField("Meta 2024", max_digits=18, decimal_places=6, null=True, blank=True)
+    meta_2025 = models.DecimalField("Meta 2025", max_digits=18, decimal_places=6, null=True, blank=True)
+    meta_2026 = models.DecimalField("Meta 2026", max_digits=18, decimal_places=6, null=True, blank=True)
+    meta_2027 = models.DecimalField("Meta 2027", max_digits=18, decimal_places=6, null=True, blank=True)
+    meta_total = models.DecimalField("Meta total", max_digits=18, decimal_places=6, null=True, blank=True)
     executado_2024 = models.DecimalField(
-        "Executado 2024", max_digits=18, decimal_places=2, null=True, blank=True
+        "Executado 2024", max_digits=18, decimal_places=6, null=True, blank=True
     )
     executado_2025 = models.DecimalField(
-        "Executado 2025", max_digits=18, decimal_places=2, null=True, blank=True
+        "Executado 2025", max_digits=18, decimal_places=6, null=True, blank=True
     )
-    acumulado = models.DecimalField("Acumulado", max_digits=18, decimal_places=2, null=True, blank=True)
-    gap = models.DecimalField("Gap", max_digits=18, decimal_places=2, null=True, blank=True)
+    acumulado = models.DecimalField("Acumulado", max_digits=18, decimal_places=6, null=True, blank=True)
+    gap = models.DecimalField("Gap", max_digits=18, decimal_places=6, null=True, blank=True)
     projecao_2026 = models.DecimalField(
-        "Projeção 2026", max_digits=18, decimal_places=2, null=True, blank=True
+        "Projeção 2026", max_digits=18, decimal_places=6, null=True, blank=True
     )
     projecao_2027 = models.DecimalField(
-        "Projeção 2027", max_digits=18, decimal_places=2, null=True, blank=True
+        "Projeção 2027", max_digits=18, decimal_places=6, null=True, blank=True
     )
 
     class Meta:
@@ -273,7 +273,7 @@ class DespesaAcompanhamento(models.Model):
     data_movimento = models.DateField("Data do movimento", null=True, blank=True)
     quantidade = models.DecimalField("Quantidade", max_digits=18, decimal_places=2, null=True, blank=True)
     valor_unitario = models.DecimalField(
-        "Valor unitário", max_digits=18, decimal_places=2, null=True, blank=True
+        "Valor unitário", max_digits=18, decimal_places=6, null=True, blank=True
     )
     valor = models.DecimalField("Valor", max_digits=18, decimal_places=2, null=True, blank=True)
 

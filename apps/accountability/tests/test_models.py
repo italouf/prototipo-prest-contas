@@ -1,9 +1,17 @@
+from decimal import Decimal
+
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.test import TestCase
 
 from apps.pillars.models import Pilar
-from ..models import Acompanhamento, CentroCompetencia, KpiAcompanhamento, OverrideAcompanhamento
+from ..models import (
+    Acompanhamento,
+    CentroCompetencia,
+    DespesaAcompanhamento,
+    KpiAcompanhamento,
+    OverrideAcompanhamento,
+)
 
 
 class AcompanhamentoUnicidadeTestes(TestCase):
@@ -86,3 +94,30 @@ class OverrideChaveTestes(TestCase):
             ano=2025, campo="previsto", valor=5, chave="fis|PE-01|2025|previsto")
         with self.assertRaises(ValidationError):
             objeto.full_clean()
+
+
+class PrecisaoValoresTestes(TestCase):
+    """Guarda de regressão: valores com mais de 2 casas não podem ser truncados (Ruling 10)."""
+
+    def setUp(self):
+        self.acomp = Acompanhamento.objects.create(
+            centro=CentroCompetencia.objects.create(codigo="quiin", nome="QuIIN"),
+            periodo_referencia="2T/2024")
+        self.pilar = Pilar.objects.create(codigo="PDI", nome="PDI")
+
+    def test_kpi_preserva_valores_com_mais_de_duas_casas(self):
+        kpi = KpiAcompanhamento.objects.create(
+            acompanhamento=self.acomp, codigo="PE-02", sequencia=2,
+            nome="Fração de meta", unidade="Fração", pilar=self.pilar,
+            meta_2024=Decimal("0.0029"), gap=Decimal("-0.6235"))
+        kpi.refresh_from_db()
+        self.assertEqual(kpi.meta_2024, Decimal("0.0029"))
+        self.assertEqual(kpi.gap, Decimal("-0.6235"))
+
+    def test_valor_unitario_preserva_tres_casas(self):
+        despesa = DespesaAcompanhamento.objects.create(
+            acompanhamento=self.acomp, aba="3. Conta Ação - AFCCT", linha=10,
+            pilar=self.pilar, tipo_recurso="EMBRAPII",
+            valor_unitario=Decimal("61.725"))
+        despesa.refresh_from_db()
+        self.assertEqual(despesa.valor_unitario, Decimal("61.725"))
