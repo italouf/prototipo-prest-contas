@@ -153,14 +153,18 @@ def pilar(request, pk):
         return sem_permissao(request)
     params = request.GET
     base_url = f"/pilar/{pilar_obj.pk}/"
+    acompanhamento = _resolver_acompanhamento(params)
+    sufixo_acomp = (
+        f"&acompanhamento={acompanhamento.pk}" if acompanhamento is not None else ""
+    )
 
     def _preservar_periodo(destino):
         periodo_param = params.get("periodo", "")
         try:
             date.fromisoformat(periodo_param)
         except ValueError:
-            return destino
-        return f"{destino}&periodo={periodo_param}"
+            return f"{destino}{sufixo_acomp}"
+        return f"{destino}&periodo={periodo_param}{sufixo_acomp}"
 
     if params:
         base_crua = (params.get("base") or "").strip().lower()
@@ -174,7 +178,9 @@ def pilar(request, pk):
         return redirect(_preservar_periodo(f"{base_url}?ano=todos&base=fin"))
     ano_param = form.cleaned_data["ano"] if params else "todos"
     base_param = form.cleaned_data["base"] if params else BASE_FIN
-    contexto = contexto_pilar(pilar_obj, ano_param, base_param, request.user)
+    contexto_anual = contexto_pilar(
+        pilar_obj, ano_param, base_param, request.user, acompanhamento
+    )
     periodo, periodos = periodo_selecionado(request)
     itens = []
     destaques = []
@@ -186,7 +192,7 @@ def pilar(request, pk):
         "pilar": pilar_obj, "periodo": periodo, "periodos": periodos,
         "itens": itens, "destaques": destaques,
     }
-    contexto.update(contexto_pilar(pilar_obj, ano_param, base_param, request.user))
+    contexto.update(contexto_anual)
     if _hx_parcial(request):
         return render(request, "dashboard/_fragmento_pilar.html", contexto)
     return render(request, "dashboard/pilar.html", contexto)

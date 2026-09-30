@@ -1,3 +1,4 @@
+from datetime import date
 from decimal import Decimal
 
 from django.contrib.auth import get_user_model
@@ -7,7 +8,7 @@ from django.test import TestCase
 from apps.core.permissions import adicionar_grupo, garantir_grupos
 from apps.pillars.models import Pilar
 from .. import overrides, panel, services
-from ..models import Acompanhamento, OverrideAcompanhamento
+from ..models import Acompanhamento, DespesaAcompanhamento, OverrideAcompanhamento
 from pathlib import Path
 
 RAIZ = Path(__file__).resolve().parents[3]
@@ -33,6 +34,25 @@ class OverrideTestes(TestCase):
     def test_override_tem_precedencia_sobre_o_importado(self):
         overrides.aplicar_overrides(self.acomp, "financeiro",
                                     [(2026, "PDI", "executado", Decimal("999"))], self.user)
+        p = panel.painel_acompanhamento(2026, "financeiro", self.acomp)
+        linha = next(l for l in p["tabela"]["grupos"][0]["linhas"] if l["rotulo"] == "PDI")
+        assert linha["executado"] == Decimal("999")
+
+    def test_override_tem_precedencia_sobre_lancamento_temporal(self):
+        pilar = Pilar.objects.get(codigo="PDI")
+        DespesaAcompanhamento.objects.create(
+            acompanhamento=self.acomp,
+            aba="3. Conta Ação - AFCCT",
+            linha=1,
+            pilar=pilar,
+            tipo_recurso="EMBRAPII",
+            valor=Decimal("100"),
+            data_pagamento=date(2026, 6, 1),
+        )
+        overrides.aplicar_overrides(self.acomp, "financeiro", [
+            (2026, "PDI", "executado", Decimal("999")),
+        ], self.user)
+
         p = panel.painel_acompanhamento(2026, "financeiro", self.acomp)
         linha = next(l for l in p["tabela"]["grupos"][0]["linhas"] if l["rotulo"] == "PDI")
         assert linha["executado"] == Decimal("999")

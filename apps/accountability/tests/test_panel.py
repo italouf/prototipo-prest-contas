@@ -130,26 +130,25 @@ class PainelFinanceiroComplementarTestes(BasePanelTestes):
         assert total["previsto"] == Decimal("75843468")
         assert total["executado"] == Decimal("35437938.95")
 
-    def test_series_dos_graficos_sao_sempre_numericas(self):
-        # contexto_painel faz float(v) em geometria_fonte/geometria_consolidado;
-        # None quebraria o render — a representação de gráfico é sempre numérica.
+    def test_series_dos_graficos_preservam_indisponibilidade(self):
+        # Ausência de TAB. 1.1 não pode ser fabricada como zero no gráfico.
         p = panel.painel_acompanhamento(2027, "financeiro", self.acomp)
         for bloco in p["graficos"].values():
-            assert len(bloco["serie_previsto"]) == 5
-            assert len(bloco["serie_executado"]) == 5
+            assert len(bloco["serie_previsto"]) == 4
+            assert len(bloco["serie_executado"]) == 4
             for valor in bloco["serie_previsto"] + bloco["serie_executado"]:
-                assert isinstance(valor, Decimal)
+                assert valor is None or isinstance(valor, Decimal)
         for serie in p["consolidado"]["series"]:
             assert len(serie["valores"]) == 4
             for valor in serie["valores"]:
-                assert isinstance(valor, Decimal)
+                assert valor is None or isinstance(valor, Decimal)
 
-    def test_ponto_acumulado_do_grafico_usa_o_consolidado(self):
+    def test_acumulado_do_grafico_fica_separado_da_serie_anual(self):
         p = panel.painel_acompanhamento(None, "financeiro", self.acomp)
-        assert p["graficos"]["ppi"]["serie_previsto"][4] == Decimal("60000000")
-        assert p["graficos"]["ppi"]["serie_executado"][4] == Decimal("34975229.95")
-        assert p["graficos"]["at"]["serie_previsto"][4] == Decimal("5616700")
-        assert p["graficos"]["at"]["serie_executado"][4] == Decimal("220597")
+        assert p["graficos"]["ppi"]["acumulado_previsto"] == Decimal("60000000")
+        assert p["graficos"]["ppi"]["acumulado_executado"] == Decimal("34975229.95")
+        assert p["graficos"]["at"]["acumulado_previsto"] == Decimal("5616700")
+        assert p["graficos"]["at"]["acumulado_executado"] == Decimal("220597")
 
     def test_linha_consolidada_da_tab11_nao_vira_ano(self):
         # Ruling 9: linhas TAB. 1.1 só alimentam anos quando `ano` está preenchido.
@@ -198,8 +197,8 @@ class PainelFisicoComplementarTestes(BasePanelTestes):
     def test_blocos_de_grafico_somam_so_a_unidade_majoritaria(self):
         # PPI tem 5 KPIs "Número absoluto" e 2 "Percentual" — só os primeiros somam.
         p = panel.painel_acompanhamento(None, "fisico", self.acomp)
-        assert p["graficos"]["ppi"]["serie_previsto"][4] == Decimal("903")
-        assert p["graficos"]["ppi"]["serie_executado"][4] == Decimal("2198")
+        assert p["graficos"]["ppi"]["acumulado_previsto"] == Decimal("903")
+        assert p["graficos"]["ppi"]["acumulado_executado"] == Decimal("2198")
 
     def test_linha_acumulada_calcula_saldo_pct_e_faixa(self):
         p = panel.painel_acompanhamento(None, "fisico", self.acomp)
@@ -208,6 +207,36 @@ class PainelFisicoComplementarTestes(BasePanelTestes):
         assert linha["saldo"] == Decimal("3")
         assert linha["pct"] == 83
         assert linha["faixa"] == "parcial"
+
+
+class PainelPilarAcompanhamentoTestes(BasePanelTestes):
+    def test_painel_do_pilar_usa_snapshot_e_separa_projetos_de_reais(self):
+        from ..panel import painel_pilar_acompanhamento
+
+        pilar = Pilar.objects.get(codigo="PDI")
+        painel_pilar = painel_pilar_acompanhamento(
+            pilar, None, "financeiro", self.acomp
+        )
+
+        assert painel_pilar["previsto"] == Decimal("29000000")
+        assert painel_pilar["executado"] == Decimal("17675109.56")
+        assert painel_pilar["projetos"] == 18
+        assert painel_pilar["unidade_projetos"] == "projetos"
+        assert painel_pilar["serie_previsto"] == [None, None, None, None]
+        assert painel_pilar["grafico"]["acumulado_executado"] == Decimal("17675109.56")
+
+    def test_painel_fisico_do_pilar_usa_kpi_importado(self):
+        from ..panel import painel_pilar_acompanhamento
+
+        pilar = Pilar.objects.get(codigo="PDI")
+        painel_pilar = painel_pilar_acompanhamento(
+            pilar, None, "fisico", self.acomp
+        )
+
+        assert painel_pilar["previsto"] == Decimal("27")
+        assert painel_pilar["executado"] == Decimal("19")
+        assert painel_pilar["serie_previsto"] == [Decimal("5"), Decimal("7"), Decimal("9"), Decimal("6")]
+        assert painel_pilar["serie_executado"] == [Decimal("5"), Decimal("14"), None, None]
 
 
 class AcompanhamentoPadraoTestes(TestCase):
@@ -243,6 +272,54 @@ class ContextoComAcompanhamentoTestes(BasePanelTestes):
         assert contexto["acompanhamento"] == self.acomp
         assert contexto["painel"]["base"] == "fisico"
         assert contexto["painel"]["ano"] == 2026
+
+    def test_contexto_pilar_usa_acompanhamento_explicito(self):
+        from apps.planning.views import contexto_pilar
+
+        pilar = Pilar.objects.get(codigo="PDI")
+        contexto = contexto_pilar(pilar, "todos", "fin", self.user, self.acomp)
+
+        assert contexto["painel_pilar"]["previsto"] == Decimal("29000000")
+        assert contexto["painel_pilar"]["projetos"] == 18
+
+    def test_pagina_pilar_respeita_acompanhamento_importado(self):
+        self.client.force_login(self.user)
+        pilar = Pilar.objects.get(codigo="PDI")
+        resposta = self.client.get(
+            f"/pilar/{pilar.pk}/",
+            {"acompanhamento": str(self.acomp.pk)},
+        )
+
+        assert resposta.status_code == 200
+        assert resposta.context["painel_pilar"]["previsto"] == Decimal("29000000")
+        assert resposta.context["painel_pilar"]["projetos"] == 18
+        assert 'data-testid="pilar-projetos"' in resposta.content.decode()
+        assert "Projetos financeiros" in resposta.content.decode()
+        assert "18" in resposta.content.decode()
+        assert "R$ 29 mi" in resposta.content.decode()
+        assert "R$ 29.000.000 mi" not in resposta.content.decode()
+
+    def test_controles_do_pilar_preservam_acompanhamento_selecionado(self):
+        self.client.force_login(self.user)
+        pilar = Pilar.objects.get(codigo="PDI")
+        conteudo = self.client.get(
+            f"/pilar/{pilar.pk}/",
+            {"acompanhamento": str(self.acomp.pk)},
+        ).content.decode()
+
+        assert f'name="acompanhamento" value="{self.acomp.pk}"' in conteudo
+        assert f"base=fin&acompanhamento={self.acomp.pk}" in conteudo
+        assert f"base=fis&acompanhamento={self.acomp.pk}" in conteudo
+        assert f"pilar={pilar.pk}&acompanhamento={self.acomp.pk}" in conteudo
+
+    def test_pagina_pilar_sem_parametro_usa_acompanhamento_mais_recente(self):
+        self.client.force_login(self.user)
+        pilar = Pilar.objects.get(codigo="PDI")
+        resposta = self.client.get(f"/pilar/{pilar.pk}/")
+
+        assert resposta.status_code == 200
+        assert resposta.context["acompanhamento"] == self.acomp
+        assert resposta.context["painel_pilar"]["previsto"] == Decimal("29000000")
 
 
 class PainelViewTestes(BasePanelTestes):
@@ -349,8 +426,8 @@ class ExportacoesComAcompanhamentoTestes(BasePanelTestes):
                         url, {"ano": "todos", "base": "fin", "acompanhamento": pk})
                     assert resposta.status_code == 404
 
-    def test_csv_do_pilar_continua_legado(self):
-        # Escopo (spec §12): /pilar/<pk>/ e `_csv_pilar` não são migrados.
+    def test_csv_do_pilar_reflete_o_acompanhamento_importado(self):
+        # O recorte exportado deve usar a mesma fonte da página do pilar.
         from django.urls import reverse
         self._semear_plano_diferente()
         self.client.force_login(self.user)
@@ -360,8 +437,32 @@ class ExportacoesComAcompanhamentoTestes(BasePanelTestes):
             "acompanhamento": str(self.acomp.pk)})
         assert resposta.status_code == 200
         conteudo = resposta.content.decode()
-        assert "123.456,78" in conteudo       # PlanoAnual semeado (caminho legado)
-        assert "34.975.229,95" not in conteudo
+        assert "29.000.000" in conteudo
+        assert "123.456,78" not in conteudo
+
+    def test_html_do_pilar_respeita_acompanhamento_selecionado(self):
+        from django.urls import reverse
+        outro = Acompanhamento.objects.create(
+            centro=self.acomp.centro, periodo_referencia="3T/2024"
+        )
+        ResumoFinanceiro.objects.create(
+            acompanhamento=outro,
+            origem="TAB. 1",
+            pilar=Pilar.objects.get(codigo="PDI"),
+            recurso_ou_meta=Decimal("99"),
+            realizado=Decimal("11"),
+        )
+        self.client.force_login(self.user)
+        pilar = Pilar.objects.get(codigo="PDI")
+        resposta = self.client.get(reverse("planning:export_html"), {
+            "ano": "todos", "base": "fin", "pilar": str(pilar.pk),
+            "acompanhamento": str(self.acomp.pk),
+        })
+
+        assert resposta.status_code == 200
+        conteudo = resposta.content.decode()
+        assert "29.000.000" in conteudo
+        assert "R$ 99" not in conteudo
 
 
 class ExportacoesLegadasTestes(TestCase):

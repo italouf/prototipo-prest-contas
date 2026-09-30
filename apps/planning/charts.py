@@ -1,10 +1,10 @@
 """Geometria dos gráficos do painel anual (L2) — delega ao genérico (L20).
 
 Os templates emitem o SVG a partir destes dicionários; nenhuma matemática
-vive no template. Proporções espelham o mockup (5 categorias com divisor
-antes do acumulado; consolidado com 3 séries por ano).
+vive no template. O eixo anual mostra somente os quatro anos do programa;
+totais acumulados ficam nos cards/tabelas, nunca como um quinto ano.
 """
-from apps.core.charts import ALTURA_MINIMA, OPACIDADE_DIM, geometria_barras
+from apps.core.charts import ALTURA_MINIMA, OPACIDADE_DIM, _num, geometria_barras
 
 LARGURA_FONTE, ALTURA_FONTE = 430, 268
 PAD_FONTE = {"esq": 8, "dir": 8, "topo": 26, "base": 46}
@@ -15,25 +15,26 @@ PAD_CONSOL = {"esq": 52, "dir": 20, "topo": 26, "base": 50}
 LARGURA_BARRA_CONSOL, ESPACO_CONSOL = 44, 10
 
 EIXOS_FONTE = (("Ano 1", "2024"), ("Ano 2", "2025"), ("Ano 3", "2026"),
-               ("Ano 4", "2027"), ("Todos os anos", "2024 a 2027"))
+               ("Ano 4", "2027"))
 
 
 def geometria_fonte(serie_previsto, serie_executado, destaque):
-    """Barras agrupadas (previsto × executado) em 5 categorias.
+    """Barras agrupadas (previsto × executado) nos quatro anos do programa.
 
-    `destaque`: índice 0..4 da categoria selecionada ou None (todos os anos).
+    `destaque`: índice 0..3 da categoria selecionada ou None (todos os anos).
     """
     return geometria_barras(
         list(EIXOS_FONTE), serie_previsto, serie_executado, destaque,
         largura=LARGURA_FONTE, altura=ALTURA_FONTE, pad=PAD_FONTE,
-        larg_barra_max=LARGURA_BARRA_MAX, espaco=ESPACO_BARRAS, divisor=4,
+        larg_barra_max=LARGURA_BARRA_MAX, espaco=ESPACO_BARRAS,
     )
 
 
 def geometria_consolidado(series, destaque):
     """3 séries por ano (PPI/AT/Outras executados). `destaque`: 0..3 ou None."""
     nomes = list(series.keys())
-    vals = {n: [float(v or 0) for v in series[n]] for n in nomes}
+    valores = {n: list(series[n]) for n in nomes}
+    vals = {n: [_num(v) for v in valores[n]] for n in nomes}
     teto = max([1, *[v for serie in vals.values() for v in serie]]) * 1.12
     plot_w = LARGURA_CONSOL - PAD_CONSOL["esq"] - PAD_CONSOL["dir"]
     plot_h = ALTURA_CONSOL - PAD_CONSOL["topo"] - PAD_CONSOL["base"]
@@ -47,11 +48,13 @@ def geometria_consolidado(series, destaque):
         x0 = centro - bloco / 2
         barras = []
         for j, nome in enumerate(nomes):
+            valor = valores[nome][i]
             v = vals[nome][i]
             h = max(ALTURA_MINIMA, v / teto * plot_h) if v > 0 else ALTURA_MINIMA
             x_barra = x0 + j * (LARGURA_BARRA_CONSOL + ESPACO_CONSOL)
             y_barra = base_y - h
-            barras.append({"serie": nome, "valor": v,
+            barras.append({"serie": nome, "valor": valor,
+                           "disponivel": valor is not None,
                            "x": round(x_barra, 2),
                            "y": round(y_barra, 2),
                            "cx": round(x_barra + LARGURA_BARRA_CONSOL / 2, 2),

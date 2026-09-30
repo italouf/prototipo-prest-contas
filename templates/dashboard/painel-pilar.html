@@ -22,11 +22,19 @@
     </div>
   </section>
 
+  {% if painel_pilar.projetos is not None %}
+  <section class="mt-4 rounded-xl border border-border bg-surface-2 p-4" aria-label="Quantidade de projetos financeiros">
+    <p class="text-xs font-semibold uppercase tracking-wide text-text-muted">Projetos financeiros</p>
+    <p data-testid="pilar-projetos" class="numerico mt-1 text-2xl font-bold">{{ painel_pilar.projetos }} <span class="text-base font-semibold text-text-muted">projetos</span></p>
+    <p class="mt-1 text-xs text-text-muted">Quantidade importada para este pilar; não representa valor em R$.</p>
+  </section>
+  {% endif %}
+
   <section class="mt-6 rounded-xl border border-border bg-surface-2 p-5" aria-label="Evolução anual do pilar">
     <h2 class="font-display text-lg font-semibold">{{ painel_pilar.rotulo }}: {{ painel_pilar.rotulo_previsto|lower }} x executado</h2>
-    <p class="text-xs text-text-muted">Evolução anual de 2024 a 2027 e acumulado do plano, {% if base_param == 'fin' %}em R$ milhões{% else %}em quantidade de metas físicas{% endif %}. O ano selecionado no filtro aparece em destaque.</p>
+    <p class="text-xs text-text-muted">Evolução anual de 2024 a 2027, {% if base_param == 'fin' %}em R$ milhões{% else %}em quantidade de metas físicas{% endif %}. O acumulado fica separado nos cartões e na tabela; o ano selecionado aparece em destaque.</p>
     <div class="mt-4">
-      <c-dashboard.chart-fonte chave="pilar" titulo="{{ painel_pilar.rotulo }}: {{ painel_pilar.rotulo_previsto|lower }} x executado" hint="Evolução anual de 2024 a 2027 e acumulado do plano." :bloco="painel_pilar.grafico" :geo="geo_pilar" unidade="{{ painel_pilar.unidade }}" />
+      <c-dashboard.chart-fonte chave="pilar" titulo="{{ painel_pilar.rotulo }}: {{ painel_pilar.rotulo_previsto|lower }} x executado" hint="Evolução anual de 2024 a 2027; acumulado apresentado separadamente." :bloco="painel_pilar.grafico" :geo="geo_pilar" unidade="{{ painel_pilar.unidade }}" />
     </div>
   </section>
 
@@ -36,7 +44,7 @@
       <c-dashboard.modal-farol />
     </div>
     <p class="text-xs text-text-muted">Previsto e executado por ano no período selecionado, {% if base_param == 'fin' %}em R$ milhões{% else %}em quantidade de metas físicas{% endif %}.</p>
-    <c-dashboard.tabela-anual-pilar :linhas="painel_pilar.tabela" base="{{ painel_pilar.base }}" rotulo_previsto="{{ painel_pilar.rotulo_previsto }}" />
+    <c-dashboard.tabela-anual-pilar :linhas="painel_pilar.tabela" base="{{ painel_pilar.base }}" rotulo_previsto="{{ painel_pilar.rotulo_previsto }}" :valores-em-reais="painel_pilar.valores_em_reais" />
   </section>
 
   {% if pode_editar_pilar and not standalone %}

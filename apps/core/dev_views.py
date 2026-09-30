@@ -19,8 +19,8 @@ def design_system(request):
         },
         "demo_bloco": {
             "nome_previsto": "Projetado", "nome_executado": "Executado",
-            "serie_previsto": [15, 20, 20, 5, 60], "serie_executado": [10, 15, 15, 0, 40],
+            "serie_previsto": [15, 20, 20, 5], "serie_executado": [10, 15, 15, 0],
             "rodape_pct": 67, "rodape_faixa": "parcial",
         },
-        "demo_geo_fonte": geometria_fonte([15, 20, 20, 5, 60], [10, 15, 15, 0, 40], None),
+        "demo_geo_fonte": geometria_fonte([15, 20, 20, 5], [10, 15, 15, 0], None),
     })

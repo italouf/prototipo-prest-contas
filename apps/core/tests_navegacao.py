@@ -71,6 +71,26 @@ class SidebarNavegacaoTestes(TestCase):
         resposta = self.client.get(reverse("core:mensal"))
         self.assertContains(resposta, 'aria-current="page"')
 
+    def test_master_ve_link_direto_para_importar_planilhas(self):
+        self.client.force_login(self.master)
+        resposta = self.client.get(reverse("core:dashboard"))
+        self.assertContains(resposta, 'href="/financeiro/prestacao/importar/"')
+        self.assertContains(resposta, "Importar planilhas")
+
+    def test_importacao_marca_item_ativo(self):
+        self.client.force_login(self.master)
+        resposta = self.client.get(reverse("accountability:importar"))
+        sidebar = resposta.content.decode().split('data-testid="sidebar"')[1].split("</aside>")[0]
+        link = sidebar.split('href="/financeiro/prestacao/importar/"')[1].split("</a>")[0]
+        self.assertIn('aria-current="page"', link)
+        self.assertEqual(sidebar.count('aria-current="page"'), 1)
+
+    def test_auditor_nao_ve_link_de_importacao_financeira(self):
+        self.client.force_login(self.auditor)
+        resposta = self.client.get(reverse("core:dashboard"))
+        self.assertNotContains(resposta, "Importar planilhas")
+        self.assertNotContains(resposta, "/financeiro/prestacao/importar/")
+
 
 class SemestralViewTestes(TestCase):
     def setUp(self):

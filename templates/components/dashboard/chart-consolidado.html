@@ -20,10 +20,10 @@
       <g opacity="{{ gr.opacidade }}"{% if gr.fundo %} data-destaque="true"{% endif %} data-categoria="{{ gr.categoria }}">
         {% if gr.fundo %}<rect x="{{ gr.x0 }}" y="{{ geo.topo_y }}" width="{{ gr.largura_fundo }}" height="{{ geo.fundo_h }}" rx="8" class="fill-quiin-royal/10" />{% endif %}
         {% for barra in gr.barras %}
-        <rect x="{{ barra.x }}" y="{{ barra.y }}" width="{{ barra.w }}" height="{{ barra.h }}" rx="3" class="{% if forloop.counter0 == 0 %}fill-quiin-royal{% elif forloop.counter0 == 1 %}fill-quiin-sky{% else %}fill-quiin-violet{% endif %}">
-          <title>{{ gr.eixo }} · {{ barra.serie }}: {{ barra.valor|numero_curto }} {{ unidade }}</title>
-        </rect>
-        <text x="{{ barra.cx }}" y="{{ barra.ry }}" text-anchor="middle" font-size="11" font-weight="700" class="fill-current text-text">{{ barra.valor|numero_curto }}</text>
+        {% if barra.disponivel %}<rect x="{{ barra.x }}" y="{{ barra.y }}" width="{{ barra.w }}" height="{{ barra.h }}" rx="3" class="{% if forloop.counter0 == 0 %}fill-quiin-royal{% elif forloop.counter0 == 1 %}fill-quiin-sky{% else %}fill-quiin-violet{% endif %}">
+          <title>{{ gr.eixo }} · {{ barra.serie }}: {% if consolidado.valores_em_reais %}{% if standalone %}{{ barra.valor|moeda_ptbr }}{% else %}{{ barra.valor|escala_ptbr }}{% endif %}{% else %}{{ barra.valor|numero_curto }} {{ unidade }}{% endif %}</title>
+        </rect>{% endif %}
+        <text x="{{ barra.cx }}" y="{{ barra.ry }}" text-anchor="middle" font-size="11" font-weight="700" class="fill-current text-text">{% if barra.disponivel %}{% if consolidado.valores_em_reais %}{% if standalone %}{{ barra.valor|moeda_ptbr }}{% else %}{{ barra.valor|escala_ptbr }}{% endif %}{% else %}{{ barra.valor|numero_curto }}{% endif %}{% else %}—{% endif %}</text>
         {% endfor %}
         <text x="{{ gr.cx_eixo }}" y="{{ geo.eixo_y }}" text-anchor="middle" font-size="11" class="fill-current {% if gr.fundo %}font-bold text-text{% else %}text-text-muted{% endif %}">{{ gr.eixo }}</text>
       </g>

@@ -61,6 +61,13 @@
             <c-ui.icon name="calendar" size="18" /><span class="nav-rotulo">Semestral</span>
           </a>
         </li>
+        {% if pode_importar_financeiro %}
+        <li>
+          <a href="{% url 'accountability:importar' %}" data-nav-link class="nav-clara {% if request.resolver_match.url_name == 'importar' %}nav-ativo{% endif %}" {% if request.resolver_match.url_name == 'importar' %}aria-current="page"{% endif %}>
+            <c-ui.icon name="file-text" size="18" /><span class="nav-rotulo">Importar planilhas</span>
+          </a>
+        </li>
+        {% endif %}
       </ul>
     </div>
 
@@ -95,7 +102,7 @@
         {% endif %}
         {% if pode_importar_financeiro %}
         <li>
-          <a href="{% url 'finance:consolidado' %}" data-nav-link class="nav-clara {% if '/financeiro/' in request.path %}nav-ativo{% endif %}" {% if '/financeiro/' in request.path %}aria-current="page"{% endif %}>
+          <a href="{% url 'finance:consolidado' %}" data-nav-link class="nav-clara {% if '/financeiro/' in request.path and '/prestacao/' not in request.path %}nav-ativo{% endif %}" {% if '/financeiro/' in request.path and '/prestacao/' not in request.path %}aria-current="page"{% endif %}>
             <c-ui.icon name="dollar" size="18" /><span class="nav-rotulo">Financeiro</span>
           </a>
         </li>

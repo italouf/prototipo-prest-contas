@@ -185,11 +185,13 @@ class PainelServicoTestes(TestCase):
             (67, 33, 0),
         )
 
-    def test_series_dos_graficos_incluem_acumulado(self):
+    def test_series_dos_graficos_separam_acumulado(self):
         p = services.painel(None, "financeiro")
-        self.assertEqual(p["graficos"]["ppi"]["serie_previsto"], [D(15), D(20), D(20), D(5), D(60)])
-        self.assertEqual(p["graficos"]["ppi"]["serie_executado"], [D(10), D(15), D(15), D(0), D(40)])
-        self.assertEqual(p["graficos"]["at"]["serie_previsto"], [D(1), D(2), D(3), D("1.75"), D("7.75")])
+        self.assertEqual(p["graficos"]["ppi"]["serie_previsto"], [D(15), D(20), D(20), D(5)])
+        self.assertEqual(p["graficos"]["ppi"]["serie_executado"], [D(10), D(15), D(15), D(0)])
+        self.assertEqual(p["graficos"]["ppi"]["acumulado_previsto"], D(60))
+        self.assertEqual(p["graficos"]["ppi"]["acumulado_executado"], D(40))
+        self.assertEqual(p["graficos"]["at"]["serie_previsto"], [D(1), D(2), D(3), D("1.75")])
 
     def test_chips_e_rotulos_por_estado(self):
         p = services.painel(None, "financeiro")
@@ -207,24 +209,31 @@ class PainelServicoTestes(TestCase):
 
 
 class GeometriaGraficosTestes(SimpleTestCase):
-    def test_fonte_tem_5_grupos_com_divisor_e_destaque(self):
-        g = charts.geometria_fonte([15, 20, 20, 5, 60], [10, 15, 15, 0, 40], destaque=2)
+    def test_fonte_tem_4_grupos_anuais_com_destaque(self):
+        g = charts.geometria_fonte([15, 20, 20, 5], [10, 15, 15, 0], destaque=2)
         self.assertEqual((g["largura"], g["altura"]), (430, 268))
-        self.assertEqual(len(g["grupos"]), 5)
-        self.assertEqual([gr["divisor"] for gr in g["grupos"]], [False, False, False, False, True])
-        self.assertEqual([gr["destaque"] for gr in g["grupos"]], [False, False, True, False, False])
-        self.assertEqual([gr["opacidade"] for gr in g["grupos"]], [0.3, 0.3, 1, 0.3, 0.3])
+        self.assertEqual(len(g["grupos"]), 4)
+        self.assertEqual([gr["divisor"] for gr in g["grupos"]], [False, False, False, False])
+        self.assertEqual([gr["destaque"] for gr in g["grupos"]], [False, False, True, False])
+        self.assertEqual([gr["opacidade"] for gr in g["grupos"]], [0.3, 0.3, 1, 0.3])
         barras = [(gr["a"]["h"], gr["b"]["h"]) for gr in g["grupos"]]
         # altura proporcional ao valor (mesma escala p/ as duas séries)
-        self.assertGreater(barras[4][0], barras[0][0])
+        self.assertGreater(barras[0][0], barras[3][0])
         self.assertEqual(barras[3][1], charts.ALTURA_MINIMA)  # valor zero vira filete mínimo
         self.assertEqual(g["grupos"][0]["eixo"], ("Ano 1", "2024"))
-        self.assertEqual(g["grupos"][4]["eixo"], ("Todos os anos", "2024 a 2027"))
+        self.assertEqual(g["grupos"][3]["eixo"], ("Ano 4", "2027"))
 
     def test_fonte_sem_destaque_mostra_tudo(self):
-        g = charts.geometria_fonte([1, 2, 3, 1.75, 7.75], [0, 1, 1, 0, 2], destaque=None)
+        g = charts.geometria_fonte([1, 2, 3, 1.75], [0, 1, 1, 0], destaque=None)
         self.assertTrue(all(gr["opacidade"] == 1 for gr in g["grupos"]))
         self.assertTrue(all(gr["destaque"] is False for gr in g["grupos"]))
+
+    def test_fonte_preserva_ausencia_sem_transformar_em_zero(self):
+        g = charts.geometria_fonte([None, 1, 0, 2], [None, 0, 3, None], destaque=None)
+        self.assertFalse(g["grupos"][0]["a"]["disponivel"])
+        self.assertFalse(g["grupos"][0]["b"]["disponivel"])
+        self.assertTrue(g["grupos"][2]["a"]["disponivel"])
+        self.assertFalse(g["grupos"][3]["b"]["disponivel"])
 
     def test_consolidado_tem_4_anos_x_3_series_com_fundo_no_destaque(self):
         g = charts.geometria_consolidado(

@@ -7,6 +7,7 @@
         hx-swap="outerHTML" hx-push-url="true" hx-indicator="#progresso, #skeleton-global"
         class="flex flex-wrap items-end gap-x-4 gap-y-2">
     <input type="hidden" name="base" value="{{ base_param }}">
+    {% if acompanhamento %}<input type="hidden" name="acompanhamento" value="{{ acompanhamento.pk }}">{% endif %}
     <div>
       <label for="year-select" class="block text-[0.65rem] font-semibold uppercase tracking-widest text-text-muted">Ano</label>
       <select id="year-select" name="ano" data-testid="year-select" onchange="this.form.requestSubmit()"
@@ -23,13 +24,13 @@
   <div>
     <span id="base-rotulo" class="block text-[0.65rem] font-semibold uppercase tracking-widest text-text-muted">Base de análise</span>
     <div class="mt-1 inline-flex overflow-hidden rounded-md border border-border" role="group" aria-labelledby="base-rotulo" data-testid="base-toggle">
-      <a href="{% url 'core:pilar' pilar.pk %}?ano={{ ano_param }}&base=fin"
-         hx-get="{% url 'core:pilar' pilar.pk %}?ano={{ ano_param }}&base=fin" hx-target="#painel-pilar" hx-select="#painel-pilar"
+      <a href="{% url 'core:pilar' pilar.pk %}?ano={{ ano_param }}&base=fin{% if acompanhamento %}&acompanhamento={{ acompanhamento.pk }}{% endif %}"
+         hx-get="{% url 'core:pilar' pilar.pk %}?ano={{ ano_param }}&base=fin{% if acompanhamento %}&acompanhamento={{ acompanhamento.pk }}{% endif %}" hx-target="#painel-pilar" hx-select="#painel-pilar"
          hx-swap="outerHTML" hx-push-url="true" hx-indicator="#progresso, #skeleton-global"
          {% if base_param == 'fin' %}aria-current="true"{% endif %}
          class="px-4 py-2 text-sm font-semibold {% if base_param == 'fin' %}bg-quiin-navy text-white{% else %}bg-surface-2 text-text hover:bg-quiin-mist/40{% endif %}">Financeiro</a>
-      <a href="{% url 'core:pilar' pilar.pk %}?ano={{ ano_param }}&base=fis"
-         hx-get="{% url 'core:pilar' pilar.pk %}?ano={{ ano_param }}&base=fis" hx-target="#painel-pilar" hx-select="#painel-pilar"
+      <a href="{% url 'core:pilar' pilar.pk %}?ano={{ ano_param }}&base=fis{% if acompanhamento %}&acompanhamento={{ acompanhamento.pk }}{% endif %}"
+         hx-get="{% url 'core:pilar' pilar.pk %}?ano={{ ano_param }}&base=fis{% if acompanhamento %}&acompanhamento={{ acompanhamento.pk }}{% endif %}" hx-target="#painel-pilar" hx-select="#painel-pilar"
          hx-swap="outerHTML" hx-push-url="true" hx-indicator="#progresso, #skeleton-global"
          {% if base_param == 'fis' %}aria-current="true"{% endif %}
          class="border-l border-border px-4 py-2 text-sm font-semibold {% if base_param == 'fis' %}bg-quiin-navy text-white{% else %}bg-surface-2 text-text hover:bg-quiin-mist/40{% endif %}">Físico</a>
@@ -47,8 +48,8 @@
     {% if pode_editar_pilar %}
     <c-ui.button variant="primary" size="toolbar" data-testid="btn-editar-dados" data-editor-toggle onclick="quiinAlternarEditor()">Editar dados</c-ui.button>
     {% endif %}
-    <c-ui.button variant="ghost" size="toolbar" href="{% url 'planning:export_html' %}?ano={{ ano_param }}&base={{ base_param }}&pilar={{ pilar.pk }}">Baixar dashboard</c-ui.button>
-    <c-ui.button variant="ghost" size="toolbar" href="{% url 'planning:csv' %}?ano={{ ano_param }}&base={{ base_param }}&pilar={{ pilar.pk }}">Baixar dados (CSV)</c-ui.button>
+    <c-ui.button variant="ghost" size="toolbar" href="{% url 'planning:export_html' %}?ano={{ ano_param }}&base={{ base_param }}&pilar={{ pilar.pk }}{% if acompanhamento %}&acompanhamento={{ acompanhamento.pk }}{% endif %}">Baixar dashboard</c-ui.button>
+    <c-ui.button variant="ghost" size="toolbar" href="{% url 'planning:csv' %}?ano={{ ano_param }}&base={{ base_param }}&pilar={{ pilar.pk }}{% if acompanhamento %}&acompanhamento={{ acompanhamento.pk }}{% endif %}">Baixar dados (CSV)</c-ui.button>
     <c-ui.button variant="ghost" size="toolbar" onclick="window.print()">Imprimir</c-ui.button>
     <c-ui.button size="toolbar" variant="ghost" href="{% url 'core:pilar' pilar.pk %}">Restaurar padrão</c-ui.button>
   </div>

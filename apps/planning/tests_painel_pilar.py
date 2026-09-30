@@ -53,10 +53,12 @@ class PainelPilarTestes(TestCase):
         self.assertEqual((at["previsto"], at["executado"]), (D(3), D(1)))
         self.assertEqual((at["pct"], at["faixa"]), (33, "critica"))
 
-    def test_series_tem_4_anos_mais_acumulado(self):
+    def test_series_tem_4_anos_e_acumulado_separado(self):
         p = self.painel("PDI")
-        self.assertEqual(p["serie_previsto"], [D(7), D(10), D(10), D(2), D(29)])
-        self.assertEqual(p["serie_executado"], [D(5), D(8), D(8), D(0), D(21)])
+        self.assertEqual(p["serie_previsto"], [D(7), D(10), D(10), D(2)])
+        self.assertEqual(p["serie_executado"], [D(5), D(8), D(8), D(0)])
+        self.assertEqual(p["grafico"]["acumulado_previsto"], D(29))
+        self.assertEqual(p["grafico"]["acumulado_executado"], D(21))
         self.assertEqual((p["rodape_pct"], p["rodape_faixa"]), (72, "parcial"))
         p26 = self.painel("PDI", ano=2026)
         self.assertEqual((p26["rodape_pct"], p26["rodape_faixa"]), (80, "parcial"))
