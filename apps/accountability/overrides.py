@@ -155,18 +155,41 @@ def aplicar_overrides(acomp, base, itens, usuario):
     return aplicados
 
 
+def _pilar_do_override(override):
+    """Pilar que dá escopo ao override: o próprio (financeiro) ou o do KPI (físico).
+
+    Mesma resolução de `_resolver_item`/`aplicar_overrides`; linha sem alvo
+    resolúvel fica fora de todo escopo e nunca é tocada.
+    """
+    if override.kpi is not None:
+        return override.kpi.pilar.codigo
+    return override.pilar.codigo if override.pilar is not None else None
+
+
 def restaurar_tudo(acomp, usuario):
-    """Remove **todos** os overrides do acompanhamento (SDD §9) e audita.
+    """Remove os overrides do acompanhamento **no escopo do usuário** e audita.
+
+    Spec §9 combina "remove todos os overrides do acompanhamento" com
+    "`pilares_editaveis_painel` (pilar do KPI entra no escopo do PontoFocal)";
+    em conflito, a regra de permissão prevalece (Ruling 28): nenhum usuário
+    modifica dado fora do seu escopo, nem por operação em massa — gestores
+    limpam tudo, PontoFocal só os overrides dos pilares vinculados.
 
     Returns:
-        int: quantidade de overrides removidos.
+        int: quantidade de overrides efetivamente removidos.
     """
     if acomp is None:
         raise ValidationError("acompanhamento obrigatório")
     if not pode_editar_painel(usuario):
         raise PermissionDenied
+    editaveis = set(pilares_editaveis_painel(usuario).values_list("codigo", flat=True))
     with transaction.atomic():
-        alvos = list(OverrideAcompanhamento.objects.filter(acompanhamento=acomp))
+        alvos = [
+            override for override in
+            OverrideAcompanhamento.objects.filter(acompanhamento=acomp)
+            .select_related("pilar", "kpi__pilar")
+            if _pilar_do_override(override) in editaveis
+        ]
         if alvos:
             OverrideAcompanhamento.objects.filter(pk__in=[o.pk for o in alvos]).delete()
         registrar_auditoria(

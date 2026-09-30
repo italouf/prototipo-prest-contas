@@ -98,7 +98,7 @@ from django.urls import reverse
 from apps.audit.models import AuditLog
 from apps.pillars.models import UsuarioPilar
 from apps.planning.models import PlanoAnual
-from ..models import CentroCompetencia
+from ..models import CentroCompetencia, KpiAcompanhamento
 
 APLICAR = "planning:aplicar"
 
@@ -193,6 +193,56 @@ class OverrideApiComplementarTestes(TestCase):
     def test_restaurar_tudo_sem_overrides_retorna_zero(self):
         assert overrides.restaurar_tudo(self.acomp, self.user) == 0
         assert AuditLog.objects.filter(acao="RESTAURAR_OVERRIDE_PRESTACAO").count() == 1
+
+    def test_restaurar_tudo_respeita_o_escopo_de_pilares(self):
+        # Ruling 28: o reset nunca alcança pilar fora do escopo do usuário.
+        pf = adicionar_grupo(
+            get_user_model().objects.create_user(username="ovrpf3", password="x"), "PontoFocal")
+        UsuarioPilar.objects.create(usuario=pf, pilar=Pilar.objects.get(codigo="PDI"))
+        overrides.aplicar_overrides(self.acomp, "financeiro",
+                                    [(2026, "PDI", "executado", Decimal("1"))], pf)
+        overrides.aplicar_overrides(self.acomp, "financeiro",
+                                    [(2026, "AT", "executado", Decimal("2"))], self.user)
+        assert overrides.restaurar_tudo(self.acomp, pf) == 1
+        restantes = set(OverrideAcompanhamento.objects.filter(acompanhamento=self.acomp)
+                        .values_list("chave", flat=True))
+        assert restantes == {"fin|AT|2026|executado"}
+
+    def test_restaurar_tudo_no_fisico_escopa_pelo_pilar_do_kpi(self):
+        # No físico o escopo do reset é o pilar do KPI, como na edição (SDD §9).
+        pf = adicionar_grupo(
+            get_user_model().objects.create_user(username="ovrpf4", password="x"), "PontoFocal")
+        UsuarioPilar.objects.create(usuario=pf, pilar=Pilar.objects.get(codigo="PDI"))
+        pe01, pe02 = self.acomp.kpis.get(codigo="PE-01"), self.acomp.kpis.get(codigo="PE-02")
+        assert pe01.pilar.codigo == "PDI" and pe02.pilar.codigo == "OUTRASFONTES"
+        overrides.aplicar_overrides(self.acomp, "fisico",
+                                    [(2025, "PE-01", "previsto", Decimal("3"))], pf)
+        overrides.aplicar_overrides(self.acomp, "fisico",
+                                    [(2025, "PE-02", "previsto", Decimal("4"))], self.user)
+        assert overrides.restaurar_tudo(self.acomp, pf) == 1
+        restantes = set(OverrideAcompanhamento.objects.filter(acompanhamento=self.acomp)
+                        .values_list("chave", flat=True))
+        assert restantes == {"fis|PE-02|2025|previsto"}
+
+    def test_kpi_de_outro_acompanhamento_nao_vaza(self):
+        # ⚠️ do review: o código do KPI pertence ao acompanhamento — nunca ao vizinho.
+        services.ingestar("INDICADORES_PE", INDICADORES, CENTRO, "3T/2024", self.user)
+        vizinho = Acompanhamento.objects.get(periodo_referencia="3T/2024")
+        assert vizinho != self.acomp and vizinho.kpis.filter(codigo="PE-01").exists()
+        KpiAcompanhamento.objects.create(
+            acompanhamento=vizinho, codigo="PE-42", sequencia=42,
+            nome="Só no acompanhamento vizinho", pilar=Pilar.objects.get(codigo="PDI"))
+        # código que só existe no vizinho ⇒ mesmo caminho de rejeição do PE-99
+        with self.assertRaises(ValidationError):
+            overrides.aplicar_overrides(self.acomp, "fisico",
+                                        [(2025, "PE-42", "executado", Decimal("1"))], self.user)
+        assert not OverrideAcompanhamento.objects.exists()
+        # homônimo real (PE-01 existe nos dois) resolve sempre no KPI DESTE acompanhamento
+        overrides.aplicar_overrides(self.acomp, "fisico",
+                                    [(2025, "PE-01", "executado", Decimal("1"))], self.user)
+        ovr = OverrideAcompanhamento.objects.get()
+        assert ovr.acompanhamento == self.acomp and ovr.kpi == self.acomp.kpis.get(codigo="PE-01")
+        assert not OverrideAcompanhamento.objects.filter(acompanhamento=vizinho).exists()
 
     def test_overrides_de_acompanhamentos_distintos_nao_se_misturam(self):
         centro = CentroCompetencia.objects.create(codigo="outro-centro", nome="Outro Centro")
