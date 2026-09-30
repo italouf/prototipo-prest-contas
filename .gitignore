@@ -14,6 +14,8 @@ playwright-report/
 *.ods
 # Scratch de workspace (briefs, reports e pacotes de review locais)
 .superpowers/
+# Worktrees locais
+.worktrees/
 # Fontes (fonte original e derivados licenciados)
 font/
 static/fonts/panton/
