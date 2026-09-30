@@ -4,12 +4,14 @@ from decimal import Decimal, InvalidOperation
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
 from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
 from apps.audit.services import registrar_auditoria
+from apps.accountability import overrides as overrides_prestacao
 from apps.accountability import panel as painel_prestacao
 from apps.accountability.models import Acompanhamento
 from apps.core.permissions import (
@@ -28,6 +30,7 @@ from .services import ANOS, BASES, grade_edicao, painel as painel_anual, painel_
 
 LIMITE_VALOR = Decimal(10) ** 10
 ACAO_BAIXAR = "baixar"
+ACAO_RESTAURAR = "restaurar"
 
 
 def contexto_painel(ano_param, base_param, usuario, acompanhamento=None):
@@ -35,21 +38,23 @@ def contexto_painel(ano_param, base_param, usuario, acompanhamento=None):
 
     Com acompanhamento importado (o mais recente quando não indicado), o painel
     lê os snapshots via `apps.accountability.panel` (SDD §8) e a grade de
-    edição fica vazia (Task 8). Sem nenhum acompanhamento no banco, o fluxo
-    legado sobre `PlanoAnual` segue inalterado.
+    edição traz os valores **efetivos** de
+    `apps.accountability.overrides.grade_edicao_overrides` (SDD §9). Sem nenhum
+    acompanhamento no banco, o fluxo legado sobre `PlanoAnual` segue inalterado.
     """
     ano = None if ano_param == "todos" else int(ano_param)
     if acompanhamento is None:
         acompanhamento = painel_prestacao.acompanhamento_padrao()
+    editaveis = (
+        set(pilares_editaveis_painel(usuario).values_list("codigo", flat=True))
+        if usuario and usuario.is_authenticated else set()
+    )
     if acompanhamento is not None:
         painel = painel_prestacao.painel_acompanhamento(ano, base_param, acompanhamento)
-        grade = []
+        grade = overrides_prestacao.grade_edicao_overrides(
+            acompanhamento, base_param, editaveis or None)
     else:
         painel = painel_anual(ano, base_param)
-        editaveis = (
-            set(pilares_editaveis_painel(usuario).values_list("codigo", flat=True))
-            if usuario and usuario.is_authenticated else set()
-        )
         grade = grade_edicao(base_param, editaveis or None)
     destaque = None if ano is None else ANOS.index(ano)
     return {
@@ -181,12 +186,98 @@ def _parse_grade(post, codigos_permitidos):
     return itens
 
 
+def _parse_grade_overrides(post):
+    """Itens de override do POST: [(ano, codigo, base, campo, valor|None)].
+
+    Mesma chave e restrições de valor de `_parse_grade` — 5 partes, ano em
+    `ANOS`, base válida, campo previsto|executado, limites e inteiro no físico —
+    com duas diferenças do caminho de overrides (SDD §9): o `codigo` é resolvido
+    depois (pilar no financeiro, KPI no físico) e valor vazio vira `None`
+    (remove o override, restaurando o importado).
+    """
+    itens = []
+    for chave, bruto in post.items():
+        if not chave.startswith("v__"):
+            continue
+        partes = chave.split("__")
+        if len(partes) != 5:
+            raise ValueError(f"campo inválido: {chave}")
+        _, ano_s, base, codigo, campo = partes
+        if not ano_s.isdigit() or int(ano_s) not in ANOS:
+            raise ValueError(f"ano inválido: {chave}")
+        if base not in BASES:
+            raise ValueError(f"base inválida: {chave}")
+        if campo not in ("previsto", "executado"):
+            raise ValueError(f"campo inválido: {chave}")
+        limpo = str(bruto).strip().replace(" ", "").replace(",", ".")
+        if limpo == "":
+            itens.append((int(ano_s), codigo, base, campo, None))
+            continue
+        try:
+            valor = Decimal(limpo)
+        except InvalidOperation:
+            raise ValueError(f"valor inválido: {chave}")
+        if valor < 0 or valor >= LIMITE_VALOR:
+            raise ValueError(f"valor fora do intervalo: {chave}")
+        if base == "fisico" and valor != valor.to_integral_value():
+            raise ValueError(f"base física exige inteiro: {chave}")
+        itens.append((int(ano_s), codigo, base, campo, valor))
+    return itens
+
+
+def _aplicar_overrides(request, acomp):
+    """POST do editor com `acompanhamento`: override manual auditado (SDD §9).
+
+    Valor vazio remove o override (restaura o importado); `acao=restaurar` limpa
+    todos os overrides do acompanhamento; `acao=baixar` aplica e devolve o HTML.
+    O conjunto inteiro do submit vai numa transação única, com auditoria em
+    `apps.accountability.overrides`.
+    """
+    filtros = _filtros_ou_padrao({"ano": request.POST.get("ano", "todos"), "base": request.POST.get("base", "fin")})
+    ano_param, base_param = filtros or ("todos", "fin")
+    destino = f"/?ano={ano_param}&base={base_param}"
+    if request.POST.get("acao") == ACAO_RESTAURAR:
+        removidos = overrides_prestacao.restaurar_tudo(acomp, request.user)
+        messages.success(
+            request, f"Valores importados restaurados ({removidos} ajuste(s) removido(s)).")
+        return redirect(destino)
+    try:
+        itens = _parse_grade_overrides(request.POST)
+    except ValueError as exc:
+        messages.error(request, f"Edição rejeitada: {exc}")
+        return redirect(destino)
+    por_base = {}
+    for item in itens:
+        por_base.setdefault(item[2], []).append(item)
+    try:
+        with transaction.atomic():
+            total = 0
+            for base, sub in por_base.items():
+                total += overrides_prestacao.aplicar_overrides(
+                    acomp, base,
+                    [(ano, codigo, campo, valor) for ano, codigo, _b, campo, valor in sub],
+                    request.user)
+    except PermissionDenied:
+        return sem_permissao(request)
+    except ValidationError as exc:
+        messages.error(request, f"Edição rejeitada: {'; '.join(exc.messages)}")
+        return redirect(destino)
+    if request.POST.get("acao") == ACAO_BAIXAR:
+        return exportar_html(request, ano_param, base_param)
+    messages.success(request, f"Valores do acompanhamento atualizados ({total} ajuste(s)).")
+    return redirect(destino)
+
+
 @login_required
 @require_POST
 def aplicar(request):
     """Aplica a grade de edição (atômico + auditado) ou aplica e baixa o HTML."""
     if not pode_editar_painel(request.user):
         return sem_permissao(request)
+    if (request.POST.get("acompanhamento") or "").strip():
+        # Editor sobre acompanhamento importado: destino é o override manual
+        # (SDD §9); sem esse campo o fluxo legado abaixo segue idêntico.
+        return _aplicar_overrides(request, _resolver_acomp_exportacao(request))
     pilar_escopo, erro = _resolver_pilar_escopo(request, request.POST)
     if erro is not None:
         return erro

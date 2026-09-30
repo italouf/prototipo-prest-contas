@@ -228,7 +228,9 @@ class ContextoComAcompanhamentoTestes(BasePanelTestes):
         contexto = contexto_painel("todos", "fin", self.user)
         assert contexto["acompanhamento"] == self.acomp
         assert list(contexto["acompanhamentos"]) == [self.acomp]
-        assert contexto["grade_edicao"] == []  # Task 8 preenche a grade
+        # Task 8: a grade reflete os valores efetivos do acompanhamento
+        # (override > importado > None — ver `overrides.grade_edicao_overrides`).
+        assert contexto["grade_edicao"][0]["linhas"][0]["codigo"] == "PDI"
         assert contexto["painel"]["base"] == "financeiro"
         assert contexto["geo_fonte"] and contexto["geo_consolidado"]
         linha = next(l for l in contexto["painel"]["tabela"]["grupos"][0]["linhas"]

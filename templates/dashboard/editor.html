@@ -49,6 +49,7 @@
     <div class="flex flex-wrap gap-2">
       <c-ui.button variant="primary" size="sm" type="submit">Aplicar alterações</c-ui.button>
       <c-ui.button size="sm" type="submit" name="acao" value="baixar">Aplicar e baixar dashboard</c-ui.button>
+      {% if acompanhamento %}<c-ui.button size="sm" type="submit" name="acao" value="restaurar">Restaurar valores importados</c-ui.button>{% endif %}
     </div>
   </form>
 </section>

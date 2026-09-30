@@ -29,6 +29,13 @@ Fontes (Ruling 9 da revisão do Task 2):
 
 Valores de KPI são `Decimal(18,6)` e **nunca** são quantizados (Ruling 11);
 campos monetários são `Decimal(18,2)`.
+
+Override manual (SDD §9): `OverrideAcompanhamento` vence o valor importado **no
+ano correspondente** — aplicado já na extração (`_resumos_financeiros`,
+`_campos_kpi`), de modo que a grade de edição e o painel leem os mesmos
+efetivos e `saldo`/`pct`/`faixa` recalculam em `_linha`. O consolidado
+(TAB. 1/TAB. 9) e o acumulado do físico (`meta_total`/`acumulado`) são figuras
+importadas próprias e **não** são afetados por overrides anuais.
 """
 from decimal import Decimal
 
@@ -204,6 +211,13 @@ def _resumos_financeiros(acomp):
     ).select_related("pilar")
     for linha in linhas:
         anual[(linha.pilar.codigo, linha.ano)] = (linha.projetado, linha.realizado)
+    # Override manual vence o importado no ano correspondente (SDD §9).
+    for override in acomp.overrides.filter(base="financeiro").select_related("pilar"):
+        if override.campo not in ("previsto", "executado"):
+            continue
+        par = list(anual.get((override.pilar.codigo, override.ano), (None, None)))
+        par[0 if override.campo == "previsto" else 1] = override.valor
+        anual[(override.pilar.codigo, override.ano)] = (par[0], par[1])
     return consolidado, anual
 
 
@@ -305,6 +319,8 @@ def _campos_kpi(kpi, referencia):
     """(previsto, executado) do KPI em `referencia` (ano ou None = acumulado).
 
     2026/2027 só têm projeção — o executado é `None`, nunca projeção (SDD §8).
+    Override manual vence o importado quando cobre o ano (SDD §9); o acumulado
+    (`referencia=None`) é figura importada própria e nunca é afetado.
     """
     if referencia is None:
         return kpi.meta_total, kpi.acumulado
@@ -312,13 +328,21 @@ def _campos_kpi(kpi, referencia):
              2026: kpi.meta_2026, 2027: kpi.meta_2027}
     executados = {2024: kpi.executado_2024, 2025: kpi.executado_2025,
                   2026: None, 2027: None}
-    return metas[referencia], executados[referencia]
+    previsto, executado = metas[referencia], executados[referencia]
+    for override in kpi.overrides.all():
+        if override.ano != referencia:
+            continue
+        if override.campo == "previsto":
+            previsto = override.valor
+        elif override.campo == "executado":
+            executado = override.valor
+    return previsto, executado
 
 
 def _painel_fisico(ano, acomp):
     kpis = list(
         KpiAcompanhamento.objects.filter(acompanhamento=acomp)
-        .select_related("pilar").order_by("sequencia", "codigo")
+        .select_related("pilar").prefetch_related("overrides").order_by("sequencia", "codigo")
     )
     por_pilar = {}
     for kpi in kpis:
