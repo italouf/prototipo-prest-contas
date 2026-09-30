@@ -49,6 +49,7 @@ from apps.planning.services import (
 )
 
 from .models import Acompanhamento, KpiAcompanhamento, ResumoFinanceiro
+from .temporal import agregar_despesas_por_ano
 
 # `?base=fin|fis` (curto) e o valor canônico armazenado no DTO.
 BASES_CANONICAS = {
@@ -223,9 +224,40 @@ def _resumos_financeiros(acomp):
 
 def _painel_financeiro(ano, acomp):
     consolidado, anual = _resumos_financeiros(acomp)
+    temporal = agregar_despesas_por_ano(acomp)
+
+    def fonte_codigo(codigo):
+        if codigo in PILARES_PPI:
+            return "ppi"
+        if codigo == "AT":
+            return "at"
+        if codigo == "OUTRASFONTES":
+            return "outras"
+        return None
+
+    def executado_temporal(codigos, ano_coluna):
+        """Executado anual dos lançamentos, ou ``None`` sem fonte temporal."""
+        fontes = {fonte_codigo(codigo) for codigo in codigos}
+        fontes.discard(None)
+        if len(fontes) != 1:
+            return None
+        fonte = fontes.pop()
+        if fonte not in temporal["fontes_com_dados"]:
+            return None
+        return temporal["fontes"][fonte][ano_coluna]
+
+    def executado_pilar_temporal(codigo, ano_coluna):
+        fonte = fonte_codigo(codigo)
+        if fonte not in temporal["fontes_com_dados"]:
+            return None
+        return temporal["pilares"].get((codigo, ano_coluna), Decimal("0"))
 
     def valor(codigos, indice):
         """Soma do campo (0=previsto, 1=executado) no período selecionado."""
+        if indice == 1 and ano is not None:
+            temporal_valor = executado_temporal(codigos, ano)
+            if temporal_valor is not None:
+                return temporal_valor
         valores = []
         for codigo in codigos:
             par = anual.get((codigo, ano)) if ano is not None else consolidado.get(codigo)
@@ -234,6 +266,10 @@ def _painel_financeiro(ano, acomp):
 
     def serie_anual(codigos, indice):
         def lookup(ano_coluna):
+            if indice == 1:
+                temporal_valor = executado_temporal(codigos, ano_coluna)
+                if temporal_valor is not None:
+                    return temporal_valor
             valores = []
             for codigo in codigos:
                 par = anual.get((codigo, ano_coluna))
@@ -273,6 +309,10 @@ def _painel_financeiro(ano, acomp):
             anual.get((codigo, ano), (None, None)) if ano is not None
             else consolidado.get(codigo, (None, None))
         )
+        if ano is not None:
+            temporal_executado = executado_pilar_temporal(codigo, ano)
+            if temporal_executado is not None:
+                executado = temporal_executado
         return _linha(ROTULOS_PAINEL.get(codigo, codigo), previsto, executado,
                       codigo=codigo)
 
