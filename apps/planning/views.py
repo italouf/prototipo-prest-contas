@@ -33,6 +33,11 @@ ACAO_BAIXAR = "baixar"
 ACAO_RESTAURAR = "restaurar"
 
 
+def _float_series(values):
+    """Converte séries para SVG preservando ``None`` como indisponível."""
+    return [None if value is None else float(value) for value in values]
+
+
 def contexto_painel(ano_param, base_param, usuario, acompanhamento=None):
     """Contexto completo do painel anual (usado pela view `/` e pelo export).
 
@@ -63,14 +68,15 @@ def contexto_painel(ano_param, base_param, usuario, acompanhamento=None):
         "base_param": base_param,
         "geo_fonte": {
             chave: geometria_fonte(
-                [float(v) for v in bloco["serie_previsto"]],
-                [float(v) for v in bloco["serie_executado"]],
+                _float_series(bloco["serie_previsto"]),
+                _float_series(bloco["serie_executado"]),
                 destaque,
             )
             for chave, bloco in painel["graficos"].items()
         },
         "geo_consolidado": geometria_consolidado(
-            {s["nome"]: [float(v) for v in s["valores"]] for s in painel["consolidado"]["series"]},
+            {s["nome"]: _float_series(s["valores"])
+             for s in painel["consolidado"]["series"]},
             destaque,
         ),
         "grade_edicao": grade,
@@ -128,28 +134,41 @@ def _resolver_pilar_escopo(request, fonte):
     return pilar, None
 
 
-def contexto_pilar(pilar, ano_param, base_param, usuario):
-    """Contexto do painel anual do pilar (usado pela view e pelo export)."""
+def contexto_pilar(pilar, ano_param, base_param, usuario, acompanhamento=None):
+    """Contexto do painel anual do pilar, legado ou importado."""
     ano = None if ano_param == "todos" else int(ano_param)
-    pp = painel_pilar(pilar, ano, base_param)
-    destaque = None if ano is None else ANOS.index(ano)
+    if acompanhamento is None:
+        acompanhamento = painel_prestacao.acompanhamento_padrao()
     editaveis = (
         set(pilares_editaveis_painel(usuario).values_list("codigo", flat=True))
         if usuario and usuario.is_authenticated else set()
     )
+    if acompanhamento is None:
+        pp = painel_pilar(pilar, ano, base_param)
+        grade = grade_edicao(base_param, ({pilar.codigo} & editaveis) or {"__nenhum__"})
+    else:
+        pp = painel_prestacao.painel_pilar_acompanhamento(
+            pilar, ano, base_param, acompanhamento
+        )
+        grade = overrides_prestacao.grade_edicao_overrides(
+            acompanhamento, base_param, ({pilar.codigo} & editaveis) or {"__nenhum__"}
+        )
+    destaque = None if ano is None else ANOS.index(ano)
     return {
         "painel_pilar": pp,
         "ano_param": ano_param,
         "base_param": base_param,
         "geo_pilar": geometria_fonte(
-            [float(v) for v in pp["serie_previsto"]],
-            [float(v) for v in pp["serie_executado"]],
+            _float_series(pp["serie_previsto"]),
+            _float_series(pp["serie_executado"]),
             destaque,
         ),
-        "grade_edicao": grade_edicao(base_param, ({pilar.codigo} & editaveis) or {"__nenhum__"}),
+        "grade_edicao": grade,
         "base_plano": pp["base"],
         "pilar_pk": pilar.pk,
         "pode_editar_pilar": pilar.codigo in editaveis,
+        "acompanhamento": acompanhamento,
+        "acompanhamentos": painel_prestacao.lista_acompanhamentos(),
     }
 
 
@@ -332,7 +351,7 @@ def exportar_csv(request):
     if erro is not None:
         return erro
     if pilar_escopo is not None:
-        return _csv_pilar(request, pilar_escopo, ano_param, base_param)  # pilar segue legado (§12)
+        return _csv_pilar(request, pilar_escopo, ano_param, base_param)
     ano = None if ano_param == "todos" else int(ano_param)
     painel = _painel_exportacao(ano, base_param, _resolver_acomp_exportacao(request))
     unidade = "R$ milhoes" if painel["base"] == "financeiro" else "metas"
@@ -354,11 +373,18 @@ def exportar_csv(request):
 
 
 def _csv_pilar(request, pilar, ano_param, base_param):
-    """CSV do pilar: `Pilar;Ano;Previsto;Executado;Saldo;% Executado` (RF-125)."""
+    """CSV do pilar usando o acompanhamento importado quando disponível."""
     from .services import ROTULOS_PAINEL
 
     ano = None if ano_param == "todos" else int(ano_param)
-    pp = painel_pilar(pilar, ano, base_param)
+    acompanhamento = _resolver_acomp_exportacao(request)
+    pp = (
+        painel_prestacao.painel_pilar_acompanhamento(
+            pilar, ano, base_param, acompanhamento
+        )
+        if acompanhamento is not None
+        else painel_pilar(pilar, ano, base_param)
+    )
     rotulo = ROTULOS_PAINEL.get(pilar.codigo, pilar.nome)
     linhas = ["Pilar;Ano;Previsto;Executado;Saldo;% Executado"]
     for linha in pp["tabela"]:
@@ -385,7 +411,9 @@ def _html_standalone(ano_param, base_param, usuario, pilar=None, acompanhamento=
         contexto = contexto_painel(ano_param, base_param, usuario, acompanhamento)
         template = "dashboard/standalone.html"
     else:
-        contexto = contexto_pilar(pilar, ano_param, base_param, usuario)
+        contexto = contexto_pilar(
+            pilar, ano_param, base_param, usuario, acompanhamento
+        )
         template = "dashboard/standalone_pilar.html"
     caminho_css = find("css/tailwind.css")
     contexto["standalone_css"] = open(caminho_css, encoding="utf-8").read() if caminho_css else ""
@@ -407,8 +435,8 @@ def exportar_html(request, ano_param="todos", base_param="fin", pilar_pk=None):
         pilar, erro = _resolver_pilar_escopo(request, {"pilar": str(pilar_pk)})
         if erro is not None:
             return erro
-    # Pilar continua legado (§12); o painel geral exporta a visão corrente (Ruling 25).
-    acompanhamento = None if pilar is not None else _resolver_acomp_exportacao(request)
+    # O painel geral e o painel do pilar exportam a visão corrente importada.
+    acompanhamento = _resolver_acomp_exportacao(request)
     html = _html_standalone(ano_param, base_param, request.user, pilar, acompanhamento)
     hoje = date.today().isoformat()
     sufixo = f"_{pilar.codigo}" if pilar is not None else ""

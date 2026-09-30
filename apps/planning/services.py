@@ -108,9 +108,8 @@ def painel(ano, base):
                 for a in ANOS]
 
     def serie(codigo, campo):
-        """5 pontos para os gráficos (4 anos + acumulado)."""
-        vals = serie_anos(codigo, campo)
-        return vals + [sum(vals, Decimal(0))]
+        """4 pontos anuais para os gráficos; acumulado fica separado."""
+        return serie_anos(codigo, campo)
 
     def no_periodo(vals_anos):
         return sum(vals_anos, Decimal(0)) if ano is None else vals_anos[ANOS.index(ano)]
@@ -118,12 +117,12 @@ def painel(ano, base):
     soma4 = lambda listas: [sum(col, Decimal(0)) for col in zip(*listas)]
     ppi_prev_anos = soma4([serie_anos(c, "previsto") for c in PILARES_PPI])
     ppi_exec_anos = soma4([serie_anos(c, "executado") for c in PILARES_PPI])
-    ppi_prev, ppi_exec = ppi_prev_anos + [sum(ppi_prev_anos, Decimal(0))], ppi_exec_anos + [sum(ppi_exec_anos, Decimal(0))]
+    ppi_prev, ppi_exec = ppi_prev_anos, ppi_exec_anos
     at_prev, at_exec = serie("AT", "previsto"), serie("AT", "executado")
     ou_prev, ou_exec = serie("OUTRASFONTES", "previsto"), serie("OUTRASFONTES", "executado")
 
-    p_ppi, p_at, p_ou = no_periodo(ppi_prev_anos), no_periodo(at_prev[:4]), no_periodo(ou_prev[:4])
-    e_ppi, e_at, e_ou = no_periodo(ppi_exec_anos), no_periodo(at_exec[:4]), no_periodo(ou_exec[:4])
+    p_ppi, p_at, p_ou = no_periodo(ppi_prev_anos), no_periodo(at_prev), no_periodo(ou_prev)
+    e_ppi, e_at, e_ou = no_periodo(ppi_exec_anos), no_periodo(at_exec), no_periodo(ou_exec)
     p_tot, e_tot = p_ppi + p_at + p_ou, e_ppi + e_at + e_ou
 
     def card(chave, titulo, executado, previsto, denominador):
@@ -142,20 +141,32 @@ def painel(ano, base):
         card("total", "Execução consolidada", e_tot, p_tot, "previstos"),
     ]
 
-    def bloco_grafico(chave, serie_p, serie_e, nome_p, nome_e):
-        exe, prev = no_periodo(serie_e[:4]), no_periodo(serie_p[:4])
+    def bloco_grafico(chave, serie_p, serie_e, nome_p, nome_e,
+                      acumulado_p, acumulado_e):
+        exe, prev = no_periodo(serie_e), no_periodo(serie_p)
         pct = pct_inteiro(exe, prev)
         return {
             "chave": chave, "serie_previsto": serie_p, "serie_executado": serie_e,
+            "acumulado_previsto": acumulado_p,
+            "acumulado_executado": acumulado_e,
             "nome_previsto": nome_p, "nome_executado": nome_e,
             "rodape_pct": pct,
             "rodape_faixa": faixa(percentual(exe, prev)),
         }
 
     graficos = {
-        "ppi": bloco_grafico("ppi", ppi_prev, ppi_exec, "Projetado", "Executado"),
-        "at": bloco_grafico("at", at_prev, at_exec, "Captado", "Executado"),
-        "outras": bloco_grafico("outras", ou_prev, ou_exec, "Captado", "Executado"),
+        "ppi": bloco_grafico(
+            "ppi", ppi_prev, ppi_exec, "Projetado", "Executado",
+            sum(ppi_prev, Decimal(0)), sum(ppi_exec, Decimal(0)),
+        ),
+        "at": bloco_grafico(
+            "at", at_prev, at_exec, "Captado", "Executado",
+            sum(at_prev, Decimal(0)), sum(at_exec, Decimal(0)),
+        ),
+        "outras": bloco_grafico(
+            "outras", ou_prev, ou_exec, "Captado", "Executado",
+            sum(ou_prev, Decimal(0)), sum(ou_exec, Decimal(0)),
+        ),
     }
 
     grupos = []
@@ -178,9 +189,9 @@ def painel(ano, base):
     consolidado = {
         "anos": list(ANOS),
         "series": [
-            {"nome": "PPI executado", "valores": ppi_exec[:4]},
-            {"nome": "Captação AT executada", "valores": at_exec[:4]},
-            {"nome": "Outras fontes executadas", "valores": ou_exec[:4]},
+            {"nome": "PPI executado", "valores": ppi_exec},
+            {"nome": "Captação AT executada", "valores": at_exec},
+            {"nome": "Outras fontes executadas", "valores": ou_exec},
         ],
         "total_acumulado": e_ppi + e_at + e_ou if ano is None else None,
     }
@@ -255,6 +266,8 @@ def painel_pilar(pilar, ano, base):
         "destaque": False,
     })
 
+    total_previsto = sum(prev_anos, Decimal(0))
+    total_executado = sum(exec_anos, Decimal(0))
     return {
         "pilar": pilar, "codigo": codigo,
         "rotulo": ROTULOS_PAINEL.get(codigo, pilar.nome),
@@ -265,12 +278,14 @@ def painel_pilar(pilar, ano, base):
         "previsto": prev, "executado": exe, "saldo": saldo,
         "pct": pct, "faixa": fx,
         "cards": cards,
-        "serie_previsto": prev_anos + [sum(prev_anos, Decimal(0))],
-        "serie_executado": exec_anos + [sum(exec_anos, Decimal(0))],
-        "grafico": {
-            "chave": "pilar",
-            "serie_previsto": prev_anos + [sum(prev_anos, Decimal(0))],
-            "serie_executado": exec_anos + [sum(exec_anos, Decimal(0))],
+         "serie_previsto": prev_anos,
+         "serie_executado": exec_anos,
+         "grafico": {
+             "chave": "pilar",
+             "serie_previsto": prev_anos,
+             "serie_executado": exec_anos,
+             "acumulado_previsto": total_previsto,
+             "acumulado_executado": total_executado,
             "nome_previsto": rot_prev, "nome_executado": "Executado",
             "rodape_pct": pct, "rodape_faixa": fx,
         },

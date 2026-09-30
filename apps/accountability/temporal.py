@@ -35,6 +35,7 @@ def agregar_despesas_por_ano(acompanhamento) -> dict:
         for fonte in FONTES_TEMPORAIS
     }
     pilares: dict[tuple[str, int], Decimal] = {}
+    pilares_por_fonte = {fonte: {} for fonte in FONTES_TEMPORAIS}
     fontes_com_dados: set[str] = set()
     despesas = DespesaAcompanhamento.objects.filter(
         acompanhamento=acompanhamento
@@ -57,6 +58,8 @@ def agregar_despesas_por_ano(acompanhamento) -> dict:
         fontes_com_dados.add(fonte)
         chave = (despesa.pilar.codigo, ano)
         pilares[chave] = pilares.get(chave, Decimal("0")) + valor
+        por_fonte = pilares_por_fonte[fonte]
+        por_fonte[chave] = por_fonte.get(chave, Decimal("0")) + valor
 
     for fonte in fontes_com_dados:
         fontes[fonte] = {
@@ -67,6 +70,7 @@ def agregar_despesas_por_ano(acompanhamento) -> dict:
     return {
         "fontes": fontes,
         "pilares": pilares,
+        "pilares_por_fonte": pilares_por_fonte,
         "linhas": linhas,
         "linhas_sem_data": linhas_sem_data,
         "fontes_com_dados": fontes_com_dados,

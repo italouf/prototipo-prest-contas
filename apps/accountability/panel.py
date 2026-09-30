@@ -10,9 +10,9 @@ template e de geometria):
 - `tabela.grupos[*].linhas[*]` aceita `previsto/executado/saldo = None` com
   `pct = None` e `faixa = "neutra"` — `numero_curto(None)` e o template
   renderizam `—` (nunca `0%` nem farol quando não há dado);
-- `graficos[*].serie_*` e `consolidado.series` são **sempre numéricos**
-  (`Decimal(0)` para dado ausente), porque `contexto_painel` faz `float(v)`
-  em `geometria_fonte`/`geometria_consolidado` e `None` quebraria o render.
+- `graficos[*].serie_*` e `consolidado.series` preservam `None` quando o ano
+  não possui lançamento/linha importada; a geometria mantém a lacuna e os
+  templates exibem `—`, sem fabricar zero.
 
 Fontes (Ruling 9 da revisão do Task 2):
 
@@ -48,7 +48,12 @@ from apps.planning.services import (
     percentual,
 )
 
-from .models import Acompanhamento, KpiAcompanhamento, ResumoFinanceiro
+from .models import (
+    Acompanhamento,
+    KpiAcompanhamento,
+    ProjetoFinanceiro,
+    ResumoFinanceiro,
+)
 from .temporal import agregar_despesas_por_ano
 
 # `?base=fin|fis` (curto) e o valor canônico armazenado no DTO.
@@ -96,11 +101,6 @@ def _somar(valores):
     return sum(presentes, Decimal(0)) if presentes else None
 
 
-def _num(valores):
-    """Versão numérica de uma série (gráficos/consolidado): `None` vira 0."""
-    return [Decimal(0) if v is None else v for v in valores]
-
-
 def _serie_anos(lookup):
     """4 posições para `ANOS`; `None` quando não há linha importada."""
     return [lookup(ano) for ano in ANOS]
@@ -128,9 +128,9 @@ def _linha(rotulo, previsto, executado, total=False, codigo=None, pilar=None):
     }
 
 
-def _card(chave, titulo, executado, previsto, denominador):
+def _card(chave, titulo, executado, previsto, denominador, valores_em_reais=False):
     pct = None if previsto is None or executado is None else pct_inteiro(executado, previsto)
-    return {
+    card = {
         "chave": chave,
         "titulo": titulo,
         "executado": executado,
@@ -140,26 +140,36 @@ def _card(chave, titulo, executado, previsto, denominador):
         "faixa": "neutra" if pct is None else faixa(percentual(executado, previsto)),
         "barra": min(pct, 100) if pct is not None else 0,
     }
+    if valores_em_reais:
+        card["valores_em_reais"] = True
+    return card
 
 
 def _bloco_grafico(chave, serie_previsto, serie_executado, nome_previsto,
-                   nome_executado, previsto_periodo, executado_periodo):
+                   nome_executado, previsto_periodo, executado_periodo,
+                   acumulado_previsto, acumulado_executado,
+                   valores_em_reais=False):
     pct = (
         None if previsto_periodo is None or executado_periodo is None
         else pct_inteiro(executado_periodo, previsto_periodo)
     )
-    return {
+    bloco_grafico = {
         "chave": chave,
-        "serie_previsto": _num(serie_previsto),
-        "serie_executado": _num(serie_executado),
+        "serie_previsto": list(serie_previsto),
+        "serie_executado": list(serie_executado),
         "nome_previsto": nome_previsto,
         "nome_executado": nome_executado,
+        "acumulado_previsto": acumulado_previsto,
+        "acumulado_executado": acumulado_executado,
         "rodape_pct": pct,
         "rodape_faixa": (
             "neutra" if pct is None
             else faixa(percentual(executado_periodo, previsto_periodo))
         ),
     }
+    if valores_em_reais:
+        bloco_grafico["valores_em_reais"] = True
+    return bloco_grafico
 
 
 def _rotulo_periodo(ano):
@@ -168,7 +178,8 @@ def _rotulo_periodo(ano):
     return f"Ano {ANOS.index(ano) + 1}: {ano}"
 
 
-def _dto(ano, base, cards, graficos, grupos, series, total_acumulado):
+def _dto(ano, base, cards, graficos, grupos, series, total_acumulado,
+         valores_em_reais=False):
     return {
         "ano": ano,
         "base": base,
@@ -181,7 +192,9 @@ def _dto(ano, base, cards, graficos, grupos, series, total_acumulado):
             "anos": list(ANOS),
             "series": series,
             "total_acumulado": total_acumulado,
+            "valores_em_reais": valores_em_reais,
         },
+        "valores_em_reais": valores_em_reais,
     }
 
 
@@ -222,9 +235,18 @@ def _resumos_financeiros(acomp):
     return consolidado, anual
 
 
+def _overrides_financeiros(acomp):
+    """Mapa dos overrides financeiros por pilar, ano e campo."""
+    return {
+        (override.pilar.codigo, override.ano, override.campo): override.valor
+        for override in acomp.overrides.filter(base="financeiro").select_related("pilar")
+    }
+
+
 def _painel_financeiro(ano, acomp):
     consolidado, anual = _resumos_financeiros(acomp)
     temporal = agregar_despesas_por_ano(acomp)
+    overrides = _overrides_financeiros(acomp)
 
     def fonte_codigo(codigo):
         if codigo in PILARES_PPI:
@@ -235,29 +257,26 @@ def _painel_financeiro(ano, acomp):
             return "outras"
         return None
 
-    def executado_temporal(codigos, ano_coluna):
-        """Executado anual dos lançamentos, ou ``None`` sem fonte temporal."""
-        fontes = {fonte_codigo(codigo) for codigo in codigos}
-        fontes.discard(None)
-        if len(fontes) != 1:
-            return None
-        fonte = fontes.pop()
-        if fonte not in temporal["fontes_com_dados"]:
-            return None
-        return temporal["fontes"][fonte][ano_coluna]
-
-    def executado_pilar_temporal(codigo, ano_coluna):
+    def executado_pilar(codigo, ano_coluna):
+        override_key = (codigo, ano_coluna, "executado")
+        if override_key in overrides:
+            return overrides[override_key]
         fonte = fonte_codigo(codigo)
-        if fonte not in temporal["fontes_com_dados"]:
-            return None
-        return temporal["pilares"].get((codigo, ano_coluna), Decimal("0"))
+        if fonte in temporal["fontes_com_dados"]:
+            return temporal["pilares_por_fonte"][fonte].get(
+                (codigo, ano_coluna), Decimal("0")
+            )
+        par = anual.get((codigo, ano_coluna))
+        return None if par is None else par[1]
+
+    def executado_temporal(codigos, ano_coluna):
+        """Executado anual efetivo, com override vencendo o temporal."""
+        return _somar([executado_pilar(codigo, ano_coluna) for codigo in codigos])
 
     def valor(codigos, indice):
         """Soma do campo (0=previsto, 1=executado) no período selecionado."""
         if indice == 1 and ano is not None:
-            temporal_valor = executado_temporal(codigos, ano)
-            if temporal_valor is not None:
-                return temporal_valor
+            return executado_temporal(codigos, ano)
         valores = []
         for codigo in codigos:
             par = anual.get((codigo, ano)) if ano is not None else consolidado.get(codigo)
@@ -267,9 +286,7 @@ def _painel_financeiro(ano, acomp):
     def serie_anual(codigos, indice):
         def lookup(ano_coluna):
             if indice == 1:
-                temporal_valor = executado_temporal(codigos, ano_coluna)
-                if temporal_valor is not None:
-                    return temporal_valor
+                return executado_temporal(codigos, ano_coluna)
             valores = []
             for codigo in codigos:
                 par = anual.get((codigo, ano_coluna))
@@ -277,22 +294,29 @@ def _painel_financeiro(ano, acomp):
             return _somar(valores)
         return _serie_anos(lookup)
 
-    def serie_bloco(codigos, indice):
-        # 4 anos + acumulado (o consolidado dos snapshots — mesmo valor do card).
-        return serie_anual(codigos, indice) + [valor(codigos, indice)]
+    def valor_total(codigos, indice):
+        valores = []
+        for codigo in codigos:
+            par = consolidado.get(codigo)
+            valores.append(None if par is None else par[indice])
+        return _somar(valores)
 
     cards = [
         _card("ppi", "Recursos PPI executados",
-              valor(PILARES_PPI, 1), valor(PILARES_PPI, 0), "projetados"),
+              valor(PILARES_PPI, 1), valor(PILARES_PPI, 0), "projetados",
+              valores_em_reais=True),
         _card("at", "Captação AT executada",
-              valor(("AT",), 1), valor(("AT",), 0), "captados"),
+              valor(("AT",), 1), valor(("AT",), 0), "captados",
+              valores_em_reais=True),
         _card("outras", "Outras fontes executadas",
-              valor(("OUTRASFONTES",), 1), valor(("OUTRASFONTES",), 0), "captados"),
+              valor(("OUTRASFONTES",), 1), valor(("OUTRASFONTES",), 0), "captados",
+              valores_em_reais=True),
     ]
     cards.append(_card(
         "total", "Execução consolidada",
         _somar([c["executado"] for c in cards]),
-        _somar([c["previsto"] for c in cards]), "previstos"))
+        _somar([c["previsto"] for c in cards]), "previstos",
+        valores_em_reais=True))
 
     graficos = {}
     for chave, codigos, nome_previsto in (
@@ -301,8 +325,10 @@ def _painel_financeiro(ano, acomp):
         ("outras", ("OUTRASFONTES",), "Captado"),
     ):
         graficos[chave] = _bloco_grafico(
-            chave, serie_bloco(codigos, 0), serie_bloco(codigos, 1),
-            nome_previsto, "Executado", valor(codigos, 0), valor(codigos, 1))
+            chave, serie_anual(codigos, 0), serie_anual(codigos, 1),
+            nome_previsto, "Executado", valor(codigos, 0), valor(codigos, 1),
+            valor_total(codigos, 0), valor_total(codigos, 1),
+            valores_em_reais=True)
 
     def linha_pilar(codigo):
         previsto, executado = (
@@ -310,9 +336,7 @@ def _painel_financeiro(ano, acomp):
             else consolidado.get(codigo, (None, None))
         )
         if ano is not None:
-            temporal_executado = executado_pilar_temporal(codigo, ano)
-            if temporal_executado is not None:
-                executado = temporal_executado
+            executado = executado_pilar(codigo, ano)
         return _linha(ROTULOS_PAINEL.get(codigo, codigo), previsto, executado,
                       codigo=codigo)
 
@@ -325,14 +349,273 @@ def _painel_financeiro(ano, acomp):
         grupos.append({"titulo": titulo, "bloco": bloco, "linhas": linhas})
 
     series = [
-        {"nome": "PPI executado", "valores": _num(serie_anual(PILARES_PPI, 1))},
-        {"nome": "Captação AT executada", "valores": _num(serie_anual(("AT",), 1))},
-        {"nome": "Outras fontes executadas",
-         "valores": _num(serie_anual(("OUTRASFONTES",), 1))},
+         {"nome": "PPI executado", "valores": serie_anual(PILARES_PPI, 1)},
+         {"nome": "Captação AT executada", "valores": serie_anual(("AT",), 1)},
+         {"nome": "Outras fontes executadas",
+          "valores": serie_anual(("OUTRASFONTES",), 1)},
     ]
     return _dto(
         ano, BASE_FINANCEIRO, cards, graficos, grupos, series,
-        cards[3]["executado"] if ano is None else None)
+        cards[3]["executado"] if ano is None else None,
+        valores_em_reais=True)
+
+
+def _card_pilar(chave, titulo, valor, referencia, denominador, com_farol=True):
+    pct = pct_inteiro(valor, referencia) if com_farol else None
+    card = {
+        "chave": chave,
+        "titulo": titulo,
+        "executado": valor,
+        "previsto": referencia,
+        "denominador": denominador,
+        "pct": pct,
+        "faixa": faixa(percentual(valor, referencia)) if com_farol else "neutra",
+        "barra": min(pct or 0, 100) if pct is not None else 0,
+    }
+    return card
+
+
+def _painel_pilar_financeiro(pilar, ano, acomp):
+    consolidado, anual = _resumos_financeiros(acomp)
+    temporal = agregar_despesas_por_ano(acomp)
+    overrides = _overrides_financeiros(acomp)
+    codigo = pilar.codigo
+    fonte = {
+        **{pilar_codigo: "ppi" for pilar_codigo in PILARES_PPI},
+        "AT": "at",
+        "OUTRASFONTES": "outras",
+    }.get(codigo)
+
+    def executado_temporal(ano_coluna):
+        override_key = (codigo, ano_coluna, "executado")
+        if override_key in overrides:
+            return overrides[override_key]
+        if fonte not in temporal["fontes_com_dados"]:
+            par = anual.get((codigo, ano_coluna))
+            return None if par is None else par[1]
+        return temporal["pilares_por_fonte"][fonte].get(
+            (codigo, ano_coluna), Decimal("0")
+        )
+
+    def par_anual(ano_coluna):
+        previsto, executado = anual.get((codigo, ano_coluna), (None, None))
+        temporal_executado = executado_temporal(ano_coluna)
+        if temporal_executado is not None:
+            executado = temporal_executado
+        return previsto, executado
+
+    pares_anuais = [par_anual(ano_coluna) for ano_coluna in ANOS]
+    serie_previsto = [par[0] for par in pares_anuais]
+    serie_executado = [par[1] for par in pares_anuais]
+    acumulado_previsto, acumulado_executado = consolidado.get(
+        codigo, (None, None)
+    )
+    if ano is None:
+        previsto, executado = acumulado_previsto, acumulado_executado
+    else:
+        previsto, executado = pares_anuais[ANOS.index(ano)]
+    saldo = None if previsto is None or executado is None else previsto - executado
+    pct = pct_inteiro(executado, previsto)
+    rotulo_previsto = "Projetado" if codigo in PILARES_PPI else "Captado"
+    denominador = "projetados" if codigo in PILARES_PPI else "captados"
+
+    cards = [
+        _card_pilar("previsto", rotulo_previsto, previsto, previsto, denominador, False),
+        _card_pilar("executado", "Executado", executado, previsto, denominador),
+        _card_pilar("saldo", "Saldo a executar", saldo, previsto, "restantes", False),
+        {**_card_pilar("percentual", "% Executado", executado, previsto, denominador),
+         "executado": None},
+    ]
+    for card in cards:
+        card["valores_em_reais"] = True
+    tabela = []
+    for indice, ano_coluna in enumerate(ANOS):
+        pv, ex = pares_anuais[indice]
+        saldo_ano = None if pv is None or ex is None else pv - ex
+        pp = pct_inteiro(ex, pv)
+        tabela.append({
+            "rotulo": f"Ano {indice + 1}: {ano_coluna}",
+            "previsto": pv,
+            "executado": ex,
+            "saldo": saldo_ano,
+            "pct": pp,
+            "faixa": "neutra" if pp is None else faixa(percentual(ex, pv)),
+            "total": False,
+            "destaque": ano is not None and ano == ano_coluna,
+        })
+    total_pct = pct_inteiro(acumulado_executado, acumulado_previsto)
+    tabela.append({
+        "rotulo": "Total",
+        "previsto": acumulado_previsto,
+        "executado": acumulado_executado,
+        "saldo": None if acumulado_previsto is None or acumulado_executado is None
+        else acumulado_previsto - acumulado_executado,
+        "pct": total_pct,
+        "faixa": "neutra" if total_pct is None else faixa(
+            percentual(acumulado_executado, acumulado_previsto)
+        ),
+        "total": True,
+        "destaque": False,
+    })
+    projetos = ProjetoFinanceiro.objects.filter(
+        acompanhamento=acomp, pilar=pilar
+    ).count()
+    bloco = {
+        "pilar": pilar,
+        "codigo": codigo,
+        "rotulo": ROTULOS_PAINEL.get(codigo, pilar.nome),
+        "ano": ano,
+        "base": BASE_FINANCEIRO,
+        "unidade": "R$ mi",
+        "rotulo_periodo": _rotulo_periodo(ano),
+        "rotulo_previsto": rotulo_previsto,
+        "denominador": denominador,
+        "previsto": previsto,
+        "executado": executado,
+        "saldo": saldo,
+        "pct": pct,
+        "faixa": "neutra" if pct is None else faixa(percentual(executado, previsto)),
+        "cards": cards,
+        "serie_previsto": serie_previsto,
+        "serie_executado": serie_executado,
+        "grafico": {
+            "chave": "pilar",
+            "serie_previsto": serie_previsto,
+            "serie_executado": serie_executado,
+            "acumulado_previsto": acumulado_previsto,
+            "acumulado_executado": acumulado_executado,
+            "nome_previsto": rotulo_previsto,
+            "nome_executado": "Executado",
+            "rodape_pct": pct,
+            "rodape_faixa": "neutra" if pct is None else faixa(
+                percentual(executado, previsto)
+            ),
+            "valores_em_reais": True,
+        },
+        "rodape_pct": pct,
+        "rodape_faixa": "neutra" if pct is None else faixa(
+            percentual(executado, previsto)
+        ),
+        "tabela": tabela,
+        "projetos": projetos,
+        "unidade_projetos": "projetos",
+        "valores_em_reais": True,
+    }
+    return bloco
+
+
+def _painel_pilar_fisico(pilar, ano, acomp):
+    kpis = list(
+        KpiAcompanhamento.objects.filter(
+            acompanhamento=acomp, pilar=pilar
+        ).prefetch_related("overrides").order_by("sequencia", "codigo")
+    )
+    unidade = _unidade_majoritaria(kpis)
+    sub = [kpi for kpi in kpis if kpi.unidade == unidade]
+
+    def soma(referencia, indice):
+        return _somar([_campos_kpi(kpi, referencia)[indice] for kpi in sub])
+
+    serie_previsto = [soma(ano_coluna, 0) for ano_coluna in ANOS]
+    serie_executado = [soma(ano_coluna, 1) for ano_coluna in ANOS]
+    acumulado_previsto, acumulado_executado = soma(None, 0), soma(None, 1)
+    if ano is None:
+        previsto, executado = acumulado_previsto, acumulado_executado
+    else:
+        previsto = serie_previsto[ANOS.index(ano)]
+        executado = serie_executado[ANOS.index(ano)]
+    saldo = None if previsto is None or executado is None else previsto - executado
+    pct = pct_inteiro(executado, previsto)
+    rotulo_previsto = "Meta"
+    cards = [
+        _card_pilar("previsto", rotulo_previsto, previsto, previsto, "projetados", False),
+        _card_pilar("executado", "Executado", executado, previsto, "projetados"),
+        _card_pilar("saldo", "Saldo a executar", saldo, previsto, "restantes", False),
+        {**_card_pilar("percentual", "% Executado", executado, previsto, "projetados"),
+         "executado": None},
+    ]
+    tabela = []
+    for indice, ano_coluna in enumerate(ANOS):
+        pv, ex = serie_previsto[indice], serie_executado[indice]
+        pp = pct_inteiro(ex, pv)
+        tabela.append({
+            "rotulo": f"Ano {indice + 1}: {ano_coluna}",
+            "previsto": pv,
+            "executado": ex,
+            "saldo": None if pv is None or ex is None else pv - ex,
+            "pct": pp,
+            "faixa": "neutra" if pp is None else faixa(percentual(ex, pv)),
+            "total": False,
+            "destaque": ano is not None and ano == ano_coluna,
+        })
+    total_pct = pct_inteiro(acumulado_executado, acumulado_previsto)
+    tabela.append({
+        "rotulo": "Total",
+        "previsto": acumulado_previsto,
+        "executado": acumulado_executado,
+        "saldo": None if acumulado_previsto is None or acumulado_executado is None
+        else acumulado_previsto - acumulado_executado,
+        "pct": total_pct,
+        "faixa": "neutra" if total_pct is None else faixa(
+            percentual(acumulado_executado, acumulado_previsto)
+        ),
+        "total": True,
+        "destaque": False,
+    })
+    bloco = {
+        "pilar": pilar,
+        "codigo": pilar.codigo,
+        "rotulo": ROTULOS_PAINEL.get(pilar.codigo, pilar.nome),
+        "ano": ano,
+        "base": BASE_FISICO,
+        "unidade": "metas",
+        "rotulo_periodo": _rotulo_periodo(ano),
+        "rotulo_previsto": rotulo_previsto,
+        "denominador": "projetados",
+        "previsto": previsto,
+        "executado": executado,
+        "saldo": saldo,
+        "pct": pct,
+        "faixa": "neutra" if pct is None else faixa(percentual(executado, previsto)),
+        "cards": cards,
+        "serie_previsto": serie_previsto,
+        "serie_executado": serie_executado,
+        "grafico": {
+            "chave": "pilar",
+            "serie_previsto": serie_previsto,
+            "serie_executado": serie_executado,
+            "acumulado_previsto": acumulado_previsto,
+            "acumulado_executado": acumulado_executado,
+            "nome_previsto": rotulo_previsto,
+            "nome_executado": "Executado",
+            "rodape_pct": pct,
+            "rodape_faixa": "neutra" if pct is None else faixa(
+                percentual(executado, previsto)
+            ),
+        },
+        "rodape_pct": pct,
+        "rodape_faixa": "neutra" if pct is None else faixa(
+            percentual(executado, previsto)
+        ),
+        "tabela": tabela,
+        "projetos": ProjetoFinanceiro.objects.filter(
+            acompanhamento=acomp, pilar=pilar
+        ).count(),
+        "unidade_projetos": "projetos",
+    }
+    return bloco
+
+
+def painel_pilar_acompanhamento(pilar, ano, base, acomp):
+    """DTO do pilar usando o acompanhamento importado selecionado."""
+    base = BASES_CANONICAS.get(base)
+    if base not in (BASE_FINANCEIRO, BASE_FISICO):
+        raise ValueError(f"base inválida: {base!r}")
+    if ano is not None and ano not in ANOS:
+        raise ValueError(f"ano inválido: {ano!r}")
+    if base == BASE_FINANCEIRO:
+        return _painel_pilar_financeiro(pilar, ano, acomp)
+    return _painel_pilar_fisico(pilar, ano, acomp)
 
 
 # ----------------------------------------------------------------- base física
@@ -412,7 +695,7 @@ def _painel_fisico(ano, acomp):
         return _somar([_campos_kpi(k, referencia)[indice] for k in sub])
 
     def serie_kpis(sub, indice):
-        return _serie_anos(lambda a: soma(sub, a, indice)) + [soma(sub, None, indice)]
+        return _serie_anos(lambda a: soma(sub, a, indice))
 
     cards = []
     graficos = {}
@@ -427,12 +710,13 @@ def _painel_fisico(ano, acomp):
         cards.append(_card(chave, titulo_card, executado, previsto, denominador))
         graficos[chave] = _bloco_grafico(
             chave, serie_kpis(sub, 0), serie_kpis(sub, 1),
-            nome_previsto, "Executado", previsto, executado)
+            nome_previsto, "Executado", previsto, executado,
+            soma(sub, None, 0), soma(sub, None, 1))
         series.append({
             "nome": {"ppi": "PPI executado",
                      "at": "Captação AT executada",
                      "outras": "Outras fontes executadas"}[chave],
-            "valores": _num(_serie_anos(lambda a: soma(sub, a, 1))),
+             "valores": _serie_anos(lambda a: soma(sub, a, 1)),
         })
 
     # Total só soma KPIs de uma única unidade (a majoritária do conjunto) —

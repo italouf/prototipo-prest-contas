@@ -6,7 +6,12 @@ from django.test import TestCase
 from apps.pillars.models import Pilar
 
 from .. import panel
-from ..models import Acompanhamento, CentroCompetencia, DespesaAcompanhamento
+from ..models import (
+    Acompanhamento,
+    CentroCompetencia,
+    DespesaAcompanhamento,
+    ResumoFinanceiro,
+)
 
 
 class PainelTemporalTestes(TestCase):
@@ -57,3 +62,46 @@ class PainelTemporalTestes(TestCase):
             if linha["rotulo"] == "PDI"
         )
         assert linha_pdi["executado"] == Decimal("100")
+
+    def test_graficos_separam_anos_do_acumulado(self):
+        ResumoFinanceiro.objects.create(
+            acompanhamento=self.acomp,
+            origem="TAB. 1",
+            pilar=self.pilares["PDI"],
+            recurso_ou_meta=Decimal("600"),
+            realizado=Decimal("300"),
+        )
+
+        painel = panel.painel_acompanhamento(None, "financeiro", self.acomp)
+        bloco = painel["graficos"]["ppi"]
+
+        assert len(bloco["serie_previsto"]) == 4
+        assert len(bloco["serie_executado"]) == 4
+        assert bloco["acumulado_previsto"] == Decimal("600")
+        assert bloco["acumulado_executado"] == Decimal("300")
+
+    def test_lei_tics_nao_entra_na_serie_da_at(self):
+        DespesaAcompanhamento.objects.create(
+            acompanhamento=self.acomp,
+            aba="3. Conta Ação - AFCCT",
+            linha=1,
+            pilar=self.pilares["AT"],
+            tipo_recurso="AT",
+            valor=Decimal("30"),
+            data_pagamento=date(2026, 4, 1),
+        )
+        DespesaAcompanhamento.objects.create(
+            acompanhamento=self.acomp,
+            aba="6.1 Conta Ação - AT (Lei TICs)",
+            linha=2,
+            pilar=self.pilares["AT"],
+            tipo_recurso="AT_LEI_TICS",
+            valor=Decimal("40"),
+            data_pagamento=date(2026, 4, 1),
+        )
+
+        painel = panel.painel_acompanhamento(None, "financeiro", self.acomp)
+
+        assert painel["graficos"]["at"]["serie_executado"] == [
+            Decimal("0"), Decimal("0"), Decimal("30"), Decimal("0")
+        ]

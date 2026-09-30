@@ -1,6 +1,6 @@
 {% load core_extras %}
 {# Tabela gerencial dos pilares + legenda do farol. Props: tabela (DTO grupos), base ("financeiro"|"fisico"). #}
-<c-vars tabela="" base="financeiro" />
+<c-vars tabela="" base="financeiro" valores_em_reais="" />
 <div class="mt-2 overflow-x-auto" data-testid="pilares-table">
   <table class="w-full min-w-[880px] border-collapse text-sm print:min-w-0">
     <thead>
@@ -19,9 +19,9 @@
       {% for linha in grupo.linhas %}
       <tr class="border-b border-border/60 {% if linha.total %}bg-quiin-mist/30 font-bold{% endif %}">
         <td class="py-2 pr-4">{{ linha.rotulo }}</td>
-        <td class="numerico whitespace-nowrap py-2 pr-4">{{ linha.previsto|numero_curto }}</td>
-        <td class="numerico whitespace-nowrap py-2 pr-4">{{ linha.executado|numero_curto }}</td>
-        <td class="numerico whitespace-nowrap py-2 pr-4">{{ linha.saldo|numero_curto }}</td>
+        <td class="numerico whitespace-nowrap py-2 pr-4">{% if valores_em_reais %}{% if standalone %}{{ linha.previsto|moeda_ptbr }}{% else %}{{ linha.previsto|escala_ptbr }}{% endif %}{% else %}{{ linha.previsto|numero_curto }}{% endif %}</td>
+        <td class="numerico whitespace-nowrap py-2 pr-4">{% if valores_em_reais %}{% if standalone %}{{ linha.executado|moeda_ptbr }}{% else %}{{ linha.executado|escala_ptbr }}{% endif %}{% else %}{{ linha.executado|numero_curto }}{% endif %}</td>
+        <td class="numerico whitespace-nowrap py-2 pr-4">{% if valores_em_reais %}{% if standalone %}{{ linha.saldo|moeda_ptbr }}{% else %}{{ linha.saldo|escala_ptbr }}{% endif %}{% else %}{{ linha.saldo|numero_curto }}{% endif %}</td>
         <td class="numerico whitespace-nowrap py-2 pr-4">{% if linha.pct is not None %}{{ linha.pct }}%{% else %}—{% endif %}</td>
         <td class="whitespace-nowrap py-2 pr-4 text-right"><c-dashboard.farol-badge faixa="{{ linha.faixa }}" rotulo="{% if linha.faixa == 'ok' %}Meta atingida{% elif linha.faixa == 'parcial' %}Execução parcial{% elif linha.faixa == 'critica' %}Execução crítica{% else %}Sem meta{% endif %}" /></td>
       </tr>
