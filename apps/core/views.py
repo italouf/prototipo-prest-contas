@@ -81,6 +81,8 @@ def dashboard(request):
     ano_param = form.cleaned_data["ano"] if params else "todos"
     base_param = form.cleaned_data["base"] if params else BASE_FIN
     contexto = contexto_painel(ano_param, base_param, request.user, acompanhamento)
+    if contexto["painel"].get("visao_financeiro_geral") and ano_param != "todos":
+        return redirect(f"/?ano=todos&base=fin{sufixo_acomp}")
     if _hx_parcial(request):
         return render(request, "dashboard/_fragmento.html", contexto)
     return render(request, "dashboard/anual.html", contexto)

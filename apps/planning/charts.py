@@ -30,6 +30,18 @@ def geometria_fonte(serie_previsto, serie_executado, destaque):
     )
 
 
+def geometria_pilares_ppi(serie_recurso, serie_realizado):
+    """Barras agrupadas do ciclo completo para os quatro pilares da TAB. 1."""
+    return geometria_barras(
+        (("AFCCT /", "PD&I"), ("FCRH", ""), ("ACS", ""),
+         ("INFRAESTRUTURA", "")),
+        serie_recurso, serie_realizado, None,
+        largura=760, altura=310,
+        pad={"esq": 12, "dir": 12, "topo": 42, "base": 54},
+        larg_barra_max=30, espaco=40,
+    )
+
+
 def geometria_consolidado(series, destaque):
     """3 séries por ano (PPI/AT/Outras executados). `destaque`: 0..3 ou None."""
     nomes = list(series.keys())

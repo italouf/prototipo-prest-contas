@@ -3,7 +3,7 @@
 <div id="dashboard-panel" data-testid="dashboard-panel" class="mt-4">
   <section aria-label="Visão geral">
     <h2 class="font-display text-lg font-semibold">Visão geral</h2>
-    <p class="text-xs text-text-muted">Resultados agregados do Centro de Competência. Os indicadores, os gráficos e a tabela respondem aos filtros de ano e de base de análise. {{ painel.rotulo_periodo }}.</p>
+    <p class="text-xs text-text-muted">Resultados agregados do Centro de Competência. {% if painel.visao_financeiro_geral %}Valores do ciclo completo, conforme o FINANCEIRO GERAL.xlsx.{% else %}Os indicadores, os gráficos e a tabela respondem aos filtros de ano e de base de análise. {{ painel.rotulo_periodo }}.{% endif %}</p>
     <div class="mt-3 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       <c-dashboard.kpi-card :card="painel.cards.0" base="{{ base_param }}" borda="kpi-borda-1" />
       <c-dashboard.kpi-card :card="painel.cards.1" base="{{ base_param }}" borda="kpi-borda-2" />
@@ -12,6 +12,41 @@
     </div>
   </section>
 
+  {% if painel.visao_financeiro_geral and base_param == 'fin' %}
+  <section class="mt-6 rounded-xl border border-border bg-surface-2 p-5" aria-label="Execução por fonte de recursos">
+    <h2 class="font-display text-lg font-semibold">Execução por fonte de recursos</h2>
+    <p class="text-xs text-text-muted">Valores acumulados do ciclo completo.</p>
+    <div class="mt-4 grid gap-6 lg:grid-cols-3">
+      <div class="min-w-0 lg:col-span-2">
+        <c-dashboard.chart-fonte chave="ppi" titulo="Recursos PPI: projetado x executado" hint="Recursos e valores realizados por pilar." :bloco="painel.graficos_ciclo.ppi" :geo="geo_ppi" unidade="R$" eixo_rotulo="por pilar" legenda_a="RECURSO PPI" legenda_b="REALIZADO" rodape_rotulo="Execução PPI:" />
+      </div>
+      <aside class="self-start rounded-xl border border-border bg-surface p-4" aria-label="Consolidado PPI" data-testid="consolidado-ppi">
+        <h3 class="font-display text-base font-semibold">Consolidado</h3>
+        <div class="mt-4 grid grid-cols-2 gap-3 text-xs">
+          <div><span class="block text-text-muted">RECURSO PPI TOTAL</span><strong class="numerico mt-1 block text-sm">{{ painel.tabela_tab1.linhas.4.recurso|moeda_ptbr }}</strong></div>
+          <div><span class="block text-text-muted">REALIZADO TOTAL</span><strong class="numerico mt-1 block text-sm">{{ painel.tabela_tab1.linhas.4.realizado|moeda_ptbr }}</strong></div>
+        </div>
+      </aside>
+    </div>
+    <div class="mt-6 grid gap-6 lg:grid-cols-2">
+      <c-dashboard.chart-progresso-fonte chave="at" titulo="Recursos captados (AT): captado x executado" hint="Recursos captados a partir de novos associados." :bloco="painel.graficos_ciclo.at" />
+      <c-dashboard.chart-progresso-fonte chave="outras" titulo="Outras fontes: captado x executado" hint="Recursos captados a partir de outras fontes." :bloco="painel.graficos_ciclo.outras" />
+    </div>
+  </section>
+
+  <section class="mt-4 rounded-xl border border-border bg-surface-2 p-5" aria-label="Visão Consolidada do Programa">
+    <div class="flex flex-wrap items-center gap-1">
+      <h2 class="font-display text-lg font-semibold">Visão Consolidada do Programa: Execução + Projeção do Recurso Total do PPI</h2>
+      <c-dashboard.modal-farol />
+    </div>
+    <c-dashboard.tabela-tab1 :tabela="painel.tabela_tab1" />
+  </section>
+
+  <section class="mt-4 rounded-xl border border-border bg-surface-2 p-5" aria-label="Visão Consolidada por Ano: Execução + Projeção do Recurso Total do PPI">
+    <h2 class="font-display text-lg font-semibold">Visão Consolidada por Ano: Execução + Projeção do Recurso Total do PPI</h2>
+    <c-dashboard.tabela-tab11 :tabela="painel.tabela_tab11" />
+  </section>
+  {% else %}
   <section class="mt-6 rounded-xl border border-border bg-surface-2 p-5" aria-label="Execução por fonte de recursos">
     <h2 class="font-display text-lg font-semibold">Execução por fonte de recursos</h2>
     <p class="text-xs text-text-muted">Evolução anual de 2024 a 2027, {% if base_param == 'fin' %}em R$ milhões{% else %}em quantidade de metas físicas{% endif %}. O acumulado fica separado nos cartões e na tabela; o ano selecionado aparece em destaque.</p>
@@ -30,12 +65,7 @@
     <p class="text-xs text-text-muted">Detalhamento por pilar no período selecionado, {% if base_param == 'fin' %}em R$ milhões{% else %}em quantidade de metas físicas{% endif %}.</p>
    <c-dashboard.pilares-table :tabela="painel.tabela" base="{{ painel.base }}" :valores-em-reais="painel.valores_em_reais" />
   </section>
-
-  <section class="mt-4 rounded-xl border border-border bg-surface-2 p-5" aria-label="Consolidado por fonte e por ano">
-    <h2 class="font-display text-lg font-semibold">Consolidado por fonte e por ano</h2>
-    <p class="text-xs text-text-muted">Execução de PPI, captação AT e outras fontes por ano, {% if base_param == 'fin' %}em R$ milhões{% else %}em quantidade de metas físicas{% endif %}.</p>
-    <c-dashboard.chart-consolidado :consolidado="painel.consolidado" :geo="geo_consolidado" unidade="{{ painel.unidade }}" />
-  </section>
+  {% endif %}
 
   {% if pode_editar_painel and not standalone %}
   {% include 'dashboard/editor.html' %}

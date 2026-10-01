@@ -243,6 +243,125 @@ def _overrides_financeiros(acomp):
     }
 
 
+ROTULOS_TAB_PPI = (
+    ("PDI", "AFCCT / PD&I"),
+    ("FORMACAO", "FCRH"),
+    ("STARTUPS", "ACS"),
+    ("INFRA", "INFRAESTRUTURA"),
+)
+
+
+def _percentual_disponivel(numerador, denominador):
+    if numerador is None or denominador is None:
+        return None
+    return percentual(numerador, denominador)
+
+
+def _linha_tab1(rotulo, recurso, realizado, projetado, combinado, total=False):
+    pct = _percentual_disponivel(realizado, recurso)
+    return {
+        "rotulo": rotulo, "recurso": recurso, "realizado": realizado,
+        "projetado": projetado, "combinado": combinado,
+        "diferenca": recurso - realizado if recurso is not None and realizado is not None else None,
+        "pct": pct, "faixa": faixa(pct), "total": total,
+    }
+
+
+def _linha_tab11(rotulo, recurso, r2024, r2025, r2026, p2026, projetado_total, total=False):
+    realizado_total = _somar((r2024, r2025, r2026))
+    combinado = (realizado_total + projetado_total
+                 if realizado_total is not None and projetado_total is not None else None)
+    pct = _percentual_disponivel(combinado, recurso)
+    return {
+        "rotulo": rotulo, "recurso": recurso,
+        "realizado_2024": r2024, "realizado_2025": r2025,
+        "realizado_2026": r2026, "projetado_2026": p2026,
+        "projetado_total": projetado_total, "combinado": combinado,
+        "diferenca": recurso - combinado if recurso is not None and combinado is not None else None,
+        "pct": pct, "faixa": faixa(pct), "total": total,
+    }
+
+
+def _visao_financeiro_geral(acomp):
+    """Valores do ciclo completo das TAB. 1, 1.1 e 9, sem inferir anos da TAB. 9."""
+    resumos = ResumoFinanceiro.objects.filter(
+        acompanhamento=acomp, origem__in=("TAB. 1", "TAB. 1.1", "TAB. 9"),
+    ).select_related("pilar")
+    por_chave = {(r.origem, r.pilar.codigo, r.ano): r for r in resumos}
+
+    def resumo(origem, codigo, ano=None):
+        return por_chave.get((origem, codigo, ano))
+
+    def campo(linha, nome):
+        return getattr(linha, nome) if linha is not None else None
+
+    linhas_tab1 = []
+    linhas_tab11 = []
+    for codigo, rotulo in ROTULOS_TAB_PPI:
+        tab1 = resumo("TAB. 1", codigo)
+        tab11 = resumo("TAB. 1.1", codigo)
+        ano24 = resumo("TAB. 1.1", codigo, 2024)
+        ano25 = resumo("TAB. 1.1", codigo, 2025)
+        ano26 = resumo("TAB. 1.1", codigo, 2026)
+        linhas_tab1.append(_linha_tab1(
+            rotulo, campo(tab1, "recurso_ou_meta"), campo(tab1, "realizado"),
+            campo(tab1, "projetado"), campo(tab1, "realizado_mais_projetado")))
+        p2026 = campo(ano26, "projetado")
+        projetado_total = campo(tab11, "projetado")
+        if projetado_total is None:
+            projetado_total = p2026
+        recurso_tab11 = campo(tab11, "recurso_ou_meta")
+        if tab11 is None:
+            # Imports anteriores descartavam a linha da TAB. 1.1 quando O:S
+            # estavam vazios. O recurso da TAB. 1 recupera a mesma meta PPI.
+            recurso_tab11 = campo(tab1, "recurso_ou_meta")
+        linhas_tab11.append(_linha_tab11(
+            rotulo, recurso_tab11, campo(ano24, "realizado"),
+            campo(ano25, "realizado"), campo(ano26, "realizado"),
+            p2026, projetado_total))
+
+    def totalizar(linhas, campos):
+        return {campo: _somar(linha[campo] for linha in linhas) for campo in campos}
+
+    soma1 = totalizar(linhas_tab1, ("recurso", "realizado", "projetado", "combinado"))
+    linhas_tab1.append(_linha_tab1("TOTAL", **soma1, total=True))
+    soma11 = totalizar(linhas_tab11, (
+        "recurso", "realizado_2024", "realizado_2025", "realizado_2026",
+        "projetado_2026", "projetado_total"))
+    linhas_tab11.append(_linha_tab11(
+        "TOTAL", soma11["recurso"], soma11["realizado_2024"],
+        soma11["realizado_2025"], soma11["realizado_2026"],
+        soma11["projetado_2026"], soma11["projetado_total"], total=True))
+
+    ppi_total = linhas_tab1[-1]
+    graficos = {
+        "ppi": {
+            "serie_previsto": [l["recurso"] for l in linhas_tab1[:-1]],
+            "serie_executado": [l["realizado"] for l in linhas_tab1[:-1]],
+            "nome_previsto": "RECURSO PPI", "nome_executado": "REALIZADO",
+            "valores_em_reais": True, "precisao_financeira": True,
+            "rodape_pct": ppi_total["pct"], "rodape_faixa": ppi_total["faixa"],
+        },
+    }
+    for chave, codigo in (("at", "AT"), ("outras", "OUTRASFONTES")):
+        linha = resumo("TAB. 9", codigo)
+        meta = linha.recurso_ou_meta if linha is not None else None
+        captado = linha.captado if linha is not None else None
+        realizado = linha.realizado if linha is not None else None
+        pct_meta = _percentual_disponivel(captado, meta)
+        pct_exec = _percentual_disponivel(realizado, captado)
+        graficos[chave] = {
+            "meta": meta, "captado": captado, "realizado": realizado,
+            "pct_meta": pct_meta, "pct_exec": pct_exec,
+            "pct_meta_inteiro": pct_inteiro(captado, meta) if captado is not None else None,
+            "pct_exec_inteiro": pct_inteiro(realizado, captado) if realizado is not None else None,
+            "anel_meta": round(float(min(max(pct_meta, 0), 100)), 2) if pct_meta is not None else 0,
+            "anel_exec": round(float(min(max(pct_exec, 0), 100)), 2) if pct_exec is not None else 0,
+        }
+    return {"tabela_tab1": {"linhas": linhas_tab1},
+            "tabela_tab11": {"linhas": linhas_tab11}, "graficos_ciclo": graficos}
+
+
 def _painel_financeiro(ano, acomp):
     consolidado, anual = _resumos_financeiros(acomp)
     temporal = agregar_despesas_por_ano(acomp)
@@ -302,13 +421,13 @@ def _painel_financeiro(ano, acomp):
         return _somar(valores)
 
     cards = [
-        _card("ppi", "Recursos PPI executados",
+        _card("ppi", "Recursos PPI",
               valor(PILARES_PPI, 1), valor(PILARES_PPI, 0), "projetados",
               valores_em_reais=True),
-        _card("at", "Captação AT executada",
+        _card("at", "Captação AT",
               valor(("AT",), 1), valor(("AT",), 0), "captados",
               valores_em_reais=True),
-        _card("outras", "Outras fontes executadas",
+        _card("outras", "Outras fontes",
               valor(("OUTRASFONTES",), 1), valor(("OUTRASFONTES",), 0), "captados",
               valores_em_reais=True),
     ]
@@ -354,10 +473,18 @@ def _painel_financeiro(ano, acomp):
          {"nome": "Outras fontes executadas",
           "valores": serie_anual(("OUTRASFONTES",), 1)},
     ]
-    return _dto(
+    dto = _dto(
         ano, BASE_FINANCEIRO, cards, graficos, grupos, series,
         cards[3]["executado"] if ano is None else None,
         valores_em_reais=True)
+    if ResumoFinanceiro.objects.filter(acompanhamento=acomp, origem="TAB. 1").exists():
+        dto["visao_financeiro_geral"] = True
+        dto.update(_visao_financeiro_geral(acomp))
+        for card in dto["cards"]:
+            card["precisao_financeira"] = True
+            card["valor_compacto"] = card["chave"] in ("at", "outras")
+        dto["rotulo_periodo"] = "Acumulado do ciclo completo"
+    return dto
 
 
 def _card_pilar(chave, titulo, valor, referencia, denominador, com_farol=True):

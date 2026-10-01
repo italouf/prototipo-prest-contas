@@ -384,10 +384,10 @@ def _emitir_tab11(
     mapa: dict[str, tuple[str, str]],
     aba: str,
 ) -> None:
-    """TAB. 1.1 só gera linhas quando há valor em ``O:S`` no pilar.
+    """TAB. 1.1 preserva o resumo por pilar mesmo sem valores em ``O:S``.
 
-    Linhas ``ano`` vêm só de O/P/Q/R; ``S`` ("projetado total") alimenta uma
-    linha consolidada por pilar (``ano=None``) com N/T/U/V/W (SDD §4).
+    Linhas ``ano`` vêm só de O/P/Q/R quando preenchidos; ``S`` ("projetado
+    total") alimenta a linha consolidada (``ano=None``) com N/T/U/V/W.
     """
     valores = {
         campo: _valor(celulas, _coord(col, linha), tipo, aba, payload["erros"])
@@ -400,8 +400,9 @@ def _emitir_tab11(
             anuais.setdefault(ano, {})[campo] = valor
     projetado_total = _valor(
         celulas, _coord("S", linha), "dinheiro", aba, payload["erros"])
-    if not anuais and projetado_total is None:
-        return  # O:S vazios: nenhuma linha; o aviso global cobre a aba
+    # A linha consolidada conserva o recurso da TAB. 1.1 mesmo quando O:S
+    # estão vazios. A tabela anual precisa exibir os quatro pilares e distinguir
+    # ausência de lançamento de um valor efetivamente igual a zero.
     payload["resumos"].append(_montar(_CAMPOS_RESUMO, origem, pilar, {
         "recurso_ou_meta": valores["recurso_ou_meta"],
         "projetado": projetado_total,

@@ -10,6 +10,7 @@
     {% if acompanhamento and not acompanhamentos %}
     <input type="hidden" name="acompanhamento" value="{{ acompanhamento.pk }}">
     {% endif %}
+    {% if painel.visao_financeiro_geral %}<input type="hidden" name="ano" value="todos">{% else %}
     <div>
       <label for="year-select" class="block text-[0.65rem] font-semibold uppercase tracking-widest text-text-muted">Ano</label>
       <select id="year-select" name="ano" data-testid="year-select" onchange="this.form.requestSubmit()"
@@ -21,6 +22,7 @@
         <option value="2027" {% if ano_param == '2027' %}selected{% endif %}>Ano 4: 2027</option>
       </select>
     </div>
+    {% endif %}
     {% if acompanhamentos %}
     <div>
       <label for="acompanhamento-select" class="block text-[0.65rem] font-semibold uppercase tracking-widest text-text-muted">Acompanhamento</label>

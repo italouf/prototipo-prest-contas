@@ -261,7 +261,8 @@ class ContextoComAcompanhamentoTestes(BasePanelTestes):
         # (override > importado > None — ver `overrides.grade_edicao_overrides`).
         assert contexto["grade_edicao"][0]["linhas"][0]["codigo"] == "PDI"
         assert contexto["painel"]["base"] == "financeiro"
-        assert contexto["geo_fonte"] and contexto["geo_consolidado"]
+        assert contexto["geo_fonte"] and contexto["geo_ppi"]
+        assert "geo_consolidado" not in contexto
         linha = next(l for l in contexto["painel"]["tabela"]["grupos"][0]["linhas"]
                      if l["rotulo"] == "PDI")
         assert linha["previsto"] == Decimal("29000000")

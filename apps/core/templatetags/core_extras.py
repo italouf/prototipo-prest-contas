@@ -1,5 +1,5 @@
 """Filtros de template para formatação local (sem dependências externas)."""
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal, InvalidOperation, ROUND_DOWN
 
 from django import template
 
@@ -84,6 +84,25 @@ def escala_ptbr(valor):
         numero = int(v / Decimal("1000"))
         return f"R$ {numero} mil"
     return "R$ " + _numero_brl(v, 0)
+
+
+@register.filter
+def escala_precisa_ptbr(valor):
+    """Escala financeira do ciclo com duas casas, sem majorar o valor exibido."""
+    if valor is None:
+        return "—"
+    try:
+        v = Decimal(str(valor))
+    except (InvalidOperation, ValueError):
+        return valor
+    absoluto = abs(v)
+    if absoluto >= Decimal("1000000"):
+        numero = (v / Decimal("1000000")).quantize(Decimal("0.01"), rounding=ROUND_DOWN)
+        return f"R$ {_numero_brl(numero, 2)} mi"
+    if absoluto >= Decimal("1000"):
+        numero = (v / Decimal("1000")).quantize(Decimal("0.01"), rounding=ROUND_DOWN)
+        return f"R$ {_numero_brl(numero, 2)} mil"
+    return "R$ " + _numero_brl(v, 2)
 
 
 @register.filter

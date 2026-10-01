@@ -23,7 +23,7 @@ from apps.core.permissions import (
 from apps.core.templatetags.core_extras import numero_curto
 from apps.pillars.models import Pilar
 
-from .charts import geometria_consolidado, geometria_fonte
+from .charts import geometria_fonte, geometria_pilares_ppi
 from .forms import BASE_FIN, PainelFiltroForm
 from .models import PlanoAnual
 from .services import ANOS, BASES, grade_edicao, painel as painel_anual, painel_pilar
@@ -50,6 +50,10 @@ def contexto_painel(ano_param, base_param, usuario, acompanhamento=None):
     ano = None if ano_param == "todos" else int(ano_param)
     if acompanhamento is None:
         acompanhamento = painel_prestacao.acompanhamento_padrao()
+    if (acompanhamento is not None and base_param == BASE_FIN
+            and acompanhamento.resumos.filter(origem="TAB. 1").exists()):
+        ano = None
+        ano_param = "todos"
     editaveis = (
         set(pilares_editaveis_painel(usuario).values_list("codigo", flat=True))
         if usuario and usuario.is_authenticated else set()
@@ -62,6 +66,7 @@ def contexto_painel(ano_param, base_param, usuario, acompanhamento=None):
         painel = painel_anual(ano, base_param)
         grade = grade_edicao(base_param, editaveis or None)
     destaque = None if ano is None else ANOS.index(ano)
+    bloco_ppi = painel.get("graficos_ciclo", {}).get("ppi")
     return {
         "painel": painel,
         "ano_param": ano_param,
@@ -74,14 +79,14 @@ def contexto_painel(ano_param, base_param, usuario, acompanhamento=None):
             )
             for chave, bloco in painel["graficos"].items()
         },
-        "geo_consolidado": geometria_consolidado(
-            {s["nome"]: _float_series(s["valores"])
-             for s in painel["consolidado"]["series"]},
-            destaque,
-        ),
+        "geo_ppi": geometria_pilares_ppi(
+            _float_series(bloco_ppi["serie_previsto"]),
+            _float_series(bloco_ppi["serie_executado"]),
+        ) if bloco_ppi else None,
         "grade_edicao": grade,
         "base_plano": painel["base"],
-        "pode_editar_painel": pode_editar_painel(usuario),
+        "pode_editar_painel": (pode_editar_painel(usuario)
+                               and not painel.get("visao_financeiro_geral")),
         "acompanhamento": acompanhamento,
         "acompanhamentos": painel_prestacao.lista_acompanhamentos(),
     }

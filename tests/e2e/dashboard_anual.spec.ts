@@ -262,19 +262,14 @@ for (const estado of ESTADOS_L5) {
         await expect(bloco.locator(`g[data-categoria="${estado.destaque}"]`)).toHaveAttribute('data-destaque', 'true');
       }
     }
-    const consol = page.getByTestId('chart-consolidado');
-    if (estado.destaque === null) {
-      await expect(consol.locator('g[data-destaque="true"]')).toHaveCount(0);
-    } else {
-      await expect(consol.locator(`g[data-categoria="${estado.destaque}"]`)).toHaveAttribute('data-destaque', 'true');
-    }
+    await expect(page.getByTestId('chart-consolidado')).toHaveCount(0);
   });
 }
 
 test('L9 gráficos pintam barras com dimensões válidas (sem colapso em x=0)', async ({ page }) => {
   await login(page);
   await page.goto('/?ano=todos&base=fin');
-  for (const grafico of ['chart-fonte-ppi', 'chart-fonte-at', 'chart-fonte-outras', 'chart-consolidado']) {
+  for (const grafico of ['chart-fonte-ppi', 'chart-fonte-at', 'chart-fonte-outras']) {
     const caixas = await page.getByTestId(grafico).locator('rect').evaluateAll((els) =>
       els.map((el) => {
         const r = (el as unknown as SVGGraphicsElement).getBBox();

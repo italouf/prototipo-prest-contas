@@ -1,7 +1,7 @@
 {% load core_extras l10n %}
 {# Gráfico de barras agrupadas por fonte (SVG server-side). Props: chave, titulo, hint, bloco (DTO), geo, unidade ("R$ mi"|"metas"). #}
 {# Números de geometria saem sem localização (ponto decimal) — SVG não aceita vírgula. #}
-<c-vars chave="" titulo="" hint="" bloco="" geo="" unidade="R$ mi" eixo_rotulo="por ano" legenda_a="Projetado ou captado" legenda_b="Executado" />
+<c-vars chave="" titulo="" hint="" bloco="" geo="" unidade="R$ mi" eixo_rotulo="por ano" legenda_a="Projetado ou captado" legenda_b="Executado" rodape_rotulo="Execução no período selecionado" />
 <section aria-label="{{ titulo }}">
   <h3 class="font-display text-base font-semibold">{{ titulo }}</h3>
   <p class="text-xs text-text-muted">{{ hint }}</p>
@@ -9,29 +9,29 @@
     <span class="inline-flex items-center gap-1.5"><i class="inline-block h-2.5 w-2.5 rounded-sm bg-quiin-royal"></i>{{ legenda_a }}</span>
     <span class="inline-flex items-center gap-1.5"><i class="inline-block h-2.5 w-2.5 rounded-sm bg-quiin-sky"></i>{{ legenda_b }}</span>
   </div>
-  <div data-testid="chart-fonte-{{ chave }}">
+  <div data-testid="chart-fonte-{{ chave }}" class="{% if bloco.precisao_financeira %}overflow-x-auto{% endif %}">
     {% localize off %}
-    <svg viewBox="0 0 {{ geo.largura }} {{ geo.altura }}" class="mt-2 h-auto w-full" role="img" aria-label="{{ titulo }} {{ eixo_rotulo }}">
+    <svg viewBox="0 0 {{ geo.largura }} {{ geo.altura }}" class="mt-2 h-auto w-full {% if bloco.precisao_financeira %}min-w-[600px]{% endif %}" role="img" aria-label="{{ titulo }} {{ eixo_rotulo }}">
       {% for gr in geo.grupos %}
       <g opacity="{{ gr.opacidade }}"{% if gr.destaque %} data-destaque="true"{% endif %} data-categoria="{{ gr.eixo.0 }} {{ gr.eixo.1 }}">
         {% if gr.divisor %}<line x1="{{ gr.divisor_x }}" y1="{{ geo.divisor_y1 }}" x2="{{ gr.divisor_x }}" y2="{{ geo.base_y }}" class="stroke-border" stroke-width="1" stroke-dasharray="3 3" />{% endif %}
         {% if gr.a.disponivel %}<rect x="{{ gr.a.x }}" y="{{ gr.a.y }}" width="{{ gr.a.w }}" height="{{ gr.a.h }}" rx="3" class="fill-quiin-royal">
-          <title>{{ gr.eixo.0 }} ({{ gr.eixo.1 }}) · {{ bloco.nome_previsto }}: {% if bloco.valores_em_reais %}{% if standalone %}{{ gr.a.valor|moeda_ptbr }}{% else %}{{ gr.a.valor|escala_ptbr }}{% endif %}{% else %}{{ gr.a.valor|numero_curto }} {{ unidade }}{% endif %}</title>
+          <title>{{ gr.eixo.0 }} {{ gr.eixo.1 }} · {{ bloco.nome_previsto }}: {% if bloco.valores_em_reais %}{% if standalone %}{{ gr.a.valor|moeda_ptbr }}{% elif bloco.precisao_financeira %}{{ gr.a.valor|escala_precisa_ptbr }}{% else %}{{ gr.a.valor|escala_ptbr }}{% endif %}{% else %}{{ gr.a.valor|numero_curto }} {{ unidade }}{% endif %}</title>
         </rect>{% endif %}
-        <text x="{{ gr.a.cx }}" y="{{ gr.a.ry }}" text-anchor="middle" font-size="10.5" font-weight="700" class="fill-current text-text">{% if gr.a.disponivel %}{% if bloco.valores_em_reais %}{% if standalone %}{{ gr.a.valor|moeda_ptbr }}{% else %}{{ gr.a.valor|escala_ptbr }}{% endif %}{% else %}{{ gr.a.valor|numero_curto }}{% endif %}{% else %}—{% endif %}</text>
+        <text x="{{ gr.a.cx }}" y="{{ gr.a.ry }}" text-anchor="middle" font-size="{% if bloco.precisao_financeira %}14{% else %}10.5{% endif %}" font-weight="700" class="fill-current text-text">{% if gr.a.disponivel %}{% if bloco.valores_em_reais %}{% if standalone %}{{ gr.a.valor|moeda_ptbr }}{% elif bloco.precisao_financeira %}{{ gr.a.valor|escala_precisa_ptbr }}{% else %}{{ gr.a.valor|escala_ptbr }}{% endif %}{% else %}{{ gr.a.valor|numero_curto }}{% endif %}{% else %}—{% endif %}</text>
         {% if gr.b.disponivel %}<rect x="{{ gr.b.x }}" y="{{ gr.b.y }}" width="{{ gr.b.w }}" height="{{ gr.b.h }}" rx="3" class="fill-quiin-sky">
-          <title>{{ gr.eixo.0 }} ({{ gr.eixo.1 }}) · {{ bloco.nome_executado }}: {% if bloco.valores_em_reais %}{% if standalone %}{{ gr.b.valor|moeda_ptbr }}{% else %}{{ gr.b.valor|escala_ptbr }}{% endif %}{% else %}{{ gr.b.valor|numero_curto }} {{ unidade }}{% endif %}</title>
+          <title>{{ gr.eixo.0 }} {{ gr.eixo.1 }} · {{ bloco.nome_executado }}: {% if bloco.valores_em_reais %}{% if standalone %}{{ gr.b.valor|moeda_ptbr }}{% elif bloco.precisao_financeira %}{{ gr.b.valor|escala_precisa_ptbr }}{% else %}{{ gr.b.valor|escala_ptbr }}{% endif %}{% else %}{{ gr.b.valor|numero_curto }} {{ unidade }}{% endif %}</title>
         </rect>{% endif %}
-        <text x="{{ gr.b.cx }}" y="{{ gr.b.ry }}" text-anchor="middle" font-size="10.5" font-weight="700" class="fill-current text-text">{% if gr.b.disponivel %}{% if bloco.valores_em_reais %}{% if standalone %}{{ gr.b.valor|moeda_ptbr }}{% else %}{{ gr.b.valor|escala_ptbr }}{% endif %}{% else %}{{ gr.b.valor|numero_curto }}{% endif %}{% else %}—{% endif %}</text>
-        <text x="{{ gr.cx_eixo }}" y="{{ geo.eixo_y1 }}" text-anchor="middle" font-size="10" class="fill-current {% if gr.destaque %}font-bold text-text{% else %}text-text-muted{% endif %}">{{ gr.eixo.0 }}</text>
-        <text x="{{ gr.cx_eixo }}" y="{{ geo.eixo_y2 }}" text-anchor="middle" font-size="9.5" class="fill-current {% if gr.destaque %}font-bold text-text{% else %}text-text-muted{% endif %}">{{ gr.eixo.1 }}</text>
+        <text x="{{ gr.b.cx }}" y="{{ gr.b.ry }}" text-anchor="middle" font-size="{% if bloco.precisao_financeira %}14{% else %}10.5{% endif %}" font-weight="700" class="fill-current text-text">{% if gr.b.disponivel %}{% if bloco.valores_em_reais %}{% if standalone %}{{ gr.b.valor|moeda_ptbr }}{% elif bloco.precisao_financeira %}{{ gr.b.valor|escala_precisa_ptbr }}{% else %}{{ gr.b.valor|escala_ptbr }}{% endif %}{% else %}{{ gr.b.valor|numero_curto }}{% endif %}{% else %}—{% endif %}</text>
+        <text x="{{ gr.cx_eixo }}" y="{{ geo.eixo_y1 }}" text-anchor="middle" font-size="{% if bloco.precisao_financeira %}14{% else %}10{% endif %}" class="fill-current {% if gr.destaque %}font-bold text-text{% else %}text-text-muted{% endif %}">{{ gr.eixo.0 }}</text>
+        <text x="{{ gr.cx_eixo }}" y="{{ geo.eixo_y2 }}" text-anchor="middle" font-size="{% if bloco.precisao_financeira %}13{% else %}9.5{% endif %}" class="fill-current {% if gr.destaque %}font-bold text-text{% else %}text-text-muted{% endif %}">{{ gr.eixo.1 }}</text>
       </g>
       {% endfor %}
       <line x1="{{ geo.base_x1 }}" y1="{{ geo.base_y }}" x2="{{ geo.base_x2 }}" y2="{{ geo.base_y }}" class="stroke-border" stroke-width="1" />
     </svg>
     {% endlocalize %}
   </div>
-  <p data-testid="chart-rodape-{{ chave }}" class="mt-1 text-sm text-text-muted">Execução no período selecionado
-    <c-dashboard.farol-badge faixa="{{ bloco.rodape_faixa }}" rotulo="{% if bloco.rodape_pct is not None %}{{ bloco.rodape_pct }}%{% else %}—{% endif %}" />
+  <p data-testid="chart-rodape-{{ chave }}" class="mt-1 text-sm text-text-muted">{{ rodape_rotulo }}
+    <c-dashboard.farol-badge faixa="{{ bloco.rodape_faixa }}" rotulo="{% if bloco.rodape_pct is not None %}{{ bloco.rodape_pct|numero_curto }}%{% else %}—{% endif %}" />
   </p>
 </section>
