@@ -149,8 +149,8 @@ def contexto_pilar(pilar, ano_param, base_param, usuario, acompanhamento=None):
         if usuario and usuario.is_authenticated else set()
     )
     if acompanhamento is None:
-        pp = (painel_prestacao.painel_pdi_financeiro(pilar, None)
-              if pilar.codigo == "PDI" and base_param == BASE_FIN
+        pp = (painel_prestacao.painel_financeiro_pilar(pilar, None)
+              if pilar.codigo in painel_prestacao.PILARES_TABELAS_FINANCEIRAS and base_param == BASE_FIN
               else painel_pilar(pilar, ano, base_param))
         grade = grade_edicao(base_param, ({pilar.codigo} & editaveis) or {"__nenhum__"})
     else:
@@ -165,7 +165,7 @@ def contexto_pilar(pilar, ano_param, base_param, usuario, acompanhamento=None):
         "painel_pilar": pp,
         "ano_param": ano_param,
         "base_param": base_param,
-        "geo_pilar": None if pp.get("visao_pdi") else geometria_fonte(
+        "geo_pilar": None if pp.get("visao_financeira_pilar") else geometria_fonte(
             _float_series(pp["serie_previsto"]),
             _float_series(pp["serie_executado"]),
             destaque,
@@ -390,8 +390,8 @@ def _csv_pilar(request, pilar, ano_param, base_param):
             pilar, ano, base_param, acompanhamento
         )
         if acompanhamento is not None
-        else (painel_prestacao.painel_pdi_financeiro(pilar, None)
-              if pilar.codigo == "PDI" and base_param == BASE_FIN
+        else (painel_prestacao.painel_financeiro_pilar(pilar, None)
+              if pilar.codigo in painel_prestacao.PILARES_TABELAS_FINANCEIRAS and base_param == BASE_FIN
               else painel_pilar(pilar, ano, base_param))
     )
     rotulo = ROTULOS_PAINEL.get(pilar.codigo, pilar.nome)
@@ -403,13 +403,13 @@ def _csv_pilar(request, pilar, ano_param, base_param):
             f"{numero_curto(linha['executado'])};{numero_curto(linha['saldo'])};{pct}"
         )
     hoje = date.today().isoformat()
-    if pp.get("visao_pdi"):
+    if pp.get("visao_financeira_pilar"):
         import csv
         from io import StringIO
 
         documento = StringIO(newline="")
         writer = csv.writer(documento, delimiter=";")
-        for chave in ("tabela_visao_pdi", "tabela_projetos_pdi"):
+        for chave in ("tabela_visao_financeira", "tabela_projetos_financeiros"):
             tabela = pp[chave]
             writer.writerow([tabela["nome"]])
             writer.writerow(tabela["cabecalhos"])

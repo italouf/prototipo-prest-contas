@@ -6,7 +6,7 @@
 <div data-testid="page-pilar">
   <div class="print-only" data-testid="print-cabecalho">
     <h1 class="font-display text-2xl font-bold">{{ pilar.nome }} — Painel anual</h1>
-    <p class="text-sm">Período: <strong>{{ painel_pilar.rotulo_periodo }}</strong> · Base: <strong>{% if base_param == 'fin' %}Financeiro{% else %}Físico{% endif %}</strong> · Unidade: <strong>{% if painel_pilar.visao_pdi %}R${% elif base_param == 'fin' %}R$ milhões{% else %}quantidade de metas{% endif %}</strong></p>
+    <p class="text-sm">Período: <strong>{{ painel_pilar.rotulo_periodo }}</strong> · Base: <strong>{% if base_param == 'fin' %}Financeiro{% else %}Físico{% endif %}</strong> · Unidade: <strong>{% if painel_pilar.visao_financeira_pilar %}R${% elif base_param == 'fin' %}R$ milhões{% else %}quantidade de metas{% endif %}</strong></p>
   </div>
   <div class="flex flex-wrap items-end justify-between gap-3">
     <div>
@@ -18,7 +18,7 @@
 
   {% include 'dashboard/painel-pilar.html' %}
 
-  {% if pilar.codigo != 'PDI' %}
+  {% if pilar.codigo != 'PDI' and pilar.codigo != 'FORMACAO' and pilar.codigo != 'STARTUPS' %}
   {% if not periodo %}
   <c-ui.card class="mt-4"><p class="text-sm text-text-muted">Nenhum período cadastrado.</p></c-ui.card>
   {% else %}

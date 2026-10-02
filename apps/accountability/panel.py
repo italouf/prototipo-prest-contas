@@ -512,6 +512,12 @@ _COLUNAS_VISAO_PDI = (
     ("realizado_mais_projetado", "REALIZADO + PROJETADO", "dinheiro"),
     ("diferenca", "DIF.  REL. AO  PPI", "dinheiro"),
 )
+_COLUNAS_PROJECAO_PROJETOS = (
+    ("projetado_2026", "PROJETADO 2026", "dinheiro"),
+    ("projetado_2027", "PROJETADO 2027", "dinheiro"),
+    ("realizado_mais_projetado", "REALIZADO + PROJETADO", "dinheiro"),
+    ("diferenca", "DIFERENÇA ORÇADO", "dinheiro"),
+)
 _COLUNAS_PROJETOS_PDI = (
     ("nome", "PROJETO", "texto"),
     ("status", "STATUS", "texto"),
@@ -519,15 +525,54 @@ _COLUNAS_PROJETOS_PDI = (
     ("fim", "FINAL", "data"),
     ("orcado", "ORÇADO SÍNTESE", "dinheiro"),
     ("realizado", "REALIZADO", "dinheiro"),
-    ("projetado_2026", "PROJETADO 2026", "dinheiro"),
-    ("projetado_2027", "PROJETADO 2027", "dinheiro"),
-    ("realizado_mais_projetado", "REALIZADO + PROJETADO", "dinheiro"),
-    ("diferenca", "DIFERENÇA ORÇADO", "dinheiro"),
+    *_COLUNAS_PROJECAO_PROJETOS,
     ("percentual", "% REALIZADO ORÇADO", "percentual"),
 )
+_COLUNAS_PROJETOS_FCRH = (
+    ("sequencia", "ITEM", "inteiro"),
+    ("nome", "PROJETO", "texto"),
+    ("status", "STATUS", "texto"),
+    ("inicio", "INICIO DO PROJETO", "data"),
+    ("fim", "FINAL DO PROJETO", "data"),
+    ("orcado", "ORÇADO ORIGINAL", "dinheiro"),
+    ("realizado", "REALIZADO TOTAL", "dinheiro"),
+    *_COLUNAS_PROJECAO_PROJETOS,
+    ("percentual", "% REALIZADO ORÇADO", "percentual"),
+)
+_COLUNAS_PROJETOS_ACS = (
+    ("sequencia", "ITEM", "inteiro"),
+    ("nome", "PROJETO", "texto"),
+    ("status", "STATUS", "texto"),
+    ("fim", "DATA FINAL DO PROJETO", "data"),
+    ("orcado", "VALOR ORÇADO", "dinheiro"),
+    ("realizado", "REALIZADO TOTAL", "dinheiro"),
+    *_COLUNAS_PROJECAO_PROJETOS,
+    ("percentual", "% REALIZADO", "percentual"),
+)
+_TABELAS_PILARES_FINANCEIROS = {
+    "PDI": {
+        "origem_visao": "TAB. 3", "origem_projetos": "TAB. 2",
+        "nome_visao": "tbl_VisaoPDI", "nome_projetos": "tbl_ProjetosPDI",
+        "recurso": "RECURSO PPI AFCCT / PDI", "diferenca": "DIF.  REL. AO  PPI",
+        "colunas_projetos": _COLUNAS_PROJETOS_PDI, "total": "TOTAL GERAL",
+    },
+    "FORMACAO": {
+        "origem_visao": "TAB. 5", "origem_projetos": "TAB. 4",
+        "nome_visao": "tbl_VisaoFCRH", "nome_projetos": "tbl_ProjetosFCRH",
+        "recurso": "RECURSO PPI FCRH", "diferenca": "DIFERENÇA PPI",
+        "colunas_projetos": _COLUNAS_PROJETOS_FCRH, "total": "TOTAL GERAL - ATUAL",
+    },
+    "STARTUPS": {
+        "origem_visao": "TAB. 8", "origem_projetos": "TAB. 6",
+        "nome_visao": "tbl_VisaoACS", "nome_projetos": "tbl_ProjetosACS",
+        "recurso": "TOTAL ACS", "diferenca": "DIFERENÇA PPI",
+        "colunas_projetos": _COLUNAS_PROJETOS_ACS, "total": "TOTAL",
+    },
+}
+PILARES_TABELAS_FINANCEIRAS = tuple(_TABELAS_PILARES_FINANCEIROS)
 
 
-def _tabela_pdi(nome, colunas, registros):
+def _tabela_financeira_pilar(nome, colunas, registros):
     linhas = []
     for registro in registros:
         celulas = []
@@ -540,19 +585,26 @@ def _tabela_pdi(nome, colunas, registros):
     return {"nome": nome, "cabecalhos": [c[1] for c in colunas], "linhas": linhas}
 
 
-def painel_pdi_financeiro(pilar, acomp):
-    """Visão integral das tabelas PDI do snapshot, sem recortes por ano.
+def painel_financeiro_pilar(pilar, acomp):
+    """Visão integral das tabelas PDI, FCRH e ACS, sem recortes por ano.
 
-    TAB. 3 corresponde a tbl_VisaoPDI; a diferença é apresentada em módulo.
-    TAB. 2 corresponde a tbl_ProjetosPDI. O PK preserva a ordem de inclusão
-    das linhas, inclusive nos arquivos PDI sem coluna ITEM.
+    A diferença é apresentada em módulo. O PK preserva a ordem de inclusão
+    das linhas, inclusive nos arquivos sem coluna ITEM.
     """
+    codigo = pilar.codigo
+    contrato = _TABELAS_PILARES_FINANCEIROS[codigo]
+    colunas_visao = tuple(
+        (campo, contrato["recurso"] if campo == "recurso_ou_meta" else
+         contrato["diferenca"] if campo == "diferenca" else cabecalho, tipo)
+        for campo, cabecalho, tipo in _COLUNAS_VISAO_PDI
+    )
+    colunas_projetos = contrato["colunas_projetos"]
     resumo = ResumoFinanceiro.objects.filter(
-        acompanhamento=acomp, pilar=pilar, origem="TAB. 3", ano__isnull=True,
-    ).values(*(c[0] for c in _COLUNAS_VISAO_PDI if c[0] != "rotulo")).first()
+        acompanhamento=acomp, pilar=pilar, origem=contrato["origem_visao"], ano__isnull=True,
+    ).values(*(c[0] for c in colunas_visao if c[0] != "rotulo")).first()
     projetos = list(ProjetoFinanceiro.objects.filter(
-        acompanhamento=acomp, pilar=pilar, origem="TAB. 2",
-    ).order_by("pk").values(*(c[0] for c in _COLUNAS_PROJETOS_PDI)))
+        acompanhamento=acomp, pilar=pilar, origem=contrato["origem_projetos"],
+    ).order_by("pk").values(*(c[0] for c in colunas_projetos)))
     recurso = resumo.get("recurso_ou_meta") if resumo else None
     realizado = resumo.get("realizado") if resumo else None
     diferenca_importada = resumo.get("diferenca") if resumo else None
@@ -560,9 +612,9 @@ def painel_pdi_financeiro(pilar, acomp):
     pct = pct_inteiro(realizado, recurso) if realizado is not None else None
     faixa_execucao = faixa(percentual(realizado, recurso)) if pct is not None else "neutra"
     cards = [
-        _card_pilar("previsto", "RECURSO PPI AFCCT / PDI", recurso, recurso, "do PPI", False),
+        _card_pilar("previsto", contrato["recurso"], recurso, recurso, "do PPI", False),
         _card_pilar("executado", "REALIZADO", realizado, recurso, "do PPI", realizado is not None),
-        _card_pilar("saldo", "DIF.  REL. AO  PPI", diferenca, recurso, "do PPI", diferenca is not None),
+        _card_pilar("saldo", contrato["diferenca"], diferenca, recurso, "do PPI", diferenca is not None),
     ]
     cards[0]["ocultar_progresso"] = True
     cards[2]["rotulo_percentual"] = "do recurso PPI"
@@ -571,32 +623,41 @@ def painel_pdi_financeiro(pilar, acomp):
     linhas_projetos = list(projetos)
     if projetos:
         total = {campo: _somar(p[campo] for p in projetos)
-                 for campo, _cabecalho, tipo in _COLUNAS_PROJETOS_PDI if tipo == "dinheiro"}
-        total.update(nome="TOTAL GERAL", total=True)
+                 for campo, _cabecalho, tipo in colunas_projetos if tipo == "dinheiro"}
+        total.update({colunas_projetos[0][0]: contrato["total"], "total": True})
         linhas_projetos.append(total)
-    return {
-        "pilar": pilar, "codigo": "PDI", "rotulo": ROTULOS_PAINEL["PDI"],
+    bloco = {
+        "pilar": pilar, "codigo": codigo, "rotulo": ROTULOS_PAINEL[codigo],
         "ano": None, "base": BASE_FINANCEIRO, "unidade": "R$",
         "rotulo_periodo": "Acumulado do ciclo completo",
-        "rotulo_previsto": "RECURSO PPI AFCCT / PDI", "denominador": "do PPI",
+        "rotulo_previsto": contrato["recurso"], "denominador": "do PPI",
         "previsto": recurso, "executado": realizado, "saldo": diferenca,
         "pct": pct, "faixa": faixa_execucao, "cards": cards,
         "serie_previsto": [None] * len(ANOS), "serie_executado": [None] * len(ANOS),
         "tabela": [], "projetos": len(projetos), "unidade_projetos": "projetos",
-        "valores_em_reais": True, "visao_pdi": True,
-        "tabela_visao_pdi": _tabela_pdi(
-            "tbl_VisaoPDI", _COLUNAS_VISAO_PDI,
+        "valores_em_reais": True, "visao_financeira_pilar": True,
+        "tabela_visao_financeira": _tabela_financeira_pilar(
+            contrato["nome_visao"], colunas_visao,
             [{**resumo, "rotulo": "RECURSO PPI", "diferenca": diferenca}] if resumo else [],
         ),
-        "tabela_projetos_pdi": _tabela_pdi(
-            "tbl_ProjetosPDI", _COLUNAS_PROJETOS_PDI, linhas_projetos,
+        "tabela_projetos_financeiros": _tabela_financeira_pilar(
+            contrato["nome_projetos"], colunas_projetos, linhas_projetos,
         ),
     }
+    if codigo == "PDI":
+        bloco.update(visao_pdi=True, tabela_visao_pdi=bloco["tabela_visao_financeira"],
+                     tabela_projetos_pdi=bloco["tabela_projetos_financeiros"])
+    return bloco
+
+
+def painel_pdi_financeiro(pilar, acomp):
+    """Compatibilidade com consumidores do DTO PDI."""
+    return painel_financeiro_pilar(pilar, acomp)
 
 
 def _painel_pilar_financeiro(pilar, ano, acomp):
-    if pilar.codigo == "PDI":
-        return painel_pdi_financeiro(pilar, acomp)
+    if pilar.codigo in PILARES_TABELAS_FINANCEIRAS:
+        return painel_financeiro_pilar(pilar, acomp)
     consolidado, anual = _resumos_financeiros(acomp)
     temporal = agregar_despesas_por_ano(acomp)
     overrides = _overrides_financeiros(acomp)

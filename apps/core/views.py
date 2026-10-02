@@ -149,7 +149,7 @@ def semestral_csv(request):
 
 @login_required
 def pilar(request, pk):
-    """Painel do pilar; PDI financeiro exibe as tabelas do snapshot."""
+    """Painel do pilar; PDI, FCRH e ACS financeiros exibem tabelas do snapshot."""
     pilar_obj = get_object_or_404(Pilar, pk=pk)
     if not usuario_pode_pilar(request.user, pilar_obj):
         return sem_permissao(request)

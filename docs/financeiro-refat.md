@@ -59,25 +59,31 @@ O total PPI é um campo explícito do DTO, independente do índice de uma linha.
 Quantidade de projetos é obtida dos registros persistidos por pilar. As tabelas
 de reconciliação não entram novamente na soma dos consolidados.
 
-## Dashboard financeiro PDI
+## Dashboards financeiros PDI, Formação FCRH e ACS
 
-Os KPIs de PDI usam o resumo `TAB. 3` (`tbl_VisaoPDI`): recurso PPI,
-realizado e diferença em relação ao PPI. A diferença é exibida como valor
+Os três pilares compartilham os cards e o layout de visão financeira e projetos.
+Seus KPIs usam os respectivos resumos: `TAB. 3` (`tbl_VisaoPDI`), `TAB. 5`
+(`tbl_VisaoFCRH`) e `TAB. 8` (`tbl_VisaoACS`). O card de recurso usa o cabeçalho
+de cada tabela: `RECURSO PPI AFCCT / PDI`, `RECURSO PPI FCRH` e `TOTAL ACS`.
+Os demais cards apresentam realizado, diferença em relação ao PPI e percentual
+executado. A diferença é exibida como valor
 positivo (módulo), preservando o sinal original no snapshot. Sua barra mostra
 essa diferença como percentual do recurso PPI. O card de recurso PPI não
 exibe barra nem farol.
 O percentual executado continua sendo realizado dividido pelo recurso PPI.
 O painel apresenta o ciclo completo, inclusive quando a URL contém um ano.
 
-A visão financeira exibe as seis colunas de `tbl_VisaoPDI` e as onze colunas
-de `tbl_ProjetosPDI`, com todos os projetos na ordem de importação. O total geral
+A visão financeira exibe as seis colunas de cada tabela de resumo. Os projetos
+usam as onze colunas de `tbl_ProjetosPDI`, as doze de `tbl_ProjetosFCRH` e as onze
+de `tbl_ProjetosACS`, com todos os projetos na ordem de importação. FCRH e ACS
+incluem ITEM; ACS não tem início de projeto. O total geral
 dos projetos é calculado pela soma dos valores importados, sem incluir linhas
 de total na contagem. Cabeçalhos de realizado e projetado usam seus nomes
 funcionais, sem fixar o mês de corte no frontend. Ausências aparecem como `—`.
 Os downloads HTML e CSV incluem as duas tabelas.
 
 O gráfico anual, o detalhamento anual e a prestação mensal não são exibidos
-nessa visão. O bloco de quantidade de projetos não é exibido no PDI.
+nessa visão. O bloco de quantidade de projetos não é exibido nesses três pilares.
 
 ## Atualização do arquivo e reimportação
 

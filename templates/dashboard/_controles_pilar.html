@@ -41,7 +41,7 @@
   <div class="flex flex-wrap justify-end gap-1.5" data-testid="context-chips">
     <span class="rounded-full border border-border bg-quiin-mist/40 px-3 py-1 text-xs">Período: <strong>{{ painel_pilar.rotulo_periodo }}</strong></span>
     <span class="rounded-full border border-border bg-quiin-mist/40 px-3 py-1 text-xs">Base: <strong>{% if base_param == 'fin' %}Financeiro{% else %}Físico{% endif %}</strong></span>
-    <span class="rounded-full border border-border bg-quiin-mist/40 px-3 py-1 text-xs">Unidade: <strong>{% if painel_pilar.visao_pdi %}R${% elif base_param == 'fin' %}R$ milhões{% else %}quantidade de metas{% endif %}</strong></span>
+    <span class="rounded-full border border-border bg-quiin-mist/40 px-3 py-1 text-xs">Unidade: <strong>{% if painel_pilar.visao_financeira_pilar %}R${% elif base_param == 'fin' %}R$ milhões{% else %}quantidade de metas{% endif %}</strong></span>
   </div>
 
   <div class="flex flex-wrap items-center justify-end gap-2" role="toolbar" aria-label="Ações do painel do pilar">
