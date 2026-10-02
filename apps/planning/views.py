@@ -87,8 +87,7 @@ def contexto_painel(ano_param, base_param, usuario, acompanhamento=None):
         ) if bloco_ppi else None,
         "grade_edicao": grade,
         "base_plano": painel["base"],
-        "pode_editar_painel": (pode_editar_painel(usuario)
-                               and not painel.get("visao_financeiro_geral")),
+        "pode_editar_painel": pode_editar_painel(usuario),
         "acompanhamento": acompanhamento,
         "acompanhamentos": painel_prestacao.lista_acompanhamentos(),
     }

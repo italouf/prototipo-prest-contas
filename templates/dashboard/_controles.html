@@ -64,7 +64,6 @@
     {% if pode_editar_painel %}
     <c-ui.button variant="primary" size="toolbar" data-testid="btn-editar-dados" data-editor-toggle onclick="quiinAlternarEditor()">Editar dados</c-ui.button>
     {% endif %}
-    <c-ui.button variant="ghost" size="toolbar" href="{% url 'planning:export_html' %}?ano={{ ano_param }}&base={{ base_param }}{% if acompanhamento %}&acompanhamento={{ acompanhamento.pk }}{% endif %}">Baixar dashboard</c-ui.button>
     <c-ui.button variant="ghost" size="toolbar" href="{% url 'planning:csv' %}?ano={{ ano_param }}&base={{ base_param }}{% if acompanhamento %}&acompanhamento={{ acompanhamento.pk }}{% endif %}">Baixar dados (CSV)</c-ui.button>
     <c-ui.button variant="ghost" size="toolbar" onclick="window.print()">Imprimir</c-ui.button>
     <c-ui.button size="toolbar" variant="ghost" href="{% url 'core:dashboard' %}">Restaurar padrão</c-ui.button>
