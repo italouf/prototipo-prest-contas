@@ -13,12 +13,14 @@ from django.views.decorators.http import require_POST
 from apps.audit.services import registrar_auditoria
 from apps.accountability import overrides as overrides_prestacao
 from apps.accountability import panel as painel_prestacao
-from apps.accountability.models import Acompanhamento
+from apps.accountability.models import Acompanhamento, KpiAcompanhamento
 from apps.core.permissions import (
+    FONTES_CAPTACAO,
+    fontes_captacao_visiveis,
     pilares_editaveis_painel,
     pode_editar_painel,
     sem_permissao,
-    usuario_pode_pilar,
+    usuario_pode_dashboard_pilar,
 )
 from apps.core.templatetags.core_extras import numero_curto
 from apps.pillars.models import Pilar
@@ -134,8 +136,10 @@ def _resolver_pilar_escopo(request, fonte):
     if not pk:
         return None, None
     pilar = get_object_or_404(Pilar, pk=pk)
-    if not usuario_pode_pilar(request.user, pilar):
+    if not usuario_pode_dashboard_pilar(request.user, pilar):
         return None, sem_permissao(request)
+    if pilar.codigo == "OUTRASFONTES":
+        pilar = get_object_or_404(Pilar, codigo="AT", ativo=True)
     return pilar, None
 
 
@@ -148,7 +152,21 @@ def contexto_pilar(pilar, ano_param, base_param, usuario, acompanhamento=None):
         set(pilares_editaveis_painel(usuario).values_list("codigo", flat=True))
         if usuario and usuario.is_authenticated else set()
     )
-    if acompanhamento is None:
+    combinado = pilar.codigo in FONTES_CAPTACAO
+    fontes = fontes_captacao_visiveis(usuario) if combinado else (pilar.codigo,)
+    codigos_edicao = set(fontes) & editaveis
+    if combinado:
+        pp = painel_prestacao.painel_captacao(
+            pilar, ano, base_param, acompanhamento, fontes_autorizadas=fontes)
+        if base_param == BASE_FIN:
+            ano_param = "todos"
+            grade = []
+        elif acompanhamento is None:
+            grade = grade_edicao(base_param, codigos_edicao or {"__nenhum__"})
+        else:
+            grade = overrides_prestacao.grade_edicao_overrides(
+                acompanhamento, base_param, codigos_edicao or {"__nenhum__"})
+    elif acompanhamento is None:
         pp = (painel_prestacao.painel_financeiro_pilar(pilar, None)
               if pilar.codigo in painel_prestacao.PILARES_TABELAS_FINANCEIRAS and base_param == BASE_FIN
               else painel_pilar(pilar, ano, base_param))
@@ -165,7 +183,7 @@ def contexto_pilar(pilar, ano_param, base_param, usuario, acompanhamento=None):
         "painel_pilar": pp,
         "ano_param": ano_param,
         "base_param": base_param,
-        "geo_pilar": None if pp.get("visao_financeira_pilar") else geometria_fonte(
+        "geo_pilar": None if pp.get("visao_financeira_pilar") or combinado else geometria_fonte(
             _float_series(pp["serie_previsto"]),
             _float_series(pp["serie_executado"]),
             destaque,
@@ -173,7 +191,7 @@ def contexto_pilar(pilar, ano_param, base_param, usuario, acompanhamento=None):
         "grade_edicao": grade,
         "base_plano": pp["base"],
         "pilar_pk": pilar.pk,
-        "pode_editar_pilar": pilar.codigo in editaveis,
+        "pode_editar_pilar": bool(codigos_edicao) and not (combinado and base_param == BASE_FIN),
         "acompanhamento": acompanhamento,
         "acompanhamentos": painel_prestacao.lista_acompanhamentos(),
     }
@@ -261,9 +279,18 @@ def _aplicar_overrides(request, acomp):
     """
     filtros = _filtros_ou_padrao({"ano": request.POST.get("ano", "todos"), "base": request.POST.get("base", "fin")})
     ano_param, base_param = filtros or ("todos", "fin")
-    destino = f"/?ano={ano_param}&base={base_param}"
+    pilar_escopo, erro = _resolver_pilar_escopo(request, request.POST)
+    if erro is not None:
+        return erro
+    combinado = pilar_escopo is not None and pilar_escopo.codigo in FONTES_CAPTACAO
+    if combinado and base_param == BASE_FIN:
+        return sem_permissao(request)
+    destino = (f"/pilar/{pilar_escopo.pk}/?ano={ano_param}&base={base_param}&acompanhamento={acomp.pk}"
+               if pilar_escopo is not None else f"/?ano={ano_param}&base={base_param}")
     if request.POST.get("acao") == ACAO_RESTAURAR:
-        removidos = overrides_prestacao.restaurar_tudo(acomp, request.user)
+        escopo = ({"codigos": fontes_captacao_visiveis(request.user), "base": "fisico"}
+                  if combinado else {})
+        removidos = overrides_prestacao.restaurar_tudo(acomp, request.user, **escopo)
         messages.success(
             request, f"Valores importados restaurados ({removidos} ajuste(s) removido(s)).")
         return redirect(destino)
@@ -272,6 +299,14 @@ def _aplicar_overrides(request, acomp):
     except ValueError as exc:
         messages.error(request, f"Edição rejeitada: {exc}")
         return redirect(destino)
+    if combinado:
+        fontes = set(fontes_captacao_visiveis(request.user))
+        fontes_kpis = dict(KpiAcompanhamento.objects.filter(
+            acompanhamento=acomp, codigo__in=[item[1] for item in itens],
+        ).values_list("codigo", "pilar__codigo"))
+        if any(base != "fisico" or fontes_kpis.get(codigo) not in fontes
+               for _ano, codigo, base, _campo, _valor in itens):
+            return sem_permissao(request)
     por_base = {}
     for item in itens:
         por_base.setdefault(item[2], []).append(item)
@@ -289,7 +324,8 @@ def _aplicar_overrides(request, acomp):
         messages.error(request, f"Edição rejeitada: {'; '.join(exc.messages)}")
         return redirect(destino)
     if request.POST.get("acao") == ACAO_BAIXAR:
-        return exportar_html(request, ano_param, base_param)
+        return exportar_html(request, ano_param, base_param,
+                             pilar_pk=pilar_escopo.pk if pilar_escopo else None)
     messages.success(request, f"Valores do acompanhamento atualizados ({total} ajuste(s)).")
     return redirect(destino)
 
@@ -309,6 +345,8 @@ def aplicar(request):
         return erro
     filtros = _filtros_ou_padrao({"ano": request.POST.get("ano", "todos"), "base": request.POST.get("base", "fin")})
     ano_param, base_param = filtros or ("todos", "fin")
+    if pilar_escopo is not None and pilar_escopo.codigo in FONTES_CAPTACAO and base_param == BASE_FIN:
+        return sem_permissao(request)
     destino = (
         f"/pilar/{pilar_escopo.pk}/?ano={ano_param}&base={base_param}"
         if pilar_escopo is not None
@@ -316,9 +354,11 @@ def aplicar(request):
     )
     permitidos = set(pilares_editaveis_painel(request.user).values_list("codigo", flat=True))
     if pilar_escopo is not None:
-        if pilar_escopo.codigo not in permitidos:
+        escopo = (set(fontes_captacao_visiveis(request.user))
+                  if pilar_escopo.codigo in FONTES_CAPTACAO else {pilar_escopo.codigo})
+        if not permitidos & escopo:
             return sem_permissao(request)
-        permitidos &= {pilar_escopo.codigo}
+        permitidos &= escopo
     try:
         itens = _parse_grade(request.POST, permitidos)
     except PermissionError:
@@ -326,6 +366,9 @@ def aplicar(request):
     except ValueError as exc:
         messages.error(request, f"Edição rejeitada: {exc}")
         return redirect(destino)
+    if (pilar_escopo is not None and pilar_escopo.codigo in FONTES_CAPTACAO
+            and any(base != "fisico" for _ano, _pilar, base, _campo, _valor in itens)):
+        return sem_permissao(request)
     with transaction.atomic():
         for ano, pilar, base, campo, valor in itens:
             obj, _ = PlanoAnual.objects.get_or_create(
@@ -383,17 +426,10 @@ def _csv_pilar(request, pilar, ano_param, base_param):
     """CSV do pilar usando o acompanhamento importado quando disponível."""
     from .services import ROTULOS_PAINEL
 
-    ano = None if ano_param == "todos" else int(ano_param)
     acompanhamento = _resolver_acomp_exportacao(request)
-    pp = (
-        painel_prestacao.painel_pilar_acompanhamento(
-            pilar, ano, base_param, acompanhamento
-        )
-        if acompanhamento is not None
-        else (painel_prestacao.painel_financeiro_pilar(pilar, None)
-              if pilar.codigo in painel_prestacao.PILARES_TABELAS_FINANCEIRAS and base_param == BASE_FIN
-              else painel_pilar(pilar, ano, base_param))
-    )
+    contexto = contexto_pilar(pilar, ano_param, base_param, request.user, acompanhamento)
+    pp = contexto["painel_pilar"]
+    ano_param = contexto["ano_param"]
     rotulo = ROTULOS_PAINEL.get(pilar.codigo, pilar.nome)
     linhas = ["Pilar;Ano;Previsto;Executado;Saldo;% Executado"]
     for linha in pp["tabela"]:
@@ -403,14 +439,30 @@ def _csv_pilar(request, pilar, ano_param, base_param):
             f"{numero_curto(linha['executado'])};{numero_curto(linha['saldo'])};{pct}"
         )
     hoje = date.today().isoformat()
-    if pp.get("visao_financeira_pilar"):
+    if pp.get("visao_captacao") and base_param != BASE_FIN:
         import csv
         from io import StringIO
 
         documento = StringIO(newline="")
         writer = csv.writer(documento, delimiter=";")
-        for chave in ("tabela_visao_financeira", "tabela_projetos_financeiros"):
-            tabela = pp[chave]
+        writer.writerow(["Fonte", "Unidade", "Ano", "Meta", "Executado", "Saldo", "% Executado"])
+        for bloco in pp["blocos_fisicos"]:
+            for linha in bloco["tabela"]:
+                writer.writerow([
+                    bloco["rotulo"], bloco["unidade_indicador"], linha["rotulo"],
+                    numero_curto(linha["previsto"]), numero_curto(linha["executado"]),
+                    numero_curto(linha["saldo"]), f"{linha['pct']}%" if linha["pct"] is not None else "—",
+                ])
+        conteudo = documento.getvalue()
+    elif pp.get("visao_financeira_pilar"):
+        import csv
+        from io import StringIO
+
+        documento = StringIO(newline="")
+        writer = csv.writer(documento, delimiter=";")
+        tabelas = ([pp["tabela_captacao"]] if pp.get("visao_captacao") else
+                   [pp["tabela_visao_financeira"], pp["tabela_projetos_financeiros"]])
+        for tabela in tabelas:
             writer.writerow([tabela["nome"]])
             writer.writerow(tabela["cabecalhos"])
             for linha in tabela["linhas"]:

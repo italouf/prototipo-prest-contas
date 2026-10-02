@@ -1,6 +1,9 @@
 {# Painel anual do pilar (L13): 3 kpi-cards + card %/farol + gráfico + tabela. #}
 {% load core_extras %}
 <div id="painel-pilar" data-testid="painel-pilar" class="mt-4">
+  {% if painel_pilar.visao_captacao %}
+  {% include 'dashboard/_conteudo_captacao.html' %}
+  {% else %}
   <section aria-label="Visão geral do pilar">
     <h2 class="font-display text-lg font-semibold">Visão geral — {{ painel_pilar.rotulo }}</h2>
     <p class="text-xs text-text-muted">{% if painel_pilar.visao_financeira_pilar %}Valores acumulados do ciclo completo de {{ painel_pilar.rotulo }}, conforme as tabelas financeiras importadas.{% else %}Agregado do pilar. Os indicadores, o gráfico e a tabela respondem aos filtros de ano e de base de análise. {{ painel_pilar.rotulo_periodo }}.{% endif %}</p>
@@ -61,6 +64,7 @@
   </section>
   {% endif %}
 
+  {% endif %}
   {% if pode_editar_pilar and not standalone %}
   {% include 'dashboard/editor.html' %}
   {% endif %}

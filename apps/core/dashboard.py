@@ -114,8 +114,10 @@ def avisos_do_dashboard(periodo, pendencias, status_counts, total_pendencias):
                         f"{pendencia['pilar'].nome}: {len(faltantes)} indicador"
                         f"{'es' if len(faltantes) != 1 else ''} sem lançamento aprovado."
                     ),
-                    "acao": "Abrir pilar",
-                    "url": reverse("core:pilar", args=[pendencia["pilar"].pk]),
+                    "acao": "Ver prestação mensal" if pendencia["pilar"].codigo == "INFRA" else "Abrir pilar",
+                    "url": (f"{reverse('core:mensal')}?periodo={periodo.competencia.isoformat()}"
+                            if pendencia["pilar"].codigo == "INFRA"
+                            else reverse("core:pilar", args=[pendencia["pilar"].pk])),
                 }
             )
     if periodo.status in ("ABERTO", "REABERTO") and not total_pendencias:

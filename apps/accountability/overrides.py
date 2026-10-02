@@ -166,7 +166,7 @@ def _pilar_do_override(override):
     return override.pilar.codigo if override.pilar is not None else None
 
 
-def restaurar_tudo(acomp, usuario):
+def restaurar_tudo(acomp, usuario, *, codigos=None, base=None):
     """Remove os overrides do acompanhamento **no escopo do usuário** e audita.
 
     Spec §9 combina "remove todos os overrides do acompanhamento" com
@@ -183,12 +183,14 @@ def restaurar_tudo(acomp, usuario):
     if not pode_editar_painel(usuario):
         raise PermissionDenied
     editaveis = set(pilares_editaveis_painel(usuario).values_list("codigo", flat=True))
+    if codigos is not None:
+        editaveis &= set(codigos)
     with transaction.atomic():
         alvos = [
             override for override in
             OverrideAcompanhamento.objects.filter(acompanhamento=acomp)
             .select_related("pilar", "kpi__pilar")
-            if _pilar_do_override(override) in editaveis
+            if _pilar_do_override(override) in editaveis and (base is None or override.base == base)
         ]
         if alvos:
             OverrideAcompanhamento.objects.filter(pk__in=[o.pk for o in alvos]).delete()

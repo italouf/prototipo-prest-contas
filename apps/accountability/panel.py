@@ -39,6 +39,7 @@ importadas próprias e **não** são afetados por overrides anuais.
 """
 from decimal import Decimal
 
+from apps.pillars.models import Pilar
 from apps.planning.services import (
     ANOS,
     PILARES_PPI,
@@ -46,6 +47,7 @@ from apps.planning.services import (
     faixa,
     pct_inteiro,
     percentual,
+    painel_pilar as painel_pilar_legado,
 )
 
 from .models import (
@@ -655,6 +657,89 @@ def painel_pdi_financeiro(pilar, acomp):
     return painel_financeiro_pilar(pilar, acomp)
 
 
+_COLUNAS_CAPTACAO = (
+    ("rotulo", "PILAR", "texto"),
+    ("recurso_ou_meta", "META TOTAL", "dinheiro"),
+    ("captado_anos_1_2", "CAPTADO (ANO 1 E 2)", "dinheiro"),
+    ("captado_ano3_ytd", "CAPTADO (ANO 3 - YTD)", "dinheiro"),
+    ("captado", "CAPTADO TOTAL", "dinheiro"),
+    ("realizado", "REALIZADO TOTAL", "dinheiro"),
+    ("percentual_meta", "% CAPTADO META", "percentual"),
+    ("percentual_captado", "% REALIZADO CAPTADO", "percentual"),
+)
+_ROTULOS_CAPTACAO = {"AT": "ASSOCIAÇÃO TECNOLÓGICA", "OUTRASFONTES": "OUTRAS FONTES"}
+
+
+def painel_captacao(pilar, ano, base, acomp, *, fontes_autorizadas):
+    """Dashboard combinado; o escopo explícito vale também para os totais."""
+    base = BASES_CANONICAS[base]
+    fontes = tuple(codigo for codigo in _ROTULOS_CAPTACAO if codigo in fontes_autorizadas)
+    bloco = {
+        "pilar": pilar, "codigo": "AT", "rotulo": "AT e Outras Fontes",
+        "base": base, "ano": ano if base == BASE_FISICO else None,
+        "rotulo_periodo": _rotulo_periodo(ano) if base == BASE_FISICO else "Acumulado do ciclo completo",
+        "unidade": "unidades por indicador" if base == BASE_FISICO else "R$",
+        "visao_captacao": True, "visao_financeira_pilar": base == BASE_FINANCEIRO,
+        "serie_previsto": [None] * len(ANOS), "serie_executado": [None] * len(ANOS),
+        "tabela": [], "blocos_fisicos": [],
+    }
+    if base == BASE_FISICO:
+        for fonte in Pilar.objects.filter(codigo__in=fontes, ativo=True).order_by("ordem", "pk"):
+            if acomp is None:
+                sub = painel_pilar_legado(fonte, ano, base)
+                sub["unidade_indicador"] = "metas"
+                blocos = [sub]
+            else:
+                unidades = list(KpiAcompanhamento.objects.filter(
+                    acompanhamento=acomp, pilar=fonte,
+                ).order_by("sequencia", "codigo").values_list("unidade", flat=True))
+                blocos = [_painel_pilar_fisico(fonte, ano, acomp, unidade=unidade)
+                          for unidade in dict.fromkeys(unidades)]
+            for sub in blocos:
+                sub["chave"] = f"captacao-fisica-{fonte.codigo}-{len(bloco['blocos_fisicos'])}"
+                sub["barra_percentual"] = min(max(sub["pct"] or 0, 0), 100)
+                for card in sub["cards"]:
+                    card["unidade"] = sub["unidade_indicador"]
+                bloco["blocos_fisicos"].append(sub)
+        return bloco
+
+    registros = list(ResumoFinanceiro.objects.filter(
+        acompanhamento=acomp, origem="TAB. 9", ano__isnull=True, pilar__codigo__in=fontes,
+    ).values("pilar__codigo", *(c[0] for c in _COLUNAS_CAPTACAO if c[0] != "rotulo")))
+    por_fonte = {r["pilar__codigo"]: r for r in registros}
+    linhas = [{**por_fonte[codigo], "rotulo": _ROTULOS_CAPTACAO[codigo]}
+              for codigo in fontes if codigo in por_fonte]
+    total = {campo: _somar(r[campo] for r in linhas)
+             for campo, _titulo, tipo in _COLUNAS_CAPTACAO if tipo == "dinheiro"}
+    captado, realizado = total["captado"], total["realizado"]
+    saldo = abs(captado - realizado) if captado is not None and realizado is not None else None
+    taxa = _percentual_disponivel(realizado, captado)
+    pct = pct_inteiro(realizado, captado) if taxa is not None else None
+    cards = [
+        _card_pilar("previsto", "CAPTADO TOTAL", captado, captado, "captados", False),
+        _card_pilar("executado", "REALIZADO TOTAL", realizado, captado, "captados", realizado is not None),
+        _card_pilar("saldo", "SALDO", saldo, captado, "captados", saldo is not None),
+    ]
+    cards[0]["ocultar_progresso"] = True
+    cards[2]["rotulo_percentual"] = "do captado"
+    for card in cards:
+        card.update(valores_em_reais=True, precisao_financeira=True)
+        card["barra"] = min(max(card["pct"] or 0, 0), 100)
+    if linhas:
+        taxa_meta = _percentual_disponivel(captado, total["recurso_ou_meta"])
+        total.update(rotulo="TOTAL", total=True,
+                     percentual_meta=taxa_meta / 100 if taxa_meta is not None else None,
+                     percentual_captado=taxa / 100 if taxa is not None else None)
+        linhas.append(total)
+    bloco.update(
+        cards=cards, previsto=captado, executado=realizado, saldo=saldo, pct=pct,
+        faixa=faixa(taxa), barra_percentual=min(max(pct or 0, 0), 100),
+        valores_em_reais=True,
+        tabela_captacao=_tabela_financeira_pilar("tbl_CaptaoATeOutros", _COLUNAS_CAPTACAO, linhas),
+    )
+    return bloco
+
+
 def _painel_pilar_financeiro(pilar, ano, acomp):
     if pilar.codigo in PILARES_TABELAS_FINANCEIRAS:
         return painel_financeiro_pilar(pilar, acomp)
@@ -786,13 +871,13 @@ def _painel_pilar_financeiro(pilar, ano, acomp):
     return bloco
 
 
-def _painel_pilar_fisico(pilar, ano, acomp):
+def _painel_pilar_fisico(pilar, ano, acomp, *, unidade=None):
     kpis = list(
         KpiAcompanhamento.objects.filter(
             acompanhamento=acomp, pilar=pilar
         ).prefetch_related("overrides").order_by("sequencia", "codigo")
     )
-    unidade = _unidade_majoritaria(kpis)
+    unidade = unidade if unidade is not None else _unidade_majoritaria(kpis)
     sub = [kpi for kpi in kpis if kpi.unidade == unidade]
 
     def soma(referencia, indice):
@@ -851,6 +936,7 @@ def _painel_pilar_fisico(pilar, ano, acomp):
         "ano": ano,
         "base": BASE_FISICO,
         "unidade": "metas",
+        "unidade_indicador": unidade,
         "rotulo_periodo": _rotulo_periodo(ano),
         "rotulo_previsto": rotulo_previsto,
         "denominador": "projetados",

@@ -26,6 +26,6 @@
     {% endfor %}
   </div>
   <div class="mt-4">
-    <c-ui.button href="{% url 'core:pilar' pilar.pk %}" size="sm">Abrir página do pilar</c-ui.button>
+    {% if pilar.codigo != 'INFRA' %}<c-ui.button href="{% url 'core:pilar' pilar.pk %}" size="sm">Abrir página do pilar</c-ui.button>{% endif %}
   </div>
 </div>

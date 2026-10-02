@@ -6,7 +6,7 @@
 <ul class="divide-y divide-border" data-testid="busca-lista">
   {% for ind in indicadores %}
   <li>
-    <a href="{% url 'core:pilar' ind.pilar.pk %}" class="block px-3 py-2 hover:bg-quiin-mist/30 dark:hover:bg-white/5">
+    <a href="{% if ind.pilar.codigo == 'INFRA' %}{% url 'core:mensal' %}{% else %}{% url 'core:pilar' ind.pilar.pk %}{% endif %}" class="block px-3 py-2 hover:bg-quiin-mist/30 dark:hover:bg-white/5">
       <span class="block text-sm font-medium">{{ ind.nome }}</span>
       <span class="block text-xs text-text-muted">{{ ind.codigo }} · {{ ind.pilar.nome }}</span>
     </a>

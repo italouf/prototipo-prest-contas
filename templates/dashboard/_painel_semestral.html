@@ -3,7 +3,7 @@
 <div id="painel-semestral" data-testid="painel-semestral" class="mt-4">
   <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3" aria-label="Indicadores-chave por pilar no semestre">
     {% for t in tabela %}
-    <a href="{% url 'core:pilar' t.pilar.pk %}" data-testid="kpi-sem-{{ t.pilar.codigo|lower }}"
+    <a href="{% if t.pilar.codigo == 'INFRA' %}{% url 'core:mensal' %}{% else %}{% url 'core:pilar' t.pilar.pk %}{% endif %}" data-testid="kpi-sem-{{ t.pilar.codigo|lower }}"
        class="anim-entrada block rounded-xl border border-border bg-surface-2 p-5 shadow-sm transition-shadow hover:shadow-md">
       <div class="flex items-center justify-between gap-2">
         <span class="text-xs font-semibold uppercase tracking-wide text-text-muted">{{ t.pilar.nome }}</span>

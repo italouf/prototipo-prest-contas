@@ -35,7 +35,7 @@
         {% for pilar in pilares_grupo %}
         <li>
           <a href="{% url 'core:pilar' pilar.pk %}" data-nav-link class="nav-clara {% if request.resolver_match.url_name == 'pilar' and request.resolver_match.kwargs.pk == pilar.pk %}nav-ativo{% endif %}" {% if request.resolver_match.url_name == 'pilar' and request.resolver_match.kwargs.pk == pilar.pk %}aria-current="page"{% endif %}>
-            <c-ui.icon name="building" size="18" /><span class="nav-rotulo">{{ pilar.codigo|rotulo_painel }}</span>
+            <c-ui.icon name="building" size="18" /><span class="nav-rotulo">{{ pilar.codigo|rotulo_dashboard_pilar }}</span>
             {% if pendencias_nav %}{% for pid, qtd in pendencias_nav.items %}{% if pid == pilar.pk %}<span class="sidebar-badge ml-auto rounded-full bg-quiin-sky px-2 py-0.5 text-xs font-semibold text-white">{{ qtd }}</span>{% endif %}{% endfor %}{% endif %}
           </a>
         </li>

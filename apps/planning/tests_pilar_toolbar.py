@@ -81,14 +81,14 @@ class EdicaoEscopadaTestes(TestCase):
     def test_aplicar_e_baixar_escopado_devolve_html_do_pilar(self):
         self.client.force_login(self.master)
         pk = self.pilares["AT"].pk
-        resposta = self.client.post(reverse(APLICAR), grade(pk, **{
-            "v__2026__financeiro__AT__executado": "2", "acao": "baixar",
+        resposta = self.client.post(reverse(APLICAR), grade(pk, base="fis", **{
+            "v__2026__fisico__AT__executado": "2", "acao": "baixar",
         }))
         self.assertEqual(resposta.status_code, 200)
         self.assertIn("attachment", resposta["Content-Disposition"])
         self.assertIn("AT", resposta["Content-Disposition"])
         html = resposta.content.decode()
-        self.assertIn("Associação Tecnológica (AT)", html)
+        self.assertIn("AT e Outras Fontes", html)
 
     def test_editor_do_pilar_mostra_so_as_linhas_do_pilar(self):
         self.client.force_login(self.focal)
@@ -159,8 +159,11 @@ class HtmlPilarTestes(TestCase):
         self.assertEqual(resposta.status_code, 200)
         self.assertIn("AT", resposta["Content-Disposition"])
         html = resposta.content.decode()
-        self.assertIn("Associação Tecnológica (AT)", html)
-        self.assertIn("Ano 3: 2026", html)
+        self.assertIn("AT e Outras Fontes", html)
+        self.assertIn("Acumulado do ciclo completo", html)
+        self.assertIn("tbl_CaptaoATeOutros", html)
+        self.assertNotIn('data-testid="chart-fonte-pilar"', html)
+        self.assertNotIn("Prestação mensal do pilar", html)
 
     def test_toolbar_do_pilar_aponta_para_acoes_escopadas(self):
         self.client.force_login(self.master)

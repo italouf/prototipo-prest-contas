@@ -113,5 +113,24 @@ def usuario_pode_pilar(usuario, pilar):
     return pilares_visiveis(usuario).filter(pk=pilar.pk).exists()
 
 
+FONTES_CAPTACAO = ("AT", "OUTRASFONTES")
+
+
+def fontes_captacao_visiveis(usuario):
+    """Escopo de dados do painel combinado, sem ampliar vínculos operacionais."""
+    visiveis = set(pilares_visiveis(usuario).filter(
+        codigo__in=FONTES_CAPTACAO).values_list("codigo", flat=True))
+    return tuple(codigo for codigo in FONTES_CAPTACAO if codigo in visiveis)
+
+
+def usuario_pode_dashboard_pilar(usuario, pilar):
+    """Acesso aos dashboards, independente do acesso operacional ao pilar."""
+    if not pilar.ativo or pilar.codigo == "INFRA":
+        return False
+    if pilar.codigo in FONTES_CAPTACAO:
+        return bool(fontes_captacao_visiveis(usuario))
+    return usuario_pode_pilar(usuario, pilar)
+
+
 def sem_permissao(request):
     return render(request, "403.html", status=403)

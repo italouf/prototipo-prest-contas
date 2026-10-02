@@ -39,9 +39,9 @@ class SidebarNavegacaoTestes(TestCase):
         sidebar = resposta.content.decode().split('data-testid="sidebar"')[1].split("</aside>")[0]
         self.assertNotIn("OUTRASFONTES", sidebar)
         pilares = sidebar.split('id="grp-pilares"')[1].split("</ul>")[0]
-        for rotulo in ["PDI", "Formação FCRH", "ACS", "Infraestrutura",
-                       "Associação Tecnológica"]:
+        for rotulo in ["PDI", "Formação FCRH", "ACS", "AT e Outras Fontes"]:
             self.assertIn(rotulo, pilares)
+        self.assertNotIn("Infraestrutura", pilares)
         self.assertNotIn("Talentos", pilares)
         self.assertNotIn("Funil AT", pilares)
         gestao = sidebar.split('id="grp-gestao"')[1].split("</ul>")[0]
@@ -57,9 +57,9 @@ class SidebarNavegacaoTestes(TestCase):
         self.assertContains(resposta, "Auditoria")
         sidebar = resposta.content.decode().split('data-testid="sidebar"')[1].split("</aside>")[0]
         pilares = sidebar.split('id="grp-pilares"')[1].split("</ul>")[0]
-        for rotulo in ["PDI", "Formação FCRH", "ACS", "Infraestrutura",
-                       "Associação Tecnológica"]:
+        for rotulo in ["PDI", "Formação FCRH", "ACS", "AT e Outras Fontes"]:
             self.assertIn(rotulo, pilares)
+        self.assertNotIn("Infraestrutura", pilares)
         gestao = sidebar.split('id="grp-gestao"')[1].split("</ul>")[0]
         self.assertIn("Auditoria", gestao)
         self.assertNotIn("Funil AT", gestao)

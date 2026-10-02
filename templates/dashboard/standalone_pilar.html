@@ -11,7 +11,7 @@
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">{{ standalone_sprite|safe }}</svg>
 <div class="mx-auto w-full max-w-[1440px] px-4 py-6 lg:px-8">
   <h1 class="font-display text-2xl font-bold">{{ painel_pilar.rotulo }} — Painel anual</h1>
-  <p class="mt-2 text-sm">Período: <strong>{{ painel_pilar.rotulo_periodo }}</strong> · Base: <strong>{% if base_param == 'fin' %}Financeiro{% else %}Físico{% endif %}</strong> · Unidade: <strong>{% if painel_pilar.visao_financeira_pilar %}R${% elif base_param == 'fin' %}R$ milhões{% else %}quantidade de metas{% endif %}</strong></p>
+  <p class="mt-2 text-sm">Período: <strong>{{ painel_pilar.rotulo_periodo }}</strong> · Base: <strong>{% if base_param == 'fin' %}Financeiro{% else %}Físico{% endif %}</strong> · Unidade: <strong>{% if painel_pilar.visao_financeira_pilar %}R${% elif base_param == 'fin' %}R$ milhões{% elif painel_pilar.visao_captacao %}por indicador{% else %}quantidade de metas{% endif %}</strong></p>
   {% include 'dashboard/painel-pilar.html' with standalone=True %}
 </div>
 </body>

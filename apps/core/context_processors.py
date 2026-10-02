@@ -23,6 +23,12 @@ def nav(request):
     try:
         from apps.planning.services import PILARES_COM_PAINEL
 
+        if "AT" not in por_codigo and "OUTRASFONTES" in por_codigo:
+            from apps.pillars.models import Pilar
+
+            at = Pilar.objects.filter(codigo="AT", ativo=True).first()
+            if at is not None:
+                por_codigo["AT"] = at
         pilares_grupo = [por_codigo[c] for c in PILARES_COM_PAINEL if c in por_codigo]
     except Exception:
         pilares_grupo = []

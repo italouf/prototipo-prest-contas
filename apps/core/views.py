@@ -18,6 +18,7 @@ from apps.planning.views import contexto_painel, contexto_pilar
 from .calculos import itens_do_periodo
 from .permissions import (
     sem_permissao,
+    usuario_pode_dashboard_pilar,
     usuario_pode_pilar,
 )
 from .prestacao import (
@@ -151,8 +152,14 @@ def semestral_csv(request):
 def pilar(request, pk):
     """Painel do pilar; PDI, FCRH e ACS financeiros exibem tabelas do snapshot."""
     pilar_obj = get_object_or_404(Pilar, pk=pk)
-    if not usuario_pode_pilar(request.user, pilar_obj):
+    if not usuario_pode_dashboard_pilar(request.user, pilar_obj):
         return sem_permissao(request)
+    if pilar_obj.codigo == "OUTRASFONTES":
+        at = get_object_or_404(Pilar, codigo="AT", ativo=True)
+        destino = f"/pilar/{at.pk}/"
+        if request.GET:
+            destino += f"?{request.GET.urlencode()}"
+        return redirect(destino)
     params = request.GET
     base_url = f"/pilar/{pilar_obj.pk}/"
     acompanhamento = _resolver_acompanhamento(params)

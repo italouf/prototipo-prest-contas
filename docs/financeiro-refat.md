@@ -85,6 +85,37 @@ Os downloads HTML e CSV incluem as duas tabelas.
 O gráfico anual, o detalhamento anual e a prestação mensal não são exibidos
 nessa visão. O bloco de quantidade de projetos não é exibido nesses três pilares.
 
+## Dashboard AT e Outras Fontes
+
+A navegação apresenta um único dashboard `AT e Outras Fontes`. Sua visão
+financeira usa exclusivamente os resumos `TAB. 9` de `tbl_CaptaoATeOutros`,
+com as oito colunas da tabela. Os cards apresentam CAPTADO TOTAL, REALIZADO
+TOTAL, SALDO e % Executado. O saldo é o módulo da diferença entre captado e
+realizado; o percentual é realizado dividido por captado. Barras ficam entre
+0% e 100%, sem limitar o percentual informado. Valores ausentes e denominador
+zero aparecem como indisponíveis.
+
+Cada fonte mantém sua autorização: usuários vinculados apenas a AT ou apenas
+a OUTRASFONTES veem somente as linhas e os totais da fonte autorizada. O total
+da tabela é recalculado nesse escopo, inclusive seus percentuais. HTML, HTMX,
+impressão e downloads HTML/CSV utilizam o mesmo escopo. A URL antiga de
+OUTRASFONTES redireciona ao dashboard combinado preservando os filtros.
+
+A visão financeira cobre o ciclo completo, sem seletor de ano, editor anual,
+gráficos, prestação mensal ou bloco de quantidade de projetos. Não há tabela
+de projetos nessa fonte. A base física permanece disponível, com seletor anual
+e edição auditada, separando os indicadores por fonte e unidade para evitar
+somar quantidades e percentuais. Alterações e restauração ficam restritas aos
+indicadores físicos das fontes autorizadas.
+
+## Infraestrutura
+
+O dashboard individual de Infraestrutura é ocultado na navegação e bloqueado
+no acesso direto e nas exportações por pilar. O pilar permanece ativo: valores,
+linhas e totais continuam no Dashboard Geral, e suas permissões operacionais
+continuam disponíveis. Essas mudanças de apresentação não exigem migração
+nem reimportação dos acompanhamentos existentes.
+
 ## Atualização do arquivo e reimportação
 
 Inclua novos projetos dentro da tabela correspondente, confirmando que o Excel

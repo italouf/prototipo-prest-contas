@@ -16,7 +16,7 @@
 
   <section class="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3" aria-label="Indicadores-chave por pilar">
     {% for k in kpis %}
-    <a href="{% url 'core:pilar' k.pilar.pk %}" data-testid="kpi-{{ k.pilar.codigo|lower }}" data-kpi-card
+    <a href="{% if k.pilar.codigo == 'INFRA' %}{% url 'core:mensal' %}?periodo={{ periodo.competencia|date:'Y-m-d' }}{% else %}{% url 'core:pilar' k.pilar.pk %}{% endif %}" data-testid="kpi-{{ k.pilar.codigo|lower }}" data-kpi-card
        hx-get="{% url 'core:pilar_drawer' k.pilar.pk %}?periodo={{ periodo.competencia|date:'Y-m-d' }}"
        hx-target="#drawer-conteudo" hx-swap="innerHTML" hx-indicator="#skeleton-global" @click="drawerAberto = true"
        class="anim-entrada block rounded-xl border border-border bg-surface-2 p-5 shadow-sm transition-shadow hover:shadow-md">
@@ -132,7 +132,7 @@
           </div>
           <div class="mt-2 flex flex-wrap gap-1.5">
             {% for celula in grupo.celulas %}
-            <a href="{% url 'core:pilar' grupo.pilar.pk %}" title="{{ celula.titulo }}" aria-label="{{ celula.titulo }}"
+            <a href="{% if grupo.pilar.codigo == 'INFRA' %}{% url 'core:mensal' %}?periodo={{ periodo.competencia|date:'Y-m-d' }}{% else %}{% url 'core:pilar' grupo.pilar.pk %}{% endif %}" title="{{ celula.titulo }}" aria-label="{{ celula.titulo }}"
                hx-get="{% url 'core:pilar_drawer' grupo.pilar.pk %}?periodo={{ periodo.competencia|date:'Y-m-d' }}"
                hx-target="#drawer-conteudo" hx-swap="innerHTML" hx-indicator="#skeleton-global" @click="drawerAberto = true"
                class="h-6 w-6 rounded {% if celula.faixa == 'ok' %}bg-quiin-quantum-green{% elif celula.faixa == 'parcial' %}bg-amber-400{% elif celula.faixa == 'critica' %}bg-red-500{% else %}bg-quiin-mist{% endif %}"></a>

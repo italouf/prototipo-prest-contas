@@ -142,6 +142,14 @@ def rotulo_painel(codigo):
 
 
 @register.filter
+def rotulo_dashboard_pilar(codigo):
+    """Nome do dashboard; mantém a identificação original nas fontes do Geral."""
+    if codigo in ("AT", "OUTRASFONTES"):
+        return "AT e Outras Fontes"
+    return rotulo_painel(codigo)
+
+
+@register.filter
 def status_lancamento(status):
     nomes = {
         "RASCUNHO": "Rascunho",
