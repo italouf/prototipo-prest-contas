@@ -58,11 +58,16 @@ class DashboardFinanceiroGeralTestes(TestCase):
         self.assertEqual(resposta.status_code, 200)
         html = resposta.content.decode("utf-8")
         for texto in ("R$ 34,97 mi", "R$ 5,61 mi", "R$ 10,22 mi",
-                      "58,29%", "72% da Meta", "162% da Meta", "4% Executado",
-                      "2% Executado", "RECURSO PPI TOTAL", "REALIZADO 2026 (YTD)",
+                      "58,29%", "RECURSO PPI TOTAL", "REALIZADO 2026 (YTD)",
                       "PROJETADO 2027",
-                      'data-testid="consolidado-ppi"', 'data-testid="tabela-anual-ppi"'):
+                      'data-testid="tabela-anual-ppi"',
+                      'data-testid="recursos-ppi-info-abrir"', "AFCCT / PD&amp;I",
+                      "Infraestrutura"):
             self.assertIn(texto, html)
+        for grafico in ("chart-fonte-ppi", "chart-fonte-at", "chart-fonte-outras",
+                        "Execução por fonte de recursos", "Recursos PPI: projetado x executado",
+                        'data-testid="consolidado-ppi"', "Consolidado PPI"):
+            self.assertNotIn(grafico, html)
         self.assertNotIn('data-testid="year-select"', html)
         self.assertNotIn("Consolidado por fonte e por ano", html)
         self.assertNotIn("Ano 1: 2024", html)
@@ -79,6 +84,7 @@ class DashboardFinanceiroGeralTestes(TestCase):
         self.assertEqual(resposta.status_code, 200)
         self.assertContains(resposta, 'data-testid="year-select"')
         self.assertNotContains(resposta, 'data-testid="chart-consolidado"')
+        self.assertContains(resposta, 'data-testid="chart-fonte-ppi"')
 
     def test_tabela_anual_recalcula_quando_ha_dados(self):
         pdi = Pilar.objects.get(codigo="PDI")

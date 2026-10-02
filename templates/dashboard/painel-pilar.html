@@ -34,14 +34,14 @@
   {% endif %}
 
   {% if painel_pilar.visao_financeira_pilar %}
-  <section class="mt-6 rounded-xl border border-border bg-surface-2 p-5" aria-label="Visão financeira {{ painel_pilar.rotulo }}">
-    <h2 class="font-display text-lg font-semibold">Visão financeira — {{ painel_pilar.rotulo }}</h2>
-    <c-dashboard.tabela-financeira-pilar :tabela="painel_pilar.tabela_visao_financeira" />
-  </section>
-
   <section class="mt-4 rounded-xl border border-border bg-surface-2 p-5" aria-label="Projetos {{ painel_pilar.rotulo }}">
     <h2 class="font-display text-lg font-semibold">Projetos — {{ painel_pilar.rotulo }}</h2>
     <c-dashboard.tabela-financeira-pilar :tabela="painel_pilar.tabela_projetos_financeiros" />
+  </section>
+
+  <section class="mt-4 rounded-xl border border-border bg-surface-2 p-5" aria-label="Visão financeira {{ painel_pilar.rotulo }}">
+    <h2 class="font-display text-lg font-semibold">Visão financeira — {{ painel_pilar.rotulo }}</h2>
+    <c-dashboard.tabela-financeira-pilar :tabela="painel_pilar.tabela_visao_financeira" />
   </section>
   {% else %}
   {% if painel_pilar.codigo != 'PDI' and painel_pilar.codigo != 'FORMACAO' and painel_pilar.codigo != 'STARTUPS' %}

@@ -1,32 +1,40 @@
 {# Modal "Farol de execução: metodologia e leitura" (Anexo B). Autocontido: gatilho + diálogo com foco gerenciado. #}
+<c-vars modo="farol" />
 {% if standalone %}
+{% if modo == 'recursos-ppi' %}
+<section aria-label="Composição dos Recursos PPI" class="mt-4 rounded-xl border border-border p-5">
+  <h3 class="font-display text-lg font-semibold">Composição dos Recursos PPI</h3>
+  {% include 'dashboard/recursos-ppi-conteudo.html' %}
+</section>
+{% else %}
 <section aria-label="Farol de execução: metodologia e leitura" class="mt-4 rounded-xl border border-border p-5">
   <h3 class="font-display text-lg font-semibold">Farol de execução: metodologia e leitura</h3>
   {% include 'dashboard/farol-conteudo.html' %}
 </section>
+{% endif %}
 {% else %}
 <div x-data="{ aberto: false, ultimoFoco: null,
     abrir() { this.ultimoFoco = document.activeElement; this.aberto = true; this.$nextTick(() => this.$refs.dialogo.querySelector('[data-fechar]').focus()); },
     fechar() { this.aberto = false; if (this.ultimoFoco) this.ultimoFoco.focus(); },
     prender(e) { if (e.key !== 'Tab') return; const f = [...this.$refs.dialogo.querySelectorAll('button, a[href]')]; if (!f.length) return; const i = f.indexOf(document.activeElement); if (e.shiftKey && i <= 0) { f[f.length - 1].focus(); e.preventDefault(); } else if (!e.shiftKey && i === f.length - 1) { f[0].focus(); e.preventDefault(); } }
   }">
-  <button type="button" data-testid="farol-abrir" aria-haspopup="dialog" aria-label="Metodologia do farol" title="Metodologia do farol"
+  <button type="button" data-testid="{% if modo == 'recursos-ppi' %}recursos-ppi-info-abrir{% else %}farol-abrir{% endif %}" aria-haspopup="dialog" aria-label="{% if modo == 'recursos-ppi' %}Composição dos Recursos PPI{% else %}Metodologia do farol{% endif %}" title="{% if modo == 'recursos-ppi' %}Composição dos Recursos PPI{% else %}Metodologia do farol{% endif %}"
           @click="abrir()"
           class="ml-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-quiin-navy align-middle text-xs font-bold italic text-white">i</button>
   <div x-show="aberto" x-cloak class="fixed inset-0 z-[80] flex items-center justify-center p-4" data-testid="farol-modal">
     <div class="absolute inset-0 bg-black/50" @click="fechar()" aria-hidden="true"></div>
-    <div x-ref="dialogo" role="dialog" aria-modal="true" aria-labelledby="farol-titulo"
+    <div x-ref="dialogo" role="dialog" aria-modal="true" aria-labelledby="{% if modo == 'recursos-ppi' %}recursos-ppi-info-titulo{% else %}farol-titulo{% endif %}"
          @keydown.escape.window="fechar()" @keydown="prender($event)"
          class="relative max-h-[86vh] w-full max-w-2xl overflow-y-auto rounded-xl border border-border bg-surface-2 p-6 shadow-2xl">
       <div class="flex items-start justify-between gap-3">
-        <h3 id="farol-titulo" class="font-display text-lg font-semibold">Farol de execução: metodologia e leitura</h3>
+        <h3 id="{% if modo == 'recursos-ppi' %}recursos-ppi-info-titulo{% else %}farol-titulo{% endif %}" class="font-display text-lg font-semibold">{% if modo == 'recursos-ppi' %}Composição dos Recursos PPI{% else %}Farol de execução: metodologia e leitura{% endif %}</h3>
         <button type="button" data-fechar @click="fechar()" aria-label="Fechar metodologia do farol"
                 class="rounded-md border border-border p-1.5 text-text-muted hover:text-text">
           <c-ui.icon name="x" size="16" />
         </button>
       </div>
       <div class="mt-4 space-y-4 text-sm">
-        {% include 'dashboard/farol-conteudo.html' %}
+        {% if modo == 'recursos-ppi' %}{% include 'dashboard/recursos-ppi-conteudo.html' %}{% else %}{% include 'dashboard/farol-conteudo.html' %}{% endif %}
       </div>
     </div>
   </div>

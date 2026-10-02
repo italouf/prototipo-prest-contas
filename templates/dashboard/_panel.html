@@ -13,26 +13,6 @@
   </section>
 
   {% if painel.visao_financeiro_geral and base_param == 'fin' %}
-  <section class="mt-6 rounded-xl border border-border bg-surface-2 p-5" aria-label="Execução por fonte de recursos">
-    <h2 class="font-display text-lg font-semibold">Execução por fonte de recursos</h2>
-    <p class="text-xs text-text-muted">Valores acumulados do ciclo completo.</p>
-    <div class="mt-4 grid gap-6 lg:grid-cols-3">
-      <div class="min-w-0 lg:col-span-2">
-        <c-dashboard.chart-fonte chave="ppi" titulo="Recursos PPI: projetado x executado" hint="Recursos e valores realizados por pilar." :bloco="painel.graficos_ciclo.ppi" :geo="geo_ppi" unidade="R$" eixo_rotulo="por pilar" legenda_a="RECURSO PPI" legenda_b="REALIZADO" rodape_rotulo="Execução PPI:" />
-      </div>
-      <aside class="self-start rounded-xl border border-border bg-surface p-4" aria-label="Consolidado PPI" data-testid="consolidado-ppi">
-        <h3 class="font-display text-base font-semibold">Consolidado</h3>
-        <div class="mt-4 grid grid-cols-2 gap-3 text-xs">
-          <div><span class="block text-text-muted">RECURSO PPI TOTAL</span><strong class="numerico mt-1 block text-sm">{{ painel.tabela_tab1.total.recurso|moeda_ptbr }}</strong></div>
-          <div><span class="block text-text-muted">REALIZADO TOTAL</span><strong class="numerico mt-1 block text-sm">{{ painel.tabela_tab1.total.realizado|moeda_ptbr }}</strong></div>
-        </div>
-      </aside>
-    </div>
-    <div class="mt-6 grid gap-6 lg:grid-cols-2">
-      <c-dashboard.chart-progresso-fonte chave="at" titulo="Recursos captados (AT): captado x executado" hint="Recursos captados a partir de novos associados." :bloco="painel.graficos_ciclo.at" />
-      <c-dashboard.chart-progresso-fonte chave="outras" titulo="Outras fontes: captado x executado" hint="Recursos captados a partir de outras fontes." :bloco="painel.graficos_ciclo.outras" />
-    </div>
-  </section>
 
   <section class="mt-4 rounded-xl border border-border bg-surface-2 p-5" aria-label="Visão Consolidada do Programa">
     <div class="flex flex-wrap items-center gap-1">
