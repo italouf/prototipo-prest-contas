@@ -504,7 +504,99 @@ def _card_pilar(chave, titulo, valor, referencia, denominador, com_farol=True):
     return card
 
 
+_COLUNAS_VISAO_PDI = (
+    ("rotulo", "Coluna1", "texto"),
+    ("recurso_ou_meta", "RECURSO PPI AFCCT / PDI", "dinheiro"),
+    ("realizado", "REALIZADO", "dinheiro"),
+    ("projetado", "PROJETADO TOTAL", "dinheiro"),
+    ("realizado_mais_projetado", "REALIZADO + PROJETADO", "dinheiro"),
+    ("diferenca", "DIF.  REL. AO  PPI", "dinheiro"),
+)
+_COLUNAS_PROJETOS_PDI = (
+    ("nome", "PROJETO", "texto"),
+    ("status", "STATUS", "texto"),
+    ("inicio", "INICIO", "data"),
+    ("fim", "FINAL", "data"),
+    ("orcado", "ORÇADO SÍNTESE", "dinheiro"),
+    ("realizado", "REALIZADO", "dinheiro"),
+    ("projetado_2026", "PROJETADO 2026", "dinheiro"),
+    ("projetado_2027", "PROJETADO 2027", "dinheiro"),
+    ("realizado_mais_projetado", "REALIZADO + PROJETADO", "dinheiro"),
+    ("diferenca", "DIFERENÇA ORÇADO", "dinheiro"),
+    ("percentual", "% REALIZADO ORÇADO", "percentual"),
+)
+
+
+def _tabela_pdi(nome, colunas, registros):
+    linhas = []
+    for registro in registros:
+        celulas = []
+        for campo, _cabecalho, tipo in colunas:
+            valor = registro.get(campo)
+            if tipo == "percentual" and valor is not None:
+                valor *= 100
+            celulas.append({"tipo": tipo, "valor": valor})
+        linhas.append({"celulas": celulas, "total": registro.get("total", False)})
+    return {"nome": nome, "cabecalhos": [c[1] for c in colunas], "linhas": linhas}
+
+
+def painel_pdi_financeiro(pilar, acomp):
+    """Visão integral das tabelas PDI do snapshot, sem recortes por ano.
+
+    TAB. 3 corresponde a tbl_VisaoPDI; a diferença é apresentada em módulo.
+    TAB. 2 corresponde a tbl_ProjetosPDI. O PK preserva a ordem de inclusão
+    das linhas, inclusive nos arquivos PDI sem coluna ITEM.
+    """
+    resumo = ResumoFinanceiro.objects.filter(
+        acompanhamento=acomp, pilar=pilar, origem="TAB. 3", ano__isnull=True,
+    ).values(*(c[0] for c in _COLUNAS_VISAO_PDI if c[0] != "rotulo")).first()
+    projetos = list(ProjetoFinanceiro.objects.filter(
+        acompanhamento=acomp, pilar=pilar, origem="TAB. 2",
+    ).order_by("pk").values(*(c[0] for c in _COLUNAS_PROJETOS_PDI)))
+    recurso = resumo.get("recurso_ou_meta") if resumo else None
+    realizado = resumo.get("realizado") if resumo else None
+    diferenca_importada = resumo.get("diferenca") if resumo else None
+    diferenca = abs(diferenca_importada) if diferenca_importada is not None else None
+    pct = pct_inteiro(realizado, recurso) if realizado is not None else None
+    faixa_execucao = faixa(percentual(realizado, recurso)) if pct is not None else "neutra"
+    cards = [
+        _card_pilar("previsto", "RECURSO PPI AFCCT / PDI", recurso, recurso, "do PPI", False),
+        _card_pilar("executado", "REALIZADO", realizado, recurso, "do PPI", realizado is not None),
+        _card_pilar("saldo", "DIF.  REL. AO  PPI", diferenca, recurso, "do PPI", diferenca is not None),
+    ]
+    cards[0]["ocultar_progresso"] = True
+    cards[2]["rotulo_percentual"] = "do recurso PPI"
+    for card in cards:
+        card.update(valores_em_reais=True, precisao_financeira=True)
+    linhas_projetos = list(projetos)
+    if projetos:
+        total = {campo: _somar(p[campo] for p in projetos)
+                 for campo, _cabecalho, tipo in _COLUNAS_PROJETOS_PDI if tipo == "dinheiro"}
+        total.update(nome="TOTAL GERAL", total=True)
+        linhas_projetos.append(total)
+    return {
+        "pilar": pilar, "codigo": "PDI", "rotulo": ROTULOS_PAINEL["PDI"],
+        "ano": None, "base": BASE_FINANCEIRO, "unidade": "R$",
+        "rotulo_periodo": "Acumulado do ciclo completo",
+        "rotulo_previsto": "RECURSO PPI AFCCT / PDI", "denominador": "do PPI",
+        "previsto": recurso, "executado": realizado, "saldo": diferenca,
+        "pct": pct, "faixa": faixa_execucao, "cards": cards,
+        "serie_previsto": [None] * len(ANOS), "serie_executado": [None] * len(ANOS),
+        "tabela": [], "projetos": len(projetos), "unidade_projetos": "projetos",
+        "valores_em_reais": True, "visao_pdi": True,
+        "tabela_visao_pdi": _tabela_pdi(
+            "tbl_VisaoPDI", _COLUNAS_VISAO_PDI,
+            [{**resumo, "rotulo": "RECURSO PPI", "diferenca": diferenca}] if resumo else [],
+        ),
+        "tabela_projetos_pdi": _tabela_pdi(
+            "tbl_ProjetosPDI", _COLUNAS_PROJETOS_PDI, linhas_projetos,
+        ),
+    }
+
+
 def _painel_pilar_financeiro(pilar, ano, acomp):
+    if pilar.codigo == "PDI":
+        return painel_pdi_financeiro(pilar, acomp)
     consolidado, anual = _resumos_financeiros(acomp)
     temporal = agregar_despesas_por_ano(acomp)
     overrides = _overrides_financeiros(acomp)

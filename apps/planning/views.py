@@ -149,7 +149,9 @@ def contexto_pilar(pilar, ano_param, base_param, usuario, acompanhamento=None):
         if usuario and usuario.is_authenticated else set()
     )
     if acompanhamento is None:
-        pp = painel_pilar(pilar, ano, base_param)
+        pp = (painel_prestacao.painel_pdi_financeiro(pilar, None)
+              if pilar.codigo == "PDI" and base_param == BASE_FIN
+              else painel_pilar(pilar, ano, base_param))
         grade = grade_edicao(base_param, ({pilar.codigo} & editaveis) or {"__nenhum__"})
     else:
         pp = painel_prestacao.painel_pilar_acompanhamento(
@@ -163,7 +165,7 @@ def contexto_pilar(pilar, ano_param, base_param, usuario, acompanhamento=None):
         "painel_pilar": pp,
         "ano_param": ano_param,
         "base_param": base_param,
-        "geo_pilar": geometria_fonte(
+        "geo_pilar": None if pp.get("visao_pdi") else geometria_fonte(
             _float_series(pp["serie_previsto"]),
             _float_series(pp["serie_executado"]),
             destaque,
@@ -388,7 +390,9 @@ def _csv_pilar(request, pilar, ano_param, base_param):
             pilar, ano, base_param, acompanhamento
         )
         if acompanhamento is not None
-        else painel_pilar(pilar, ano, base_param)
+        else (painel_prestacao.painel_pdi_financeiro(pilar, None)
+              if pilar.codigo == "PDI" and base_param == BASE_FIN
+              else painel_pilar(pilar, ano, base_param))
     )
     rotulo = ROTULOS_PAINEL.get(pilar.codigo, pilar.nome)
     linhas = ["Pilar;Ano;Previsto;Executado;Saldo;% Executado"]
@@ -399,7 +403,35 @@ def _csv_pilar(request, pilar, ano_param, base_param):
             f"{numero_curto(linha['executado'])};{numero_curto(linha['saldo'])};{pct}"
         )
     hoje = date.today().isoformat()
-    resposta = HttpResponse("﻿" + "\n".join(linhas) + "\n", content_type="text/csv; charset=utf-8")
+    if pp.get("visao_pdi"):
+        import csv
+        from io import StringIO
+
+        documento = StringIO(newline="")
+        writer = csv.writer(documento, delimiter=";")
+        for chave in ("tabela_visao_pdi", "tabela_projetos_pdi"):
+            tabela = pp[chave]
+            writer.writerow([tabela["nome"]])
+            writer.writerow(tabela["cabecalhos"])
+            for linha in tabela["linhas"]:
+                valores = []
+                for celula in linha["celulas"]:
+                    valor = celula["valor"]
+                    if valor is None:
+                        valor = "—"
+                    elif celula["tipo"] == "data":
+                        valor = valor.strftime("%d/%m/%Y")
+                    elif celula["tipo"] in ("dinheiro", "percentual"):
+                        valor = numero_curto(valor)
+                        if celula["tipo"] == "percentual":
+                            valor += "%"
+                    valores.append(valor)
+                writer.writerow(valores)
+            writer.writerow([])
+        conteudo = documento.getvalue()
+    else:
+        conteudo = "\n".join(linhas) + "\n"
+    resposta = HttpResponse("﻿" + conteudo, content_type="text/csv; charset=utf-8")
     resposta["Content-Disposition"] = (
         f"attachment; filename=dados_quiin_{base_param}_{ano_param}_{pilar.codigo}_{hoje}.csv"
     )

@@ -3,7 +3,7 @@
 <div id="painel-pilar" data-testid="painel-pilar" class="mt-4">
   <section aria-label="Visão geral do pilar">
     <h2 class="font-display text-lg font-semibold">Visão geral — {{ painel_pilar.rotulo }}</h2>
-    <p class="text-xs text-text-muted">Agregado do pilar. Os indicadores, o gráfico e a tabela respondem aos filtros de ano e de base de análise. {{ painel_pilar.rotulo_periodo }}.</p>
+    <p class="text-xs text-text-muted">{% if painel_pilar.visao_pdi %}Valores acumulados do ciclo completo de PDI, conforme as tabelas financeiras importadas.{% else %}Agregado do pilar. Os indicadores, o gráfico e a tabela respondem aos filtros de ano e de base de análise. {{ painel_pilar.rotulo_periodo }}.{% endif %}</p>
     <div class="mt-3 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       <c-dashboard.kpi-card :card="painel_pilar.cards.0" base="{{ base_param }}" borda="kpi-borda-1" />
       <c-dashboard.kpi-card :card="painel_pilar.cards.1" base="{{ base_param }}" borda="kpi-borda-2" />
@@ -22,7 +22,7 @@
     </div>
   </section>
 
-  {% if painel_pilar.projetos is not None %}
+  {% if painel_pilar.codigo != 'PDI' and painel_pilar.projetos is not None %}
   <section class="mt-4 rounded-xl border border-border bg-surface-2 p-4" aria-label="Quantidade de projetos financeiros">
     <p class="text-xs font-semibold uppercase tracking-wide text-text-muted">Projetos financeiros</p>
     <p data-testid="pilar-projetos" class="numerico mt-1 text-2xl font-bold">{{ painel_pilar.projetos }} <span class="text-base font-semibold text-text-muted">projetos</span></p>
@@ -30,6 +30,17 @@
   </section>
   {% endif %}
 
+  {% if painel_pilar.visao_pdi %}
+  <section class="mt-6 rounded-xl border border-border bg-surface-2 p-5" aria-label="Visão financeira PDI">
+    <h2 class="font-display text-lg font-semibold">Visão financeira — PDI</h2>
+    <c-dashboard.tabela-financeira-pdi :tabela="painel_pilar.tabela_visao_pdi" />
+  </section>
+
+  <section class="mt-4 rounded-xl border border-border bg-surface-2 p-5" aria-label="Projetos PDI">
+    <h2 class="font-display text-lg font-semibold">Projetos — PDI</h2>
+    <c-dashboard.tabela-financeira-pdi :tabela="painel_pilar.tabela_projetos_pdi" />
+  </section>
+  {% else %}
   <section class="mt-6 rounded-xl border border-border bg-surface-2 p-5" aria-label="Evolução anual do pilar">
     <h2 class="font-display text-lg font-semibold">{{ painel_pilar.rotulo }}: {{ painel_pilar.rotulo_previsto|lower }} x executado</h2>
     <p class="text-xs text-text-muted">Evolução anual de 2024 a 2027, {% if base_param == 'fin' %}em R$ milhões{% else %}em quantidade de metas físicas{% endif %}. O acumulado fica separado nos cartões e na tabela; o ano selecionado aparece em destaque.</p>
@@ -46,6 +57,7 @@
     <p class="text-xs text-text-muted">Previsto e executado por ano no período selecionado, {% if base_param == 'fin' %}em R$ milhões{% else %}em quantidade de metas físicas{% endif %}.</p>
     <c-dashboard.tabela-anual-pilar :linhas="painel_pilar.tabela" base="{{ painel_pilar.base }}" rotulo_previsto="{{ painel_pilar.rotulo_previsto }}" :valores-em-reais="painel_pilar.valores_em_reais" />
   </section>
+  {% endif %}
 
   {% if pode_editar_pilar and not standalone %}
   {% include 'dashboard/editor.html' %}
