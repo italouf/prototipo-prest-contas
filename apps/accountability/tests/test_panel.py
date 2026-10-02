@@ -12,7 +12,7 @@ from .. import panel, services
 from ..models import Acompanhamento, CentroCompetencia, KpiAcompanhamento, ResumoFinanceiro
 
 RAIZ = Path(__file__).resolve().parents[3]
-FINANCEIRO = RAIZ / "mockup" / "exemplos_arquivos" / "FINANCEIRO GERAL.xlsx"
+FINANCEIRO = RAIZ / "mockup" / "exemplos_arquivos" / "FINANCEIRO GERAL - REFAT.xlsx"
 INDICADORES = RAIZ / "mockup" / "exemplos_arquivos" / "Indicadores Gerais do Termo de Retificação do PE.xlsx"
 CENTRO = "Centro de Competência Embrapii CIMATEC em Tecnologias Quânticas - Quiin"
 

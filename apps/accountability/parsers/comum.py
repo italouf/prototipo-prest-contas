@@ -1,12 +1,13 @@
 """Parsers dos arquivos de prestação de contas (SDD 2026-09-29).
 
 Módulo comum com a "linha de senhas" compartilhada pelos parsers de
-``FINANCEIRO GERAL.xlsx``, ``Indicadores Gerais do PE.xlsx`` e
+``FINANCEIRO GERAL - REFAT.xlsx``, ``Indicadores Gerais do PE.xlsx`` e
 ``Acompanhamento Financeiro (v2).xlsx``: normalização de rótulos, decisão de
 tipo numérico e o shape do payload devolvido por todo parser.
 
-Os parsers são puros: leem o ``.xlsx`` com ``openpyxl`` (``read_only``,
-``data_only``) e devolvem um dicionário; nunca tocam no banco.
+Os parsers são puros: leem o ``.xlsx`` com ``openpyxl`` e devolvem um
+dicionário; nunca tocam no banco. O financeiro usa o modo normal para acessar
+objetos Table; os demais mantêm a leitura otimizada.
 """
 
 from __future__ import annotations
@@ -111,14 +112,15 @@ def para_dinheiro(valor: object) -> Decimal | None:
     return numero.quantize(Decimal("0.01"))
 
 
-def abrir_workbook(caminho: Path | str):
-    """Abre o ``.xlsx`` em modo somente leitura, com valores calculados.
+def abrir_workbook(caminho: Path | str, *, read_only=True, data_only=True):
+    """Lê o XLSX; o modo normal permite acessar objetos Table no REFAT.
 
     Raises:
         ArquivoInvalidoError: o openpyxl não conseguiu ler o arquivo.
     """
     try:
-        return openpyxl.load_workbook(caminho, read_only=True, data_only=True)
+        return openpyxl.load_workbook(
+            caminho, read_only=read_only, data_only=data_only, keep_links=False)
     except Exception as exc:  # noqa: BLE001 — zip/ole/xml inválido vira erro único
         raise ArquivoInvalidoError(
             f"Não foi possível ler '{Path(caminho).name}': {exc}"

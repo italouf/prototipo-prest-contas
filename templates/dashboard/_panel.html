@@ -3,7 +3,7 @@
 <div id="dashboard-panel" data-testid="dashboard-panel" class="mt-4">
   <section aria-label="Visão geral">
     <h2 class="font-display text-lg font-semibold">Visão geral</h2>
-    <p class="text-xs text-text-muted">Resultados agregados do Centro de Competência. {% if painel.visao_financeiro_geral %}Valores do ciclo completo, conforme o FINANCEIRO GERAL.xlsx.{% else %}Os indicadores, os gráficos e a tabela respondem aos filtros de ano e de base de análise. {{ painel.rotulo_periodo }}.{% endif %}</p>
+    <p class="text-xs text-text-muted">Resultados agregados do Centro de Competência. {% if painel.visao_financeiro_geral %}Valores do ciclo completo, conforme as tabelas do FINANCEIRO GERAL - REFAT.xlsx.{% else %}Os indicadores, os gráficos e a tabela respondem aos filtros de ano e de base de análise. {{ painel.rotulo_periodo }}.{% endif %}</p>
     <div class="mt-3 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       <c-dashboard.kpi-card :card="painel.cards.0" base="{{ base_param }}" borda="kpi-borda-1" />
       <c-dashboard.kpi-card :card="painel.cards.1" base="{{ base_param }}" borda="kpi-borda-2" />
@@ -23,8 +23,8 @@
       <aside class="self-start rounded-xl border border-border bg-surface p-4" aria-label="Consolidado PPI" data-testid="consolidado-ppi">
         <h3 class="font-display text-base font-semibold">Consolidado</h3>
         <div class="mt-4 grid grid-cols-2 gap-3 text-xs">
-          <div><span class="block text-text-muted">RECURSO PPI TOTAL</span><strong class="numerico mt-1 block text-sm">{{ painel.tabela_tab1.linhas.4.recurso|moeda_ptbr }}</strong></div>
-          <div><span class="block text-text-muted">REALIZADO TOTAL</span><strong class="numerico mt-1 block text-sm">{{ painel.tabela_tab1.linhas.4.realizado|moeda_ptbr }}</strong></div>
+          <div><span class="block text-text-muted">RECURSO PPI TOTAL</span><strong class="numerico mt-1 block text-sm">{{ painel.tabela_tab1.total.recurso|moeda_ptbr }}</strong></div>
+          <div><span class="block text-text-muted">REALIZADO TOTAL</span><strong class="numerico mt-1 block text-sm">{{ painel.tabela_tab1.total.realizado|moeda_ptbr }}</strong></div>
         </div>
       </aside>
     </div>

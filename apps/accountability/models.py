@@ -84,7 +84,7 @@ class ImportacaoAcompanhamento(models.Model):
     status = models.CharField("Status", max_length=10, choices=STATUS_IMPORTACAO)
     log = models.TextField("Log", blank=True)  # erros unidos por " | "
     avisos = models.TextField("Avisos", blank=True)  # avisos unidos por " | "
-    resumo = models.JSONField("Resumo", null=True, blank=True)  # ex.: {"resumos": 9, "projetos": 33}
+    resumo = models.JSONField("Resumo", null=True, blank=True)  # ex.: {"resumos": 13, "projetos": 33}
     usuario = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
         verbose_name="Usuário",

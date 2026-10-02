@@ -12,7 +12,7 @@ from ..models import Acompanhamento, DespesaAcompanhamento, OverrideAcompanhamen
 from pathlib import Path
 
 RAIZ = Path(__file__).resolve().parents[3]
-FINANCEIRO = RAIZ / "mockup" / "exemplos_arquivos" / "FINANCEIRO GERAL.xlsx"
+FINANCEIRO = RAIZ / "mockup" / "exemplos_arquivos" / "FINANCEIRO GERAL - REFAT.xlsx"
 INDICADORES = RAIZ / "mockup" / "exemplos_arquivos" / "Indicadores Gerais do Termo de Retificação do PE.xlsx"
 CENTRO = "Centro de Competência Embrapii CIMATEC em Tecnologias Quânticas - Quiin"
 
@@ -479,7 +479,13 @@ class OverrideViewComplementarTestes(TestCase):
         overrides.aplicar_overrides(self.acomp, "financeiro",
                                     [(2026, "PDI", "executado", Decimal("999"))], self.user)
         self.client.force_login(self.user)
-        conteudo = self.client.get("/", {"ano": "2026", "base": "fin"}).content.decode()
+        # A visão geral financeira exibe o ciclo completo; a edição anual
+        # financeira fica no painel do pilar.
+        pilar = Pilar.objects.get(codigo="PDI")
+        resposta = self.client.get(f"/pilar/{pilar.pk}/", {
+            "ano": "2026", "base": "fin", "acompanhamento": self.acomp.pk})
+        self.assertEqual(resposta.status_code, 200)
+        conteudo = resposta.content.decode()
         assert "Restaurar valores importados" in conteudo
         assert 'name="acompanhamento" value="%d"' % self.acomp.pk in conteudo
         assert re.search(r'value="999(\.0+)?" name="v__2026__financeiro__PDI__executado"', conteudo)

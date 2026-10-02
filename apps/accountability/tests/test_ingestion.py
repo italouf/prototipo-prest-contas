@@ -13,7 +13,7 @@ from ..models import (Acompanhamento, ImportacaoAcompanhamento, KpiAcompanhament
                      ProjetoFinanceiro, ResumoFinanceiro)
 
 RAIZ = Path(__file__).resolve().parents[3]
-FINANCEIRO = RAIZ / "mockup" / "exemplos_arquivos" / "FINANCEIRO GERAL.xlsx"
+FINANCEIRO = RAIZ / "mockup" / "exemplos_arquivos" / "FINANCEIRO GERAL - REFAT.xlsx"
 INDICADORES = RAIZ / "mockup" / "exemplos_arquivos" / "Indicadores Gerais do Termo de Retificação do PE.xlsx"
 V2 = RAIZ / "Acompanhamento Financeiro (v2).xlsx"
 
@@ -24,7 +24,8 @@ REFERENCIA = "2T/2024"
 class DeteccaoTipoTestes(TestCase):
     def test_identifica_os_tres_tipos_pelas_abas(self):
         assert services.detejar_tipo_arquivo(["HEAD - INDICADORES - EMBRAPII"]) == "INDICADORES_PE"
-        assert services.detejar_tipo_arquivo(["FINANCEIRO "]) == "FINANCEIRO_GERAL"
+        assert services.detejar_tipo_arquivo(["db_geral"], ["tbl_ConsolidadoPrograma"]) == "FINANCEIRO_GERAL"
+        assert services.detejar_tipo_arquivo(["FINANCEIRO "]) is None
         assert services.detejar_tipo_arquivo(
             ["0. Sumário", "3. Conta Ação - AFCCT"]) == "ACOMPANHAMENTO_V2"
         assert services.detejar_tipo_arquivo(["Qualquer coisa"]) is None
@@ -50,7 +51,7 @@ class IngestaoFinanceiroTestes(TestCase):
     def test_extrai_e_grava_os_valores_esperados(self):
         imp = services.ingestar("FINANCEIRO_GERAL", FINANCEIRO, CENTRO, REFERENCIA, self.user)
         self.assertEqual(imp.status, "SUCESSO")
-        self.assertEqual(imp.resumo, {"resumos": 9, "projetos": 33})
+        self.assertEqual(imp.resumo, {"resumos": 13, "projetos": 33})
         pdi = ResumoFinanceiro.objects.get(origem="TAB. 1", pilar__codigo="PDI", ano=None)
         self.assertEqual(pdi.recurso_ou_meta, Decimal("29000000"))
         self.assertEqual(pdi.realizado, Decimal("17675109.56"))
@@ -63,7 +64,7 @@ class IngestaoFinanceiroTestes(TestCase):
     def test_reenvio_do_mesmo_arquivo_nao_duplica(self):
         services.ingestar("FINANCEIRO_GERAL", FINANCEIRO, CENTRO, REFERENCIA, self.user)
         services.ingestar("FINANCEIRO_GERAL", FINANCEIRO, CENTRO, REFERENCIA, self.user)
-        self.assertEqual(ResumoFinanceiro.objects.count(), 9)
+        self.assertEqual(ResumoFinanceiro.objects.count(), 13)
         self.assertEqual(ProjetoFinanceiro.objects.count(), 33)
         self.assertEqual(ImportacaoAcompanhamento.objects.filter(status="SUCESSO").count(), 2)
 
@@ -71,7 +72,7 @@ class IngestaoFinanceiroTestes(TestCase):
         services.ingestar("FINANCEIRO_GERAL", FINANCEIRO, CENTRO, REFERENCIA, self.user)
         services.ingestar("INDICADORES_PE", INDICADORES, CENTRO, REFERENCIA, self.user)
         services.ingestar("FINANCEIRO_GERAL", FINANCEIRO, CENTRO, REFERENCIA, self.user)
-        self.assertEqual(ResumoFinanceiro.objects.count(), 9)
+        self.assertEqual(ResumoFinanceiro.objects.count(), 13)
         self.assertEqual(KpiAcompanhamento.objects.count(), 10)
 
     def test_v2_real_grava_acompanhamento_com_metadados(self):
@@ -86,7 +87,7 @@ class IngestaoFinanceiroTestes(TestCase):
         texto = json.dumps(payload, ensure_ascii=False, indent=2, default=str)
         assert payload["tipo_fonte"] == "FINANCEIRO_GERAL"
         assert payload["periodo_referencia"] == REFERENCIA
-        assert payload["contagens"] == {"resumos": 9, "projetos": 33}
+        assert payload["contagens"] == {"resumos": 13, "projetos": 33}
         assert str(payload["exemplo_resumo"]["realizado"]) == "17675109.56"
         assert '"realizado": "17675109.56"' in texto
 
@@ -98,6 +99,59 @@ class IngestaoFinanceiroTestes(TestCase):
         self.assertEqual(ProjetoFinanceiro.objects.count(), 0)
         self.assertEqual(ImportacaoAcompanhamento.objects.filter(status="ERRO").count(), 1)
         self.assertEqual(Acompanhamento.objects.count(), 1)  # histórico de erro é preservado
+
+    def test_incluir_e_remover_projeto_atualiza_contagem_sem_duplicar(self):
+        from openpyxl.utils.cell import range_boundaries
+        from .fixtures_financeiro import workbook_financeiro, tabela_financeira, preencher_tabela
+        from .. import panel
+
+        wb = workbook_financeiro()
+        ws, tabela = tabela_financeira(wb, "tbl_ProjetosPDI")
+        primeira, inicio, ultima, fim = range_boundaries(tabela.ref)
+        cabecalhos = [c.name for c in tabela.tableColumns]
+        registros = [dict(zip(cabecalhos, linha)) for linha in ws.iter_rows(
+            min_col=primeira, max_col=ultima, min_row=inicio + 1, max_row=fim, values_only=True)]
+        registros.append({"PROJETO": "Projeto Novo", "ORÇADO SÍNTESE": 100})
+        with tempfile.TemporaryDirectory() as pasta:
+            caminho = Path(pasta) / "outro-nome.xlsx"
+            preencher_tabela(wb, "tbl_ProjetosPDI", registros)
+            wb.save(caminho)
+            for _ in range(2):
+                imp = services.ingestar("FINANCEIRO_GERAL", caminho, CENTRO, REFERENCIA, self.user)
+                self.assertEqual(imp.resumo, {"resumos": 13, "projetos": 34})
+            acomp = Acompanhamento.objects.get()
+            pdi = Pilar.objects.get(codigo="PDI")
+            self.assertEqual(panel.painel_pilar_acompanhamento(pdi, None, "fin", acomp)["projetos"], 19)
+            self.client.force_login(self.user)
+            resposta = self.client.get(f"/pilar/{pdi.pk}/?ano=todos&base=fin&acompanhamento={acomp.pk}")
+            self.assertContains(resposta, 'data-testid="pilar-projetos"')
+            self.assertContains(resposta, "19 <span")
+            preencher_tabela(wb, "tbl_ProjetosPDI", registros[:-1])
+            wb.save(caminho)
+            imp = services.ingestar("FINANCEIRO_GERAL", caminho, CENTRO, REFERENCIA, self.user)
+            self.assertEqual(imp.resumo["projetos"], 33)
+            self.assertFalse(ProjetoFinanceiro.objects.filter(nome="Projeto Novo").exists())
+        wb.close()
+
+    def test_formato_antigo_e_estrutura_incompleta_preservam_dados(self):
+        from .fixtures_financeiro import workbook_financeiro, tabela_financeira
+        services.ingestar("FINANCEIRO_GERAL", FINANCEIRO, CENTRO, REFERENCIA, self.user)
+        antes = _instantaneo()
+        with self.assertRaises(services.IngestaoError) as ctx:
+            services.ingestar("FINANCEIRO_GERAL", FINANCEIRO.with_name("FINANCEIRO GERAL.xlsx"), CENTRO, REFERENCIA, self.user)
+        self.assertIn("REFAT", str(ctx.exception))
+        wb = workbook_financeiro()
+        ws, tabela = tabela_financeira(wb, "tbl_ProjetosPDI")
+        del ws.tables[tabela.displayName]
+        with tempfile.TemporaryDirectory() as pasta:
+            caminho = Path(pasta) / "incompleto.xlsx"
+            wb.save(caminho)
+            with self.assertRaises(services.IngestaoError) as ctx:
+                services.ingestar("FINANCEIRO_GERAL", caminho, CENTRO, REFERENCIA, self.user)
+            self.assertIn("tbl_ProjetosPDI", str(ctx.exception))
+        wb.close()
+        self.assertEqual(_instantaneo(), antes)
+        self.assertEqual(ImportacaoAcompanhamento.objects.filter(status="ERRO").count(), 2)
 
 
 # ---------------------------------------------------------------------------
@@ -213,47 +267,19 @@ class CentroCodigoTestes(TestCase):
 # ------------------------------------------------------- fixtures sintéticas
 
 def _workbook_financeiro(caminho, nomes_projetos):
-    """Workbook ``FINANCEIRO GERAL`` sintético (estilo das fixtures da suíte).
+    """REFAT em que PDI só aparece nos projetos, para testar resolução de pilares."""
+    from .fixtures_financeiro import workbook_financeiro, preencher_tabela
 
-    A TAB. 1 traz uma única linha de resumo (INFRA) e a TAB. 2 traz os
-    projetos PDI pedidos — assim o pilar dos projetos não aparece em nenhum
-    ``resumo``/``kpi``/``despesa``. Os blocos obrigatórios restantes aparecem
-    só com título (e rótulo de pilar em TAB. 3/5/8) para o parser não acusar
-    bloco ausente nem rótulo desconhecido.
-    """
-    wb = Workbook()
-    ws = wb.active
-    ws.title = "FINANCEIRO "
-    ws["C1"] = "TAB. 1 - Consolidado"
-    ws["C2"] = "Ação"
-    ws["C4"] = "INFRAESTRUTURA"
-    ws["D4"] = 100
-    ws["E4"] = 50
-    ws["M6"] = "TAB. 1.1 - Anual"
-    ws["M7"] = "Ação"
-    ws["C9"] = "TAB. 2 - Projetos"
-    ws["C10"] = "PROJETO"
-    for indice, nome in enumerate(nomes_projetos):
-        linha = 12 + indice
-        ws[f"B{linha}"] = indice + 1
-        ws[f"C{linha}"] = nome
-        ws[f"D{linha}"] = "Em execução"
-        ws[f"G{linha}"] = 10
-        ws[f"H{linha}"] = 5
-    proximo = 14 + len(nomes_projetos)
-    ws[f"C{proximo}"] = "TAB. 3 - Reconciliação"
-    ws[f"E{proximo}"] = "AFCCT / PD&I"
-    ws[f"C{proximo + 2}"] = "TAB. 4 - Projetos FCRH"
-    ws[f"C{proximo + 3}"] = "PROJETO"
-    ws[f"C{proximo + 5}"] = "TAB. 5 - Reconciliação FCRH"
-    ws[f"E{proximo + 5}"] = "FCRH"
-    ws[f"C{proximo + 7}"] = "TAB. 6 - Projetos ACS"
-    ws[f"C{proximo + 8}"] = "PROJETO"
-    ws[f"C{proximo + 10}"] = "TAB. 8 - Reconciliação ACS"
-    ws[f"E{proximo + 10}"] = "ACS"
-    ws[f"C{proximo + 12}"] = "TAB. 9 - AT e Outras Fontes"
-    ws[f"C{proximo + 13}"] = "Pilar"
+    wb = workbook_financeiro(vazio=True)
+    preencher_tabela(wb, "tbl_ConsolidadoPrograma", [{
+        "AÇÃO": "INFRAESTRUTURA", "RECURSO PPI TOTAL": 100, "REALIZADO TOTAL": 50,
+    }])
+    preencher_tabela(wb, "tbl_ProjetosPDI", [
+        {"PROJETO": nome, "STATUS": "Em execução", "ORÇADO SÍNTESE": 10,
+         "REALIZADO (até 05/2026)": 5} for nome in nomes_projetos
+    ])
     wb.save(caminho)
+    wb.close()
 
 
 # Abas obrigatórias do v2 (SDD §6): sem as 8 o parser acusa aba ausente.
@@ -379,23 +405,24 @@ class RollbackNoMeioDaGravacaoTestes(TestCase):
     def test_falha_apos_gravar_fatos_restaura_as_linhas_anteriores(self):
         services.ingestar("FINANCEIRO_GERAL", FINANCEIRO, CENTRO, REFERENCIA, self.user)
         resumos_antes, projetos_antes = _instantaneo()
-        self.assertEqual(len(resumos_antes), 9)
+        self.assertEqual(len(resumos_antes), 13)
         self.assertEqual(len(projetos_antes), 33)
 
-        # Dois projetos com o mesmo (origem, nome): o bulk_create dos projetos
-        # estoura IntegrityError DEPOIS de os resumos já terem sido recriados
-        # dentro da transação — o rollback tem que restaurar tudo.
+        # Simula falha no bulk_create DEPOIS de recriar os resumos; validação
+        # de projetos duplicados agora acontece antes da transação.
+        from unittest.mock import patch
+        from django.db import IntegrityError
         with tempfile.TemporaryDirectory() as pasta:
             caminho = Path(pasta) / "duplicado.xlsx"
-            _workbook_financeiro(caminho, ["Projeto Beta", "Projeto Beta"])
-            with self.assertRaises(services.IngestaoError):
+            _workbook_financeiro(caminho, ["Projeto Beta"])
+            with patch.object(ProjetoFinanceiro.objects, "bulk_create", side_effect=IntegrityError("falha simulada")), self.assertRaises(services.IngestaoError):
                 services.ingestar("FINANCEIRO_GERAL", caminho, CENTRO, REFERENCIA, self.user)
 
         resumos_depois, projetos_depois = _instantaneo()
         self.assertEqual(resumos_depois, resumos_antes)   # linhas pré-existentes idênticas
         self.assertEqual(projetos_depois, projetos_antes)
         self.assertFalse(ProjetoFinanceiro.objects.filter(nome="Projeto Beta").exists())
-        self.assertEqual(ResumoFinanceiro.objects.count(), 9)
+        self.assertEqual(ResumoFinanceiro.objects.count(), 13)
         self.assertEqual(ProjetoFinanceiro.objects.count(), 33)
         self.assertEqual(ImportacaoAcompanhamento.objects.filter(status="SUCESSO").count(), 1)
         self.assertEqual(ImportacaoAcompanhamento.objects.filter(status="ERRO").count(), 1)
@@ -460,7 +487,7 @@ class DespesasV2Testes(TestCase):
             services.ingestar("ACOMPANHAMENTO_V2", caminho, CENTRO, REFERENCIA, self.user)
             services.ingestar("ACOMPANHAMENTO_V2", caminho, CENTRO, REFERENCIA, self.user)
         self.assertEqual(DespesaAcompanhamento.objects.count(), 2)  # substitui, não duplica
-        self.assertEqual(ResumoFinanceiro.objects.count(), 9)        # demais fontes intactas
+        self.assertEqual(ResumoFinanceiro.objects.count(), 13)        # demais fontes intactas
         self.assertEqual(ProjetoFinanceiro.objects.count(), 33)
         self.assertEqual(KpiAcompanhamento.objects.count(), 10)
 

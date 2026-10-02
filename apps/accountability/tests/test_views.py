@@ -42,9 +42,9 @@ class UploadValidacaoTestes(TestCase):
     def test_sucesso_exibe_resumo_de_contagens(self):
         from pathlib import Path
         raiz = Path(__file__).resolve().parents[3]
-        bloco = (raiz / "mockup" / "exemplos_arquivos" / "FINANCEIRO GERAL.xlsx").read_bytes()
+        bloco = (raiz / "mockup" / "exemplos_arquivos" / "FINANCEIRO GERAL - REFAT.xlsx").read_bytes()
         resposta = self.client.post(reverse("accountability:importar"), {
-            "arquivo": _xlsx(bloco, "FINANCEIRO GERAL.xlsx"),
+            "arquivo": _xlsx(bloco, "FINANCEIRO GERAL - REFAT.xlsx"),
             "centro": "Centro de Competência Embrapii CIMATEC em Tecnologias Quânticas - Quiin",
             "periodo_referencia": "2T/2024"})
         self.assertContains(resposta, "33 projetos financeiros")
@@ -156,12 +156,33 @@ class UploadExtrasTestes(TestCase):
 
     def test_sucesso_grava_o_log_de_importacao(self):
         raiz = Path(__file__).resolve().parents[3]
-        bloco = (raiz / "mockup" / "exemplos_arquivos" / "FINANCEIRO GERAL.xlsx").read_bytes()
+        bloco = (raiz / "mockup" / "exemplos_arquivos" / "FINANCEIRO GERAL - REFAT.xlsx").read_bytes()
         self.client.post(reverse("accountability:importar"), {
-            "arquivo": _xlsx(bloco, "FINANCEIRO GERAL.xlsx"),
+            "arquivo": _xlsx(bloco, "FINANCEIRO GERAL - REFAT.xlsx"),
             "centro": "Centro de Competência Embrapii CIMATEC em Tecnologias Quânticas - Quiin",
             "periodo_referencia": "2T/2024"})
         from ..models import ImportacaoAcompanhamento
         importacao = ImportacaoAcompanhamento.objects.get(status="SUCESSO")
         self.assertEqual(importacao.resumo["projetos"], 33)
         self.assertEqual(importacao.tipo_fonte, "FINANCEIRO_GERAL")
+
+    def test_formula_com_erro_importa_com_aviso_visivel_e_registrado(self):
+        from io import BytesIO
+        from .fixtures_financeiro import workbook_financeiro, tabela_financeira
+        from ..models import ImportacaoAcompanhamento, ResumoFinanceiro
+
+        wb = workbook_financeiro()
+        ws, _tabela = tabela_financeira(wb, "tbl_ConsolidadoPrograma")
+        ws["C2"] = "#REF!"
+        bloco = BytesIO()
+        wb.save(bloco)
+        wb.close()
+        resposta = self.client.post(reverse("accountability:importar"), {
+            "arquivo": _xlsx(bloco.getvalue(), "nome-livre.xlsx"),
+            "centro": "QuIIN", "periodo_referencia": "2T/2024"})
+        self.assertContains(resposta, "33 projetos financeiros")
+        self.assertContains(resposta, 'data-testid="avisos-importacao"')
+        self.assertContains(resposta, "erro de fórmula")
+        imp = ImportacaoAcompanhamento.objects.get(status="SUCESSO")
+        self.assertIn("tbl_ConsolidadoPrograma", imp.avisos)
+        self.assertIsNone(ResumoFinanceiro.objects.get(origem="TAB. 1", pilar__codigo="PDI").realizado)

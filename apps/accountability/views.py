@@ -1,7 +1,7 @@
 """Endpoint e UI de upload das planilhas de prestação de contas (SDD §10).
 
 O ``services.ingestar`` é a fronteira de segurança: aqui só se valida o
-formulário (extensão/tamanho/período), se pré-detecta o tipo pelas abas para
+formulário (extensão/tamanho/período), se pré-detecta o tipo pelas tabelas/abas para
 mensagens amigáveis (Ruling 2) e se traduz ``IngestaoError``/``ValidationError``
 em ``messages`` pt-BR. Nada do Excel é executado — apenas lido.
 """
@@ -21,7 +21,7 @@ from apps.core.permissions import pode_importar_financeiro, sem_permissao
 from . import services
 from .forms import UploadPrestacaoForm
 from .models import ImportacaoAcompanhamento
-from .parsers.comum import ArquivoInvalidoError, abrir_workbook
+from .parsers.comum import ArquivoInvalidoError
 
 _IMPORTACOES_HISTORICO = 30
 
@@ -52,11 +52,11 @@ def _processar_upload(request, form: UploadPrestacaoForm) -> None:
     referencia = form.cleaned_data["periodo_referencia"]
     caminho = _salvar_temporario(arquivo)
     try:
-        # Ruling 2: a pré-detecção pelas abas dá a mensagem amigável; o
+        # Ruling 2: a pré-detecção pela estrutura dá a mensagem amigável; o
         # resultado — mesmo ``None`` — segue para o ``ingestar``, que revalida
         # tudo. Nunca contornar o serviço.
         try:
-            abas = _abas_do_arquivo(caminho)
+            abas, tabelas = services.inspecionar_arquivo(caminho)
         except ArquivoInvalidoError:
             messages.error(
                 request,
@@ -65,7 +65,7 @@ def _processar_upload(request, form: UploadPrestacaoForm) -> None:
             return
         try:
             importacao = services.ingestar(
-                services.detejar_tipo_arquivo(abas),
+                services.detejar_tipo_arquivo(abas, tabelas),
                 caminho, centro, referencia, request.user)
         except services.IngestaoError as exc:
             messages.error(request, str(exc))
@@ -74,6 +74,8 @@ def _processar_upload(request, form: UploadPrestacaoForm) -> None:
             messages.error(request, "; ".join(exc.messages))
             return
         messages.success(request, _mensagem_sucesso(importacao, referencia))
+        if importacao.avisos:
+            messages.warning(request, importacao.avisos)
     finally:
         caminho.unlink(missing_ok=True)
 
@@ -87,15 +89,6 @@ def _salvar_temporario(arquivo) -> Path:
     finally:
         destino.close()
     return Path(destino.name)
-
-
-def _abas_do_arquivo(caminho: Path) -> list[str]:
-    """Só os nomes das abas — nada do Excel é executado (SDD §10)."""
-    wb = abrir_workbook(caminho)
-    try:
-        return list(wb.sheetnames)
-    finally:
-        wb.close()
 
 
 def _mensagem_sucesso(importacao: ImportacaoAcompanhamento, referencia: str) -> str:

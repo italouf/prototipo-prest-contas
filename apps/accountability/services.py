@@ -1,6 +1,6 @@
 """Ingestão atômica e idempotente dos arquivos de prestação de contas (SDD §2).
 
-Fluxo (SDD §2): detectar o tipo do arquivo pela assinatura das abas → parser
+Fluxo (SDD §2): detectar o tipo pelas tabelas/abas do arquivo → parser
 puro → validar erros e metadados → buscar/criar ``CentroCompetencia`` e
 ``Acompanhamento`` → ``transaction.atomic()`` apagando só os fatos daquele
 ``tipo_fonte`` e recriando-os → ``ImportacaoAcompanhamento`` (SUCESSO|ERRO) +
@@ -25,6 +25,10 @@ Regras duras:
 from __future__ import annotations
 
 from pathlib import Path
+from zipfile import ZipFile
+
+from openpyxl.worksheet.table import Table
+from openpyxl.xml.functions import fromstring
 
 from django.core.exceptions import ValidationError
 from django.db import transaction
@@ -56,9 +60,9 @@ _PARSERS = {
     "ACOMPANHAMENTO_V2": acompanhamento_v2.parse_acompanhamento_v2,
 }
 
-# tipo_fonte → abas obrigatórias; usado pela UI do upload (SDD §6/§10).
+# Financeiro: objetos Table. Outras fontes: abas obrigatórias.
 VALIDADORES: dict[str, tuple[str, ...]] = {
-    "FINANCEIRO_GERAL": ("FINANCEIRO ",),
+    "FINANCEIRO_GERAL": financeiro_geral.TABELAS_OBRIGATORIAS,
     "INDICADORES_PE": ("HEAD - INDICADORES - EMBRAPII",),
     "ACOMPANHAMENTO_V2": tuple(acompanhamento_v2.ABAS_DESPESA),
 }
@@ -127,43 +131,56 @@ _DESPESA_TEXTOS = (
 
 # ------------------------------------------------------------------- detecção
 
-def detejar_tipo_arquivo(sheetnames: list[str]) -> str | None:
-    """Tipo de fonte pela assinatura das abas — nunca pelo nome do arquivo.
+def detejar_tipo_arquivo(sheetnames: list[str], table_names=()) -> str | None:
+    """Financeiro por objetos nomeados; demais fontes pela assinatura das abas.
 
-    Espelha a aceitação de cada parser: assinatura ``head - indicadores`` para
-    os indicadores do PE, aba única ``FINANCEIRO `` para o consolidado e
-    qualquer aba de despesa/Sumário para o acompanhamento v2.
+    Uma tabela conhecida identifica um candidato REFAT; o parser verifica o
+    contrato completo e informa precisamente quais objetos estão ausentes.
     """
+    if set(table_names).intersection(financeiro_geral.TABELAS_OBRIGATORIAS):
+        return "FINANCEIRO_GERAL"
     nomes = [normalizar(nome) for nome in sheetnames]
     if any(_ASSINATURA_INDICADORES in nome for nome in nomes):
         return "INDICADORES_PE"
-    if len(nomes) == 1 and nomes[0].startswith("financeiro"):
-        return "FINANCEIRO_GERAL"
     if any(nome in _ASSINATURA_V2 for nome in nomes):
         return "ACOMPANHAMENTO_V2"
     return None
 
 
-def _mensagem_tipo(arquivo_nome: str, abas: list[str], tipo_fonte, detectado) -> str:
-    """Rejeição amigável citando as abas exigidas por template (SDD §7)."""
+def _mensagem_tipo(arquivo_nome: str, abas: list[str], tipo_fonte, detectado, tabelas=()) -> str:
+    """Rejeição amigável citando objetos/abas exigidos por template."""
     exigidas = "; ".join(
         f"{tipo} ⇒ {' + '.join(abas_obrigatorias)}"
         for tipo, abas_obrigatorias in VALIDADORES.items())
     lidas = ", ".join(repr(a) for a in abas) if abas else "nenhuma"
+    objetos = ", ".join(tabelas) if tabelas else "nenhuma"
     return (
         f'Upload rejeitado: não foi possível identificar o tipo de arquivo '
-        f'"{arquivo_nome}" pela assinatura das abas (lidas: {lidas}). '
+        f'"{arquivo_nome}" pela estrutura (abas lidas: {lidas}; tabelas: {objetos}). '
         f"Tipo informado: {tipo_fonte!r}; tipo detectado: {detectado!r}. "
-        f"Abas exigidas por template — {exigidas}. "
-        f"Verifique se é o template correto da EMBRAPII."
+        f"Tabelas/abas exigidas por template — {exigidas}. "
+        f"Para dados financeiros, envie FINANCEIRO GERAL - REFAT.xlsx com as tabelas nomeadas."
     )
 
 
-def _abas_arquivo(caminho: Path | str) -> list[str]:
-    """Nomes das abas do workbook (somente leitura; nada do Excel é executado)."""
+def inspecionar_arquivo(caminho: Path | str) -> tuple[list[str], list[str]]:
+    """Assinatura por metadados, sem carregar as células dos outros modelos.
+
+    O modo otimizado não expõe ws.tables. Reconstruir apenas os objetos Table
+    dos metadados evita carregar integralmente as grandes abas do v2.
+    """
     wb = abrir_workbook(caminho)
     try:
-        return list(wb.sheetnames)
+        with ZipFile(caminho) as pacote:
+            tipos = fromstring(pacote.read("[Content_Types].xml"))
+            nomes = []
+            for parte in tipos:
+                if parte.get("ContentType") == "application/vnd.openxmlformats-officedocument.spreadsheetml.table+xml":
+                    objeto = Table.from_tree(fromstring(pacote.read(parte.get("PartName").lstrip("/"))))
+                    nomes.append(objeto.displayName)
+        return list(wb.sheetnames), nomes
+    except Exception as exc:
+        raise ArquivoInvalidoError(f"Não foi possível inspecionar '{Path(caminho).name}': {exc}") from exc
     finally:
         wb.close()
 
@@ -183,6 +200,7 @@ def resumo_json(tipo_fonte: str, caminho: Path | str, centro: str, referencia: s
         "contagens": _contagens(tipo_fonte, payload),
         "exemplo_resumo": lista[0] if lista else None,
         "avisos": payload["avisos"],
+        "erros": payload["erros"],
     }
 
 
@@ -206,10 +224,10 @@ def ingestar(tipo_fonte: str, caminho: Path | str, centro_nome: str,
     avisos: list[str] = []
     acomp = None
     try:
-        abas = _abas_arquivo(caminho)
-        detectado = detejar_tipo_arquivo(abas)
+        abas, tabelas = inspecionar_arquivo(caminho)
+        detectado = detejar_tipo_arquivo(abas, tabelas)
         if tipo_fonte not in _PARSERS or detectado != tipo_fonte:
-            raise IngestaoError(_mensagem_tipo(arquivo_nome, abas, tipo_fonte, detectado))
+            raise IngestaoError(_mensagem_tipo(arquivo_nome, abas, tipo_fonte, detectado, tabelas))
         payload = _PARSERS[tipo_fonte](caminho)
         avisos = payload["avisos"]
         if payload["erros"]:

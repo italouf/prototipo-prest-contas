@@ -1,133 +1,126 @@
-"""Parser de ``FINANCEIRO GERAL.xlsx`` — mapas tabulares TAB. 1 a TAB. 9 (SDD §4).
+"""Leitura do FINANCEIRO GERAL REFAT por objetos Table e cabeçalhos.
 
-Leitura posicional validada: os títulos ``TAB. n`` são localizados na aba,
-o cabeçalho de colunas é conferido antes de ler e rótulos de pilar
-desconhecidos viram erro citando a célula. Totais de reconciliação
-(TAB. 3/5/8) nunca são somados aos blocos por pilar: são linhas próprias
-com ``origem`` distinta. ``TAB. 7`` é opcional e, quando ausente, só avisa.
+As origens TAB.* preservam o contrato dos snapshots existentes. Nenhuma
+posição de célula, nome de aba ou tamanho de tabela identifica os dados.
 """
-
 from __future__ import annotations
 
 import re
+from contextlib import ExitStack
+from dataclasses import dataclass
 from datetime import date, datetime
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
-from typing import Any
 
-from openpyxl.utils import get_column_letter
+from openpyxl.utils.cell import range_boundaries
+from openpyxl.utils.datetime import from_excel
 
-from apps.accountability.parsers.comum import (
-    abrir_workbook,
-    eh_erro_formula,
-    normalizar,
-    novo_payload,
-    para_decimal,
-    para_dinheiro,
-    texto_limpo,
+from .comum import (
+    abrir_workbook, normalizar, novo_payload,
+    para_decimal, para_dinheiro, texto_limpo,
 )
 
-_TITULO_BLOCO = re.compile(r"^tab\.\s*(\d+(?:\.\d+)?)\D")
 
-# Rótulos de pilar aceitos (SDD §4), comparados sem espaços.
-_ROTULO_PILAR = {
-    "afcct/pd&i": "PDI",
-    "afcct/pdi": "PDI",  # variante usada nos títulos TAB. 2/3 (sem "&")
-    "fcrh": "FORMACAO",
-    "acs": "STARTUPS",
-    "infraestrutura": "INFRA",
-    "associacaotecnologica": "AT",
-    "outrasfontes": "OUTRASFONTES",
-}
+@dataclass(frozen=True)
+class Campo:
+    cabecalhos: tuple[str, ...]
+    tipo: str = "dinheiro"
+    opcional: bool = False
 
-_CABECALHO_ESPERADO = {
-    "TAB. 1": "ação",
-    "TAB. 1.1": "ação",
-    "TAB. 9": "pilar",
-    "TAB. 2": "projeto",
-    "TAB. 4": "projeto",
-    "TAB. 6": "projeto",
-}
 
-_PILAR_BLOCO_PROJETO = {
-    "TAB. 2": "PDI",
-    "TAB. 4": "FORMACAO",
-    "TAB. 6": "STARTUPS",
-}
+@dataclass(frozen=True)
+class TabelaFinanceira:
+    origem: str
+    campos: dict[str, Campo]
+    projetos: bool = False
+    pilar: str | None = None
 
-_BLOCOS_OBRIGATORIOS = (
-    "TAB. 1", "TAB. 1.1", "TAB. 2", "TAB. 3",
-    "TAB. 4", "TAB. 5", "TAB. 6", "TAB. 8", "TAB. 9",
-)
 
-# Campo do dict -> (coluna, tipo de leitura).
-_COLUNAS_RESUMO_TAB1 = {
-    "recurso_ou_meta": ("D", "dinheiro"),
-    "realizado": ("E", "dinheiro"),
-    "projetado": ("F", "dinheiro"),
-    "realizado_mais_projetado": ("G", "dinheiro"),
-    "diferenca": ("H", "dinheiro"),
-    "percentual": ("I", "percentual"),
-    "farol": ("J", "texto"),
-}
-_COLUNAS_RESUMO_TAB11 = {
-    "recurso_ou_meta": ("N", "dinheiro"),
-    "realizado_mais_projetado": ("T", "dinheiro"),
-    "diferenca": ("U", "dinheiro"),
-    "percentual": ("V", "percentual"),
-    "farol": ("W", "texto"),
-}
-# Colunas anuais de TAB. 1.1: (coluna, ano, campo). "S" ("projetado total")
-# nunca vira ano — alimenta a linha consolidada (ano=None) do pilar.
-_ANUAIS_TAB11 = (
-    ("O", 2024, "realizado"),
-    ("P", 2025, "realizado"),
-    ("Q", 2026, "realizado"),
-    ("R", 2026, "projetado"),
-)
-_COLUNAS_RESUMO_RECONCILIACAO = {
-    "recurso_ou_meta": ("D", "dinheiro"),
-    "realizado": ("E", "dinheiro"),
-    "projetado": ("F", "dinheiro"),
-    "realizado_mais_projetado": ("G", "dinheiro"),
-    "diferenca": ("H", "dinheiro"),
-}
-_COLUNAS_RESUMO_TAB9 = {
-    "recurso_ou_meta": ("D", "dinheiro"),
-    "captado_anos_1_2": ("E", "dinheiro"),
-    "captado_ano3_ytd": ("F", "dinheiro"),
-    "captado": ("G", "dinheiro"),
-    "realizado": ("H", "dinheiro"),
-    "percentual_meta": ("I", "percentual"),
-    "percentual_captado": ("J", "percentual"),
-}
-_COLUNAS_PROJETO_TAB24 = {
-    "sequencia": ("B", "inteiro"),
-    "nome": ("C", "texto"),
-    "status": ("D", "texto"),
-    "inicio": ("E", "data"),
-    "fim": ("F", "data"),
-    "orcado": ("G", "dinheiro"),
-    "realizado": ("H", "dinheiro"),
-    "projetado_2026": ("I", "dinheiro"),
-    "projetado_2027": ("J", "dinheiro"),
-    "realizado_mais_projetado": ("K", "dinheiro"),
-    "diferenca": ("L", "dinheiro"),
-    "percentual": ("M", "percentual"),
-}
-_COLUNAS_PROJETO_TAB6 = {
-    "sequencia": ("B", "inteiro"),
-    "nome": ("C", "texto"),
-    "status": ("D", "texto"),
-    "fim": ("E", "data"),
-    "orcado": ("F", "dinheiro"),
-    "realizado": ("G", "dinheiro"),
-    "projetado_2026": ("H", "dinheiro"),
-    "projetado_2027": ("I", "dinheiro"),
-    "realizado_mais_projetado": ("J", "dinheiro"),
-    "diferenca": ("K", "dinheiro"),
-    "percentual": ("L", "percentual"),
-}
+def _campo(*cabecalhos, tipo="dinheiro", opcional=False):
+    return Campo(cabecalhos, tipo, opcional)
 
+
+_COMBINADO = _campo("REALIZADO + PROJETADO")
+_PROJETADO_TOTAL = _campo("PROJETADO TOTAL")
+_PROJETOS = {
+    "nome": _campo("PROJETO", tipo="texto"),
+    "status": _campo("STATUS", tipo="texto"),
+    "sequencia": _campo("ITEM", tipo="inteiro", opcional=True),
+    "inicio": _campo("INICIO", "INICIO DO PROJETO", tipo="data"),
+    "fim": _campo("FINAL", "FINAL DO PROJETO", "DATA FINAL DO PROJETO", tipo="data"),
+    "orcado": _campo("ORÇADO SÍNTESE", "ORÇADO ORIGINAL", "VALOR ORÇADO"),
+    "realizado": _campo("REALIZADO", "REALIZADO TOTAL"),
+    "projetado_2026": _campo("PROJETADO 2026"),
+    "projetado_2027": _campo("PROJETADO 2027"),
+    "realizado_mais_projetado": _COMBINADO,
+    "diferenca": _campo("DIFERENÇA ORÇADO"),
+    "percentual": _campo("% REALIZADO ORÇADO", "% REALIZADO", tipo="percentual"),
+}
+_RECONCILIACAO = {
+    "realizado": _campo("REALIZADO"),
+    "projetado": _PROJETADO_TOTAL,
+    "realizado_mais_projetado": _COMBINADO,
+    "diferenca": _campo("DIFERENÇA PPI", "DIF. REL. AO PPI"),
+}
+TABELAS_FINANCEIRO = {
+    "tbl_ConsolidadoPrograma": TabelaFinanceira("TAB. 1", {
+        "rotulo": _campo("AÇÃO", tipo="texto"),
+        "recurso_ou_meta": _campo("RECURSO PPI TOTAL"),
+        "realizado": _campo("REALIZADO TOTAL"),
+        "projetado": _PROJETADO_TOTAL,
+        "realizado_mais_projetado": _COMBINADO,
+        "diferenca": _campo("DIFERENÇA PPI"),
+        "percentual": _campo("% EXECUÇÃO", tipo="percentual"),
+        "farol": _campo("FAROL", tipo="texto"),
+    }),
+    "tbl_VisaoGeral": TabelaFinanceira("TAB. 1.1", {
+        "rotulo": _campo("AÇÃO", tipo="texto"),
+        "recurso_ou_meta": _campo("RECURSO PPI TOTAL"),
+        "realizado_2024": _campo("REALIZADO 2024"),
+        "realizado_2025": _campo("REALIZADO 2025"),
+        "realizado_2026": _campo("REALIZADO 2026"),
+        "projetado_2026": _campo("PROJETADO 2026"),
+        "projetado_2027": _campo("PROJETADO 2027"),
+        "projetado": _PROJETADO_TOTAL,
+        "realizado_mais_projetado": _COMBINADO,
+        "diferenca": _campo("DIFERENÇA PPI"),
+        "percentual": _campo("% EXECUÇÃO", tipo="percentual"),
+        "farol": _campo("FAROL", tipo="texto"),
+    }),
+    "tbl_ProjetosPDI": TabelaFinanceira("TAB. 2", _PROJETOS, True, "PDI"),
+    "tbl_VisaoPDI": TabelaFinanceira("TAB. 3", {
+        **_RECONCILIACAO,
+        "recurso_ou_meta": _campo("RECURSO PPI AFCCT / PDI"),
+    }, pilar="PDI"),
+    "tbl_ProjetosFCRH": TabelaFinanceira("TAB. 4", _PROJETOS, True, "FORMACAO"),
+    "tbl_VisaoFCRH": TabelaFinanceira("TAB. 5", {
+        **_RECONCILIACAO,
+        "recurso_ou_meta": _campo("RECURSO PPI FCRH"),
+    }, pilar="FORMACAO"),
+    "tbl_ProjetosACS": TabelaFinanceira("TAB. 6", {
+        **_PROJETOS, "inicio": _campo("INICIO", tipo="data", opcional=True),
+    }, True, "STARTUPS"),
+    "tbl_VisaoACS": TabelaFinanceira("TAB. 8", {
+        **_RECONCILIACAO, "recurso_ou_meta": _campo("TOTAL ACS"),
+    }, pilar="STARTUPS"),
+    "tbl_CaptaoATeOutros": TabelaFinanceira("TAB. 9", {
+        "rotulo": _campo("PILAR", tipo="texto"),
+        "recurso_ou_meta": _campo("META TOTAL"),
+        "captado_anos_1_2": _campo("CAPTADO (ANO 1 E 2)"),
+        "captado_ano3_ytd": _campo("CAPTADO (ANO 3 - YTD)"),
+        "captado": _campo("CAPTADO TOTAL"),
+        "realizado": _campo("REALIZADO TOTAL"),
+        "percentual_meta": _campo("% CAPTADO META", tipo="percentual"),
+        "percentual_captado": _campo("% REALIZADO CAPTADO", tipo="percentual"),
+    }),
+}
+TABELAS_OBRIGATORIAS = tuple(TABELAS_FINANCEIRO)
+_PILARES = {
+    "afcct/pd&i": "PDI", "afcct/pdi": "PDI", "fcrh": "FORMACAO",
+    "acs": "STARTUPS", "infraestrutura": "INFRA",
+    "associacaotecnologica": "AT", "outrasfontes": "OUTRASFONTES",
+}
+_TOTAIS = {"total", "total geral", "total geral - atual"}
 _CAMPOS_RESUMO = (
     "recurso_ou_meta", "captado_anos_1_2", "captado_ano3_ytd", "captado",
     "realizado", "projetado", "realizado_mais_projetado", "diferenca",
@@ -138,387 +131,195 @@ _CAMPOS_PROJETO = (
     "projetado_2026", "projetado_2027", "realizado_mais_projetado",
     "diferenca", "percentual",
 )
+_LIMITES_TEXTO = {"nome": 255, "status": 120, "farol": 20}
+
+
+def _cabecalho(valor):
+    return normalizar(re.sub(r"_x000a_", "\n", texto_limpo(valor), flags=re.I))
+
+
+def _chave_campo(valor):
+    texto = _cabecalho(valor)
+    # PDI identifica o ano apenas no intervalo de meses do cabeçalho.
+    periodo = re.fullmatch(r"projetado\s*\([^)]*/(\d{4})\)", texto)
+    if periodo:
+        return f"projetado {periodo[1]}"
+    # Apenas qualificadores temporais conhecidos; captação conserva ANO 1/2/3.
+    texto = re.sub(r"\s*\((?:ate\s+[^)]*|\d{2}\s+a\s+\d{2}/\d{4}|ytd)\)", "", texto)
+    return re.sub(r"\s+ate\s+[\w/]+$", "", texto).strip()
+
+
+def catalogar_tabelas(wb):
+    """Nome do objeto → (worksheet, Table); inclui todas as abas."""
+    catalogo = {}
+    for ws in wb.worksheets:
+        for tabela in ws.tables.values():
+            if tabela.displayName in catalogo:
+                raise ValueError(f'Tabela duplicada: "{tabela.displayName}".')
+            catalogo[tabela.displayName] = (ws, tabela)
+    return catalogo
 
 
 def parse_financeiro_geral(caminho: Path | str) -> dict:
-    """Lê ``FINANCEIRO GERAL.xlsx`` e devolve o payload padrão de ingestão.
-
-    O payload tem o mesmo shape de ``comum.PAYLOAD_VAZIO``; o parser é puro e
-    não toca no banco. Falha de leitura do arquivo propaga
-    ``comum.ArquivoInvalidoError``.
-    """
+    """Parser puro do REFAT, mantendo o payload e as origens dos snapshots."""
     payload = novo_payload()
-    wb = abrir_workbook(caminho)
-    try:
-        if len(wb.sheetnames) != 1 or not normalizar(wb.sheetnames[0]).startswith("financeiro"):
-            payload["erros"].append(
-                "A aba \"FINANCEIRO \" não foi encontrada"
-                f" (abas lidas: {', '.join(repr(a) for a in wb.sheetnames)})."
-                " Verifique se é o template correto da EMBRAPII."
-            )
+    with ExitStack() as recursos:
+        wb = abrir_workbook(caminho, read_only=False)
+        recursos.callback(wb.close)
+        try:
+            catalogo = catalogar_tabelas(wb)
+        except ValueError as exc:
+            payload["erros"].append(str(exc))
             return payload
-        aba = wb.sheetnames[0]
-        ws = wb[aba]
-        celulas, max_linha = _ler_celulas(ws)
-    finally:
-        wb.close()
-
-    titulos = _titulos_de_bloco(celulas)
-    for origem in _BLOCOS_OBRIGATORIOS:
-        if origem not in titulos:
-            payload["erros"].append(
-                f"A aba \"{aba}\" não contém o bloco {origem}."
-                " Verifique se é o template correto da EMBRAPII."
-            )
-    if "TAB. 7" not in titulos:
-        payload["avisos"].append("TAB. 7 não encontrada; ignorada.")
-
-    for origem, (linha_titulo, celula_titulo) in sorted(
-            titulos.items(), key=lambda item: item[1][0]):
-        limite = _limite_do_bloco(origem, titulos, max_linha)
-        if origem in ("TAB. 1", "TAB. 1.1", "TAB. 9"):
-            _ler_bloco_tabular(
-                payload, celulas, origem, linha_titulo, limite, aba)
-        elif origem in ("TAB. 3", "TAB. 5", "TAB. 8"):
-            _ler_bloco_reconciliacao(
-                payload, celulas, origem, linha_titulo, celula_titulo, limite, aba)
-        elif origem in ("TAB. 2", "TAB. 4", "TAB. 6"):
-            _ler_bloco_projetos(
-                payload, celulas, origem, linha_titulo, limite, aba)
-
-    if "TAB. 1.1" in titulos and not any(
-            r["ano"] is not None for r in payload["resumos"]):
-        payload["avisos"].append(
-            "TAB. 1.1 sem valores anuais por pilar; a visão anual exibirá —")
+        for nome in TABELAS_OBRIGATORIAS:
+            if nome not in catalogo:
+                payload["erros"].append(
+                    f'Tabela obrigatória "{nome}" não encontrada. Envie o modelo FINANCEIRO GERAL - REFAT.xlsx.')
+        formulas = abrir_workbook(caminho, data_only=False)
+        recursos.callback(formulas.close)
+        chaves = set()
+        for nome, especificacao in TABELAS_FINANCEIRO.items():
+            if nome in catalogo:
+                ws, tabela = catalogo[nome]
+                _ler_tabela(payload, ws, tabela, formulas[ws.title], especificacao, wb.epoch, chaves)
+    if "tbl_VisaoGeral" in catalogo and not any(r["ano"] is not None for r in payload["resumos"]):
+        payload["avisos"].append("tbl_VisaoGeral sem valores anuais por pilar; a visão anual exibirá —.")
     return payload
 
 
-# ---------------------------------------------------------------- leitura base
+def _mapear_colunas(payload, ws, tabela, especificacao, limites):
+    primeira, inicio, ultima, _fim = limites
+    contexto = f'Aba "{ws.title}", tabela "{tabela.displayName}"'
+    if tabela.headerRowCount != 1 or len(tabela.tableColumns) != ultima - primeira + 1:
+        payload["erros"].append(f"{contexto}: cabeçalhos ou quantidade de colunas inválidos.")
+        return None
+    nomes = [coluna.name for coluna in tabela.tableColumns]
+    cabecalhos = [ws.cell(inicio, coluna).value for coluna in range(primeira, ultima + 1)]
+    if [_cabecalho(v) for v in nomes] != [_cabecalho(v) for v in cabecalhos]:
+        payload["erros"].append(f"{contexto}: cabeçalho divergente dos metadados da tabela.")
+        return None
+    normalizados = [_cabecalho(v) for v in nomes]
+    if len(set(normalizados)) != len(normalizados):
+        payload["erros"].append(f"{contexto}: cabeçalhos duplicados após normalização.")
+        return None
+    mapa = {}
+    problemas = []
+    for campo, contrato in especificacao.campos.items():
+        aliases = {_chave_campo(v) for v in contrato.cabecalhos}
+        indices = [i for i, nome in enumerate(nomes) if _chave_campo(nome) in aliases]
+        if len(indices) > 1:
+            problemas.append(f'cabeçalho ambíguo para "{campo}"')
+        elif indices:
+            mapa[campo] = indices[0]
+        elif not contrato.opcional:
+            problemas.append(f'coluna obrigatória "{contrato.cabecalhos[0]}" ausente')
+    if problemas:
+        payload["erros"].append(f"{contexto}: {'; '.join(problemas)}.")
+        return None
+    return mapa
 
-def _ler_celulas(ws) -> tuple[dict[str, Any], int]:
-    """Células não vazias por coordenada (``"C5"``) e a última linha usada."""
-    celulas: dict[str, Any] = {}
-    max_linha = 0
-    for linha in ws.iter_rows():
-        for celula in linha:
-            if celula.value is not None:
-                celulas[celula.coordinate] = celula.value
-                max_linha = max(max_linha, celula.row)
-    return celulas, max_linha
 
-
-def _coord(coluna: str, linha: int) -> str:
-    return f"{coluna}{linha}"
-
-
-def _titulos_de_bloco(celulas: dict[str, Any]) -> dict[str, tuple[int, str]]:
-    """Primeira ocorrência de cada ``TAB. n`` como (linha, coordenada)."""
-    achados: dict[str, tuple[int, str]] = {}
-    for coordenada in sorted(celulas, key=_chave_de_coordenada):
-        match = _TITULO_BLOCO.match(normalizar(celulas[coordenada]))
-        if not match:
+def _ler_tabela(payload, ws, tabela, formulas, especificacao, epoch, chaves):
+    try:
+        limites = range_boundaries(tabela.ref)
+    except (ValueError, TypeError):
+        payload["erros"].append(f'Tabela "{tabela.displayName}": intervalo inválido.')
+        return
+    mapa = _mapear_colunas(payload, ws, tabela, especificacao, limites)
+    if mapa is None:
+        return
+    primeira, inicio, ultima, fim = limites
+    marcadores = [i for i, coluna in enumerate(tabela.tableColumns)
+                  if _cabecalho(coluna.name) in {"acao", "pilar", "projeto", "item", "coluna1"}]
+    intervalo = dict(min_col=primeira, max_col=ultima, min_row=inicio + 1,
+                     max_row=fim - (tabela.totalsRowCount or 0))
+    if intervalo["min_row"] > intervalo["max_row"]:
+        return
+    for linha, linha_formula in zip(ws.iter_rows(**intervalo), formulas.iter_rows(**intervalo), strict=True):
+        if any(_cabecalho(linha[i].value) in _TOTAIS for i in marcadores):
             continue
-        origem = f"TAB. {match.group(1)}"
-        if origem not in achados:
-            _, linha = _separar_coordenada(coordenada)
-            achados[origem] = (linha, coordenada)
-    return achados
+        if all(linha[i].value is None and linha_formula[i].data_type != "f" for i in mapa.values()):
+            continue
+        valores = {
+            campo: _converter(payload, celula=linha[indice], formula=linha_formula[indice],
+                              campo=campo, tipo=especificacao.campos[campo].tipo,
+                              aba=ws.title, tabela=tabela.displayName, epoch=epoch)
+            for campo, indice in mapa.items()
+        }
+        pilar = especificacao.pilar or _PILARES.get(normalizar(valores.get("rotulo")).replace(" ", ""))
+        identidade = valores.get("nome") if especificacao.projetos else pilar
+        coluna_identidade = "nome" if especificacao.projetos else "rotulo"
+        coordenada = linha[mapa.get(coluna_identidade, 0)].coordinate
+        contexto = f'Aba "{ws.title}", tabela "{tabela.displayName}", célula {coordenada}'
+        if not identidade:
+            problema = "nome do projeto vazio" if especificacao.projetos else f'pilar desconhecido "{valores.get("rotulo") or ""}"'
+            payload["erros"].append(f"{contexto}: {problema}.")
+            continue
+        chave = (especificacao.origem, identidade)
+        if chave in chaves:
+            payload["erros"].append(f'{contexto}: registro duplicado "{identidade}".')
+            continue
+        chaves.add(chave)
+        campos = _CAMPOS_PROJETO if especificacao.projetos else _CAMPOS_RESUMO
+        registro = {campo: valores.get(campo) for campo in campos}
+        registro.update(origem=especificacao.origem, pilar=pilar, ano=None)
+        payload["projetos" if especificacao.projetos else "resumos"].append(registro)
+        if especificacao.origem == "TAB. 1.1":
+            for ano in (2024, 2025, 2026, 2027):
+                realizado = valores.get(f"realizado_{ano}")
+                projetado = valores.get(f"projetado_{ano}")
+                if realizado is not None or projetado is not None:
+                    anual = {campo: None for campo in _CAMPOS_RESUMO}
+                    anual.update(origem=especificacao.origem, pilar=pilar, ano=ano,
+                                 realizado=realizado, projetado=projetado)
+                    payload["resumos"].append(anual)
 
 
-def _chave_de_coordenada(coordenada: str) -> tuple[int, int]:
-    coluna, linha = _separar_coordenada(coordenada)
-    return (linha, _numero_de_coluna(coluna))
-
-
-def _separar_coordenada(coordenada: str) -> tuple[str, int]:
-    match = re.fullmatch(r"([A-Z]+)(\d+)", coordenada)
-    if match is None:
-        raise ValueError(f"Coordenada inválida: {coordenada}")
-    return match.group(1), int(match.group(2))
-
-
-def _numero_de_coluna(coluna: str) -> int:
-    numero = 0
-    for caractere in coluna:
-        numero = numero * 26 + (ord(caractere) - ord("A") + 1)
-    return numero
-
-
-def _limite_do_bloco(
-    origem: str,
-    titulos: dict[str, tuple[int, str]],
-    max_linha: int,
-) -> int:
-    """Última linha do bloco: a linha anterior ao próximo título (ou o fim)."""
-    linha_titulo = titulos[origem][0]
-    posteriores = [
-        linha for outra, (linha, _) in titulos.items()
-        if outra != origem and linha > linha_titulo
-    ]
-    return (min(posteriores) - 1) if posteriores else max_linha
-
-
-def _linha_vazia(
-    celulas: dict[str, Any], linha: int, primeira: str, ultima: str
-) -> bool:
-    """``True`` quando nenhuma célula do intervalo de colunas tem valor."""
-    return not any(
-        _coord(get_column_letter(col), linha) in celulas
-        for col in range(_numero_de_coluna(primeira), _numero_de_coluna(ultima) + 1)
-    )
-
-
-def _valor(
-    celulas: dict[str, Any],
-    coordenada: str,
-    tipo: str,
-    aba: str,
-    erros: list[str],
-) -> Any:
-    """Converte uma célula pelo tipo do campo; vazio ⇒ ``None``.
-
-    Texto não numérico em campo monetário/percentual vira erro citando aba,
-    linha e coluna (SDD §7); marcadores ``-`` contam como vazio.
-    """
-    bruto = celulas.get(coordenada)
+def _converter(payload, *, celula, formula, campo, tipo, aba, tabela, epoch):
+    bruto = celula.value
+    contexto = f'Aba "{aba}", tabela "{tabela}", campo "{campo}", célula {celula.coordinate}'
+    if celula.data_type == "e":
+        payload["avisos"].append(f"{contexto}: erro de fórmula {bruto}; valor indisponível.")
+        return None
     if bruto is None:
+        if formula.data_type == "f":
+            payload["avisos"].append(f"{contexto}: fórmula sem resultado salvo; recalcule e salve no Excel.")
         return None
     if tipo == "texto":
-        return texto_limpo(bruto)
-    if tipo == "data":
-        return _para_data(bruto)
-    if tipo == "inteiro":
-        numero = para_decimal(bruto)
-        return int(numero) if numero is not None else None
-    if isinstance(bruto, str) and texto_limpo(bruto) in ("-", "–", "—"):
+        texto = texto_limpo(bruto)
+        if len(texto) > _LIMITES_TEXTO.get(campo, 255):
+            payload["erros"].append(f"{contexto}: texto excede o tamanho permitido.")
+        return texto
+    if texto_limpo(bruto) in {"", "-", "–", "—"}:
         return None
-    numero = para_dinheiro(bruto) if tipo == "dinheiro" else para_decimal(bruto)
-    if numero is None:
-        problema = "erro de fórmula" if eh_erro_formula(bruto) else "valor não numérico"
-        erros.append(
-            f"Aba \"{aba}\", célula {coordenada}: {problema} "
-            f"\"{texto_limpo(bruto)}\".")
-    return numero
-
-
-def _para_data(bruto: object) -> date | None:
-    if isinstance(bruto, datetime):
-        return bruto.date()
-    if isinstance(bruto, date):
-        return bruto
-    return None
-
-
-def _codigo_pilar(rotulo: object) -> str | None:
-    return _ROTULO_PILAR.get(normalizar(rotulo).replace(" ", ""))
-
-
-def _montar(
-    campos: tuple[str, ...],
-    origem: str,
-    pilar: str | None,
-    valores: dict[str, Any],
-    ano: int | None = None,
-) -> dict:
-    linha = {campo: None for campo in campos}
-    linha.update({"origem": origem, "pilar": pilar, "ano": ano})
-    linha.update(valores)
-    return linha
-
-
-# --------------------------------------------------------------- blocos TAB. 1
-
-def _ler_bloco_tabular(
-    payload: dict,
-    celulas: dict[str, Any],
-    origem: str,
-    linha_titulo: int,
-    limite: int,
-    aba: str,
-) -> None:
-    """TAB. 1 / TAB. 1.1 / TAB. 9: pilar na primeira coluna do bloco."""
-    coluna_pilar = {"TAB. 1": "C", "TAB. 1.1": "M", "TAB. 9": "C"}[origem]
-    colunas = {
-        "TAB. 1": ("C", "J", _COLUNAS_RESUMO_TAB1),
-        "TAB. 1.1": ("M", "W", _COLUNAS_RESUMO_TAB11),
-        "TAB. 9": ("C", "J", _COLUNAS_RESUMO_TAB9),
-    }[origem]
-    primeira, ultima, mapa = colunas
-
-    cabecalho = _proxima_linha_preenchida(celulas, coluna_pilar, linha_titulo, limite)
-    if cabecalho is None:
-        payload["erros"].append(
-            f"Aba \"{aba}\": cabeçalho esperado "
-            f"'{_CABECALHO_ESPERADO[origem]}' para {origem} não encontrado.")
-        return
-    esperado = _CABECALHO_ESPERADO[origem]
-    if normalizar(celulas[_coord(coluna_pilar, cabecalho)]) != normalizar(esperado):
-        payload["erros"].append(
-            f"Aba \"{aba}\": cabeçalho esperado '{esperado}' para {origem} "
-            f"na linha {cabecalho}.")
-        return
-
-    for linha in range(cabecalho + 2, limite + 1):
-        if _linha_vazia(celulas, linha, primeira, ultima):
-            continue
-        celula_pilar = _coord(coluna_pilar, linha)
-        if normalizar(celulas.get(celula_pilar)).startswith("total"):
-            break
-        pilar = _resolver_pilar(payload, celulas, celula_pilar, origem, aba)
-        if origem == "TAB. 1.1":
-            _emitir_tab11(payload, celulas, origem, pilar, linha, mapa, aba)
-            continue
-        valores = {
-            campo: _valor(celulas, _coord(col, linha), tipo, aba, payload["erros"])
-            for campo, (col, tipo) in mapa.items()
-        }
-        payload["resumos"].append(_montar(_CAMPOS_RESUMO, origem, pilar, valores))
-
-
-def _emitir_tab11(
-    payload: dict,
-    celulas: dict[str, Any],
-    origem: str,
-    pilar: str | None,
-    linha: int,
-    mapa: dict[str, tuple[str, str]],
-    aba: str,
-) -> None:
-    """TAB. 1.1 preserva o resumo por pilar mesmo sem valores em ``O:S``.
-
-    Linhas ``ano`` vêm só de O/P/Q/R quando preenchidos; ``S`` ("projetado
-    total") alimenta a linha consolidada (``ano=None``) com N/T/U/V/W.
-    """
-    valores = {
-        campo: _valor(celulas, _coord(col, linha), tipo, aba, payload["erros"])
-        for campo, (col, tipo) in mapa.items()
-    }
-    anuais: dict[int, dict[str, Any]] = {}
-    for col, ano, campo in _ANUAIS_TAB11:
-        valor = _valor(celulas, _coord(col, linha), "dinheiro", aba, payload["erros"])
-        if valor is not None:
-            anuais.setdefault(ano, {})[campo] = valor
-    projetado_total = _valor(
-        celulas, _coord("S", linha), "dinheiro", aba, payload["erros"])
-    # A linha consolidada conserva o recurso da TAB. 1.1 mesmo quando O:S
-    # estão vazios. A tabela anual precisa exibir os quatro pilares e distinguir
-    # ausência de lançamento de um valor efetivamente igual a zero.
-    payload["resumos"].append(_montar(_CAMPOS_RESUMO, origem, pilar, {
-        "recurso_ou_meta": valores["recurso_ou_meta"],
-        "projetado": projetado_total,
-        "realizado_mais_projetado": valores["realizado_mais_projetado"],
-        "diferenca": valores["diferenca"],
-        "percentual": valores["percentual"],
-        "farol": valores["farol"],
-    }))
-    for ano, campos in sorted(anuais.items()):
-        payload["resumos"].append(_montar(_CAMPOS_RESUMO, origem, pilar, campos, ano))
-
-
-# ------------------------------------------------------------- TAB. 3/5/8
-
-def _ler_bloco_reconciliacao(
-    payload: dict,
-    celulas: dict[str, Any],
-    origem: str,
-    linha_titulo: int,
-    celula_titulo: str,
-    limite: int,
-    aba: str,
-) -> None:
-    """Blocos de reconciliação: pilar vem do rótulo à direita do título."""
-    coluna_rotulo, linha_rotulo = None, linha_titulo
-    for coordenada in sorted(celulas, key=_chave_de_coordenada):
-        coluna, linha = _separar_coordenada(coordenada)
-        if linha == linha_titulo and _numero_de_coluna(coluna) > _numero_de_coluna(
-                _separar_coordenada(celula_titulo)[0]):
-            coluna_rotulo = coluna
-    if coluna_rotulo is not None:
-        pilar = _resolver_pilar(
-            payload, celulas, _coord(coluna_rotulo, linha_rotulo), origem, aba)
-    else:
-        pilar = _resolver_pilar(payload, celulas, celula_titulo, origem, aba)
-
-    for linha in range(linha_titulo + 1, limite + 1):
-        if _linha_vazia(celulas, linha, "C", "H"):
-            continue
-        if normalizar(celulas.get(_coord("C", linha))).startswith("total"):
-            break
-        if _coord("C", linha) not in celulas:
-            continue
-        valores = {
-            campo: _valor(celulas, _coord(col, linha), tipo, aba, payload["erros"])
-            for campo, (col, tipo) in _COLUNAS_RESUMO_RECONCILIACAO.items()
-        }
-        payload["resumos"].append(_montar(_CAMPOS_RESUMO, origem, pilar, valores))
-
-
-# ------------------------------------------------------------------ projetos
-
-def _ler_bloco_projetos(
-    payload: dict,
-    celulas: dict[str, Any],
-    origem: str,
-    linha_titulo: int,
-    limite: int,
-    aba: str,
-) -> None:
-    mapa = _COLUNAS_PROJETO_TAB6 if origem == "TAB. 6" else _COLUNAS_PROJETO_TAB24
-    ultima = "L" if origem == "TAB. 6" else "M"
-    cabecalho = _proxima_linha_preenchida(celulas, "C", linha_titulo, limite)
-    if cabecalho is None:
-        payload["erros"].append(
-            f"Aba \"{aba}\": cabeçalho esperado 'projeto' para {origem} não encontrado.")
-        return
-    esperado = _CABECALHO_ESPERADO[origem]
-    if normalizar(celulas[_coord("C", cabecalho)]) != normalizar(esperado):
-        payload["erros"].append(
-            f"Aba \"{aba}\": cabeçalho esperado '{esperado}' para {origem} "
-            f"na linha {cabecalho}.")
-        return
-
-    pilar = _PILAR_BLOCO_PROJETO[origem]
-    for linha in range(cabecalho + 2, limite + 1):
-        if _linha_vazia(celulas, linha, "B", ultima):
-            continue
-        celula_nome = _coord("C", linha)
-        if normalizar(celulas.get(celula_nome)).startswith("total"):
-            break
-        if celula_nome not in celulas or not texto_limpo(celulas[celula_nome]):
-            payload["erros"].append(
-                f"Aba \"{aba}\", célula {celula_nome}: nome do projeto vazio "
-                f"em {origem}.")
-            continue
-        valores = {
-            campo: _valor(celulas, _coord(col, linha), tipo, aba, payload["erros"])
-            for campo, (col, tipo) in mapa.items()
-        }
-        payload["projetos"].append(_montar(_CAMPOS_PROJETO, origem, pilar, valores))
-
-
-# ------------------------------------------------------------------ utilitários
-
-def _proxima_linha_preenchida(
-    celulas: dict[str, Any], coluna: str, inicio: int, limite: int
-) -> int | None:
-    for linha in range(inicio + 1, limite + 1):
-        if _coord(coluna, linha) in celulas:
-            return linha
-    return None
-
-
-def _resolver_pilar(
-    payload: dict,
-    celulas: dict[str, Any],
-    coordenada: str,
-    origem: str,
-    aba: str,
-) -> str | None:
-    rotulo = celulas.get(coordenada)
-    codigo = _codigo_pilar(rotulo)
-    if codigo is None:
-        payload["erros"].append(
-            f"Aba \"{aba}\", célula {coordenada}: rótulo de pilar desconhecido "
-            f"\"{texto_limpo(rotulo)}\" em {origem}.")
+    try:
+        if tipo == "data":
+            if isinstance(bruto, datetime):
+                return bruto.date()
+            if isinstance(bruto, date):
+                return bruto
+            if isinstance(bruto, (int, float)) and not isinstance(bruto, bool):
+                convertido = from_excel(bruto, epoch)
+                if isinstance(convertido, datetime):
+                    return convertido.date()
+            if isinstance(bruto, str):
+                for formato in ("%Y-%m-%d", "%d/%m/%Y"):
+                    try:
+                        return datetime.strptime(bruto.strip(), formato).date()
+                    except ValueError:
+                        pass
+            raise ValueError("data inválida")
+        numero = para_dinheiro(bruto) if tipo == "dinheiro" else para_decimal(bruto)
+        if numero is None or not numero.is_finite():
+            raise ValueError("valor não numérico")
+        if tipo == "inteiro":
+            if numero != numero.to_integral_value() or not 0 <= numero <= 2147483647:
+                raise ValueError("sequência deve ser um inteiro não negativo")
+            return int(numero)
+        limite = Decimal("1e16") if tipo == "dinheiro" else Decimal("1e4")
+        if abs(numero) >= limite:
+            raise ValueError("valor excede o tamanho permitido")
+        return numero
+    except (ValueError, TypeError, InvalidOperation, OverflowError) as exc:
+        payload["erros"].append(f'{contexto}: {exc} (valor "{texto_limpo(bruto)}").')
         return None
-    return codigo

@@ -267,7 +267,7 @@ def _linha_tab1(rotulo, recurso, realizado, projetado, combinado, total=False):
     }
 
 
-def _linha_tab11(rotulo, recurso, r2024, r2025, r2026, p2026, projetado_total, total=False):
+def _linha_tab11(rotulo, recurso, r2024, r2025, r2026, p2026, p2027, projetado_total, total=False):
     realizado_total = _somar((r2024, r2025, r2026))
     combinado = (realizado_total + projetado_total
                  if realizado_total is not None and projetado_total is not None else None)
@@ -275,7 +275,7 @@ def _linha_tab11(rotulo, recurso, r2024, r2025, r2026, p2026, projetado_total, t
     return {
         "rotulo": rotulo, "recurso": recurso,
         "realizado_2024": r2024, "realizado_2025": r2025,
-        "realizado_2026": r2026, "projetado_2026": p2026,
+        "realizado_2026": r2026, "projetado_2026": p2026, "projetado_2027": p2027,
         "projetado_total": projetado_total, "combinado": combinado,
         "diferenca": recurso - combinado if recurso is not None and combinado is not None else None,
         "pct": pct, "faixa": faixa(pct), "total": total,
@@ -303,13 +303,15 @@ def _visao_financeiro_geral(acomp):
         ano24 = resumo("TAB. 1.1", codigo, 2024)
         ano25 = resumo("TAB. 1.1", codigo, 2025)
         ano26 = resumo("TAB. 1.1", codigo, 2026)
+        ano27 = resumo("TAB. 1.1", codigo, 2027)
         linhas_tab1.append(_linha_tab1(
             rotulo, campo(tab1, "recurso_ou_meta"), campo(tab1, "realizado"),
             campo(tab1, "projetado"), campo(tab1, "realizado_mais_projetado")))
         p2026 = campo(ano26, "projetado")
+        p2027 = campo(ano27, "projetado")
         projetado_total = campo(tab11, "projetado")
         if projetado_total is None:
-            projetado_total = p2026
+            projetado_total = _somar((p2026, p2027))
         recurso_tab11 = campo(tab11, "recurso_ou_meta")
         if tab11 is None:
             # Imports anteriores descartavam a linha da TAB. 1.1 quando O:S
@@ -318,7 +320,7 @@ def _visao_financeiro_geral(acomp):
         linhas_tab11.append(_linha_tab11(
             rotulo, recurso_tab11, campo(ano24, "realizado"),
             campo(ano25, "realizado"), campo(ano26, "realizado"),
-            p2026, projetado_total))
+            p2026, p2027, projetado_total))
 
     def totalizar(linhas, campos):
         return {campo: _somar(linha[campo] for linha in linhas) for campo in campos}
@@ -327,11 +329,11 @@ def _visao_financeiro_geral(acomp):
     linhas_tab1.append(_linha_tab1("TOTAL", **soma1, total=True))
     soma11 = totalizar(linhas_tab11, (
         "recurso", "realizado_2024", "realizado_2025", "realizado_2026",
-        "projetado_2026", "projetado_total"))
+        "projetado_2026", "projetado_2027", "projetado_total"))
     linhas_tab11.append(_linha_tab11(
         "TOTAL", soma11["recurso"], soma11["realizado_2024"],
         soma11["realizado_2025"], soma11["realizado_2026"],
-        soma11["projetado_2026"], soma11["projetado_total"], total=True))
+        soma11["projetado_2026"], soma11["projetado_2027"], soma11["projetado_total"], total=True))
 
     ppi_total = linhas_tab1[-1]
     graficos = {
@@ -358,8 +360,8 @@ def _visao_financeiro_geral(acomp):
             "anel_meta": round(float(min(max(pct_meta, 0), 100)), 2) if pct_meta is not None else 0,
             "anel_exec": round(float(min(max(pct_exec, 0), 100)), 2) if pct_exec is not None else 0,
         }
-    return {"tabela_tab1": {"linhas": linhas_tab1},
-            "tabela_tab11": {"linhas": linhas_tab11}, "graficos_ciclo": graficos}
+    return {"tabela_tab1": {"linhas": linhas_tab1, "total": linhas_tab1[-1]},
+            "tabela_tab11": {"linhas": linhas_tab11, "total": linhas_tab11[-1]}, "graficos_ciclo": graficos}
 
 
 def _painel_financeiro(ano, acomp):

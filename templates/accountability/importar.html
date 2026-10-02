@@ -7,13 +7,13 @@
     <div>
       <h1 class="text-2xl font-bold">Importação das planilhas de prestação de contas</h1>
       <p class="text-sm text-text-muted">
-        Envie os arquivos .xlsx da EMBRAPII. O tipo é detectado pelas abas do arquivo e a importação é atômica (SDD §2/§7).
+        Envie os arquivos .xlsx da EMBRAPII. Para informações financeiras, use o modelo FINANCEIRO GERAL - REFAT.xlsx com as tabelas nomeadas.
       </p>
     </div>
   </div>
 
   <div class="mt-4 rounded-xl border border-border bg-surface-2 p-5">
-    <h2 class="font-display text-lg font-semibold">Abas obrigatórias por template</h2>
+    <h2 class="font-display text-lg font-semibold">Estrutura obrigatória por modelo</h2>
     <ul class="mt-2 space-y-1 text-sm">
       {% for tipo, abas in modelos.items %}
       <li class="flex flex-wrap items-center gap-2">
@@ -23,7 +23,8 @@
       {% endfor %}
     </ul>
     <p class="mt-2 text-xs text-text-muted">
-      A identificação é feita pela assinatura das abas, nunca pelo nome do arquivo.
+      O financeiro é identificado pelas tabelas nomeadas; os demais modelos, pelas abas. O nome do arquivo pode ser alterado.
+      Inclua novos projetos dentro da tabela correspondente e recalcule e salve as fórmulas no Excel antes de enviar.
     </p>
   </div>
 
@@ -94,7 +95,10 @@
             <td class="px-4 py-3 text-xs">
               {% if imp.resumo %}{% for chave, valor in imp.resumo.items %}{{ chave }}: {{ valor }}{% if not forloop.last %}, {% endif %}{% endfor %}{% else %}—{% endif %}
             </td>
-            <td class="px-4 py-3 text-xs">{{ imp.log|default:'—' }}</td>
+            <td class="px-4 py-3 text-xs">
+              {{ imp.log|default:'—' }}
+              {% if imp.avisos %}<p class="mt-1 text-text-muted" data-testid="avisos-importacao">Avisos: {{ imp.avisos }}</p>{% endif %}
+            </td>
           </tr>
           {% empty %}
           <tr><td colspan="8" class="px-4 py-3 text-sm text-text-muted">Nenhuma importação registrada.</td></tr>

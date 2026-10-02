@@ -45,8 +45,9 @@ class RenderPainelAnualTestes(TestCase):
         larguras = re.findall(r'<rect[^>]*width="([0-9.]+)"', html)
         self.assertGreater(len(larguras), 20)
         self.assertTrue(all(float(w) > 0 for w in larguras))
-        self.assertIn('viewBox="0 0 430 268"', html)
-        self.assertIn('viewBox="0 0 1100 280"', html)
+        self.assertEqual(html.count('viewBox="0 0 430 268"'), 3)
+        for fonte in ("ppi", "at", "outras"):
+            self.assertContains(resposta, f'data-testid="chart-fonte-{fonte}"')
 
     def test_editor_usa_ponto_decimal_em_inputs_number(self):
         resposta = self.client.get(reverse("core:dashboard"))
