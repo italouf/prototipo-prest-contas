@@ -70,7 +70,9 @@ class DashboardFinanceiroGeralTestes(TestCase):
             self.assertNotIn(grafico, html)
         self.assertNotIn('data-testid="year-select"', html)
         self.assertNotIn("Consolidado por fonte e por ano", html)
-        self.assertNotIn("Ano 1: 2024", html)
+        # O editor restaurado contém uma grade anual, inicialmente oculta.
+        painel_visivel = html.split('<section id="editor-dados"', 1)[0]
+        self.assertNotIn("Ano 1: 2024", painel_visivel)
 
     def test_ano_da_url_e_normalizado_para_ciclo(self):
         self.client.force_login(self.usuario)
@@ -84,7 +86,7 @@ class DashboardFinanceiroGeralTestes(TestCase):
         self.assertEqual(resposta.status_code, 200)
         self.assertContains(resposta, 'data-testid="year-select"')
         self.assertNotContains(resposta, 'data-testid="chart-consolidado"')
-        self.assertContains(resposta, 'data-testid="chart-fonte-ppi"')
+        self.assertNotContains(resposta, 'data-testid="chart-fonte-ppi"')
 
     def test_tabela_anual_recalcula_quando_ha_dados(self):
         pdi = Pilar.objects.get(codigo="PDI")

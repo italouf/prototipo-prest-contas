@@ -53,6 +53,18 @@ def numero_curto(valor):
 
 
 @register.filter
+def percentual_fracao(valor, sufixo="%"):
+    """Exibe uma fração como percentual; diferenças usam o sufixo ' p.p.'."""
+    if valor is None or valor == "":
+        return "—"
+    try:
+        v = Decimal(str(valor)) * 100
+    except (InvalidOperation, ValueError):
+        return valor
+    return numero_curto(v) + sufixo
+
+
+@register.filter
 def moeda_ptbr(valor):
     """Formata moeda completa: R$ 75.000.000,00."""
     if valor is None:

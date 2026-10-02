@@ -1,4 +1,5 @@
 """Painel anual alimentado pelos snapshots importados (Task 7, SDD §8)."""
+import re
 from decimal import Decimal
 from pathlib import Path
 
@@ -67,6 +68,67 @@ class PainelFinanceiroTestes(BasePanelTestes):
 
 
 class PainelFisicoTestes(BasePanelTestes):
+    def test_fisico_sem_graficos_em_todos_os_filtros_e_htmx(self):
+        self.client.force_login(self.user)
+        for ano in ("todos", "2024", "2025", "2026", "2027"):
+            for headers in ({}, {"HX-Request": "true"}):
+                with self.subTest(ano=ano, headers=headers):
+                    resposta = self.client.get("/", {
+                        "ano": ano, "base": "fis", "acompanhamento": self.acomp.pk,
+                    }, headers=headers)
+                    self.assertEqual(resposta.status_code, 200)
+                    self.assertContains(resposta, 'data-testid="year-select"')
+                    self.assertContains(resposta, 'data-testid="pilares-table"')
+                    self.assertContains(resposta, 'data-testid="kpi-outras"')
+                    self.assertNotContains(resposta, "Execução por fonte de recursos")
+                    for chave in ("ppi", "at", "outras"):
+                        self.assertNotContains(resposta, f'data-testid="chart-fonte-{chave}"')
+
+    def test_outras_fontes_exibe_fracoes_como_percentuais(self):
+        self.client.force_login(self.user)
+        for ano, previsto, executado, saldo, cumprimento in (
+            ("todos", "62,51%", "0,16%", "62,35 p.p.", "0%"),
+            ("2024", "0,29%", "0,16%", "0,13 p.p.", "55%"),
+            ("2025", "6,03%", "0%", "6,03 p.p.", "0%"),
+        ):
+            for headers in ({}, {"HX-Request": "true"}):
+                with self.subTest(ano=ano, headers=headers):
+                    resposta = self.client.get("/", {
+                        "ano": ano, "base": "fis", "acompanhamento": self.acomp.pk,
+                    }, headers=headers)
+                    self.assertEqual(resposta.status_code, 200)
+                    html = resposta.content.decode()
+                    card = re.search(r'<article data-testid="kpi-outras".*?</article>',
+                                     html, re.S).group()
+                    self.assertIn(previsto, card)
+                    self.assertIn(executado, card)
+                    self.assertNotIn("metas", card)
+                    self.assertIn(f'aria-label="{cumprimento} executado"', card)
+                    linha = next(row for row in re.findall(r'<tr\b[^>]*>.*?</tr>', html, re.S)
+                                 if "Recursos financeiros realizados de outras fontes" in row)
+                    for valor in (previsto, executado, saldo):
+                        self.assertIn(valor, linha)
+        kpi = self.acomp.kpis.get(codigo="PE-02")
+        self.assertEqual(kpi.meta_total, Decimal("0.6251"))
+        self.assertEqual(kpi.acumulado, Decimal("0.0016"))
+
+    def test_percentual_sem_executado_preserva_dado_ausente(self):
+        self.client.force_login(self.user)
+        resposta = self.client.get("/", {
+            "ano": "2026", "base": "fis", "acompanhamento": self.acomp.pk,
+        })
+        self.assertEqual(resposta.status_code, 200)
+        html = resposta.content.decode()
+        card = re.search(r'<article data-testid="kpi-outras".*?</article>', html, re.S).group()
+        valor_principal = re.search(r'<p class="numerico.*?</p>', card, re.S).group()
+        self.assertIn("—", valor_principal)
+        self.assertNotIn("—%", valor_principal)
+        self.assertNotIn("metas", card)
+        linha = next(row for row in re.findall(r'<tr\b[^>]*>.*?</tr>', html, re.S)
+                     if "Recursos financeiros realizados de outras fontes" in row)
+        self.assertNotIn("— p.p.", linha)
+        self.assertNotIn("0%", linha)
+
     def test_fisico_vira_lista_de_kpis_por_unidade(self):
         p = panel.painel_acompanhamento(None, "fisico", self.acomp)
         rotulos = [l["rotulo"] for g in p["tabela"]["grupos"] for l in g["linhas"]]

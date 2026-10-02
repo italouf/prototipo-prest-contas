@@ -1054,9 +1054,12 @@ def _painel_fisico(ano, acomp):
         linhas = []
         for kpi in por_pilar[codigo]:
             previsto, executado = _campos_kpi(kpi, ano)
-            linhas.append(_linha(
+            linha = _linha(
                 f"{kpi.nome} ({kpi.unidade})", previsto, executado,
-                codigo=kpi.codigo, pilar=kpi.pilar))
+                codigo=kpi.codigo, pilar=kpi.pilar)
+            linha["valores_percentuais"] = (
+                codigo == "OUTRASFONTES" and kpi.unidade == "Percentual")
+            linhas.append(linha)
         primeiro = por_pilar[codigo][0].pilar
         titulo = ROTULOS_PAINEL.get(codigo, primeiro.nome)
         grupos.append({"titulo": titulo, "bloco": titulo, "linhas": linhas})
@@ -1083,7 +1086,12 @@ def _painel_fisico(ano, acomp):
     ):
         sub = bloco_kpis(codigos)
         previsto, executado = soma(sub, ano, 0), soma(sub, ano, 1)
-        cards.append(_card(chave, titulo_card, executado, previsto, denominador))
+        valores_percentuais = (
+            chave == "outras" and _unidade_majoritaria(sub) == "Percentual")
+        card = _card(chave, titulo_card, executado, previsto,
+                     "previstos" if valores_percentuais else denominador)
+        card["valores_percentuais"] = valores_percentuais
+        cards.append(card)
         graficos[chave] = _bloco_grafico(
             chave, serie_kpis(sub, 0), serie_kpis(sub, 1),
             nome_previsto, "Executado", previsto, executado,
