@@ -1,6 +1,6 @@
 # Contrato de importação financeira REFAT
 
-Novos uploads financeiros usam `mockup/exemplos_arquivos/FINANCEIRO GERAL - REFAT.xlsx`.
+O modelo financeiro atual é `mockup/exemplos_arquivos/FINANCEIRO GERAL - REFAT - v2.xlsx`.
 O tipo é identificado pelos objetos Table do Excel. O nome do arquivo, os nomes e
 a ordem das abas, a posição das tabelas e a ordem das colunas podem mudar.
 
@@ -18,6 +18,13 @@ a ordem das abas, a posição das tabelas e a ordem das colunas podem mudar.
 | `tbl_VisaoACS` | Reconciliação STARTUPS | TAB. 8 |
 | `tbl_CaptaoATeOutros` | Captação AT e OUTRASFONTES | TAB. 9 |
 
+As colunas de identificação das tabelas de projetos podem se chamar
+`CÓDIGO DO PROJETO EMBRAPII`. Na FCRH e na ACS esse cabeçalho substitui `ITEM`;
+no PDI foi acrescentado à tabela. O campo é armazenado como texto para aceitar
+códigos alfanuméricos. O cabeçalho `ITEM` continua aceito em arquivos anteriores.
+Na FCRH, `CÓDIGO DO PROJETO EMBRAPII` identifica o projeto e `REALIZADO TOTAL`
+contém o valor financeiro realizado.
+
 O nome `tbl_CaptaoATeOutros` é o nome efetivo do objeto no modelo. As origens TAB.*
 são identificadores internos para manter a compatibilidade dos acompanhamentos
 já importados. O arquivo antigo de aba única é rejeitado em novos uploads.
@@ -33,8 +40,10 @@ Cada coluna funcional obrigatória deve corresponder a exatamente um cabeçalho.
 Cabeçalhos da planilha e metadados Table precisam concordar. Colunas auxiliares,
 tabelas adicionais e conteúdo fora dos objetos não alimentam o payload.
 
-- PDI não tem `ITEM`: a sequência permanece nula.
-- FCRH e ACS usam `ITEM` quando presente. ACS não exige início do projeto.
+- As tabelas de projeto podem trazer `CÓDIGO DO PROJETO EMBRAPII`. FCRH e ACS
+  também aceitam `ITEM` em arquivos anteriores; nesse caso o valor legado é
+  exibido como código quando não há código explícito. PDI sem código mantém a
+  célula vazia. ACS não exige início do projeto.
 - Linhas `TOTAL`, `TOTAL GERAL` e `TOTAL GERAL - ATUAL` são excluídas pelo rótulo
   correspondente. A leitura continua após elas. Linhas de totais nativas são
   excluídas por `totalsRowCount`.
@@ -74,9 +83,11 @@ O percentual executado continua sendo realizado dividido pelo recurso PPI.
 O painel apresenta o ciclo completo, inclusive quando a URL contém um ano.
 
 A visão financeira exibe as seis colunas de cada tabela de resumo. Os projetos
-usam as onze colunas de `tbl_ProjetosPDI`, as doze de `tbl_ProjetosFCRH` e as onze
-de `tbl_ProjetosACS`, com todos os projetos na ordem de importação. FCRH e ACS
-incluem ITEM; ACS não tem início de projeto. O total geral
+usam as doze colunas de `tbl_ProjetosPDI`, as doze de `tbl_ProjetosFCRH` e as onze
+de `tbl_ProjetosACS`, com todos os projetos na ordem de importação e a coluna
+`CÓDIGO DO PROJETO EMBRAPII` quando disponível. FCRH e ACS mantêm compatibilidade
+com arquivos anteriores que chamavam essa coluna `ITEM`; ACS não tem início de
+projeto. O total geral
 dos projetos é calculado pela soma dos valores importados, sem incluir linhas
 de total na contagem. Cabeçalhos de realizado e projetado usam seus nomes
 funcionais, sem fixar o mês de corte no frontend. Ausências aparecem como `—`.

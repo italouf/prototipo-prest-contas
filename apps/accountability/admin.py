@@ -36,7 +36,10 @@ class ResumoFinanceiroAdmin(admin.ModelAdmin):
 
 @admin.register(ProjetoFinanceiro)
 class ProjetoFinanceiroAdmin(admin.ModelAdmin):
-    list_display = ("acompanhamento", "origem", "pilar", "nome", "orcado", "realizado")
+    list_display = (
+        "acompanhamento", "origem", "pilar", "codigo_projeto_embrapii",
+        "nome", "orcado", "realizado",
+    )
     list_filter = ("origem",)
 
 

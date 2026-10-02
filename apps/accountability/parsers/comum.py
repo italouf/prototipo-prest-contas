@@ -1,7 +1,7 @@
 """Parsers dos arquivos de prestação de contas (SDD 2026-09-29).
 
 Módulo comum com a "linha de senhas" compartilhada pelos parsers de
-``FINANCEIRO GERAL - REFAT.xlsx``, ``Indicadores Gerais do PE.xlsx`` e
+``FINANCEIRO GERAL - REFAT - v2.xlsx``, ``Indicadores Gerais do PE.xlsx`` e
 ``Acompanhamento Financeiro (v2).xlsx``: normalização de rótulos, decisão de
 tipo numérico e o shape do payload devolvido por todo parser.
 

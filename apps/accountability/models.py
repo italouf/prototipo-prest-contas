@@ -163,6 +163,9 @@ class ProjetoFinanceiro(models.Model):
         "pillars.Pilar", on_delete=models.CASCADE, related_name="projetos_financeiros", verbose_name="Pilar"
     )
     sequencia = models.PositiveIntegerField("Sequência", null=True, blank=True)
+    codigo_projeto_embrapii = models.CharField(
+        "Código do projeto EMBRAPII", max_length=100, null=True, blank=True
+    )
     nome = models.CharField("Nome", max_length=255)
     status = models.CharField("Status", max_length=120, blank=True)
     inicio = models.DateField("Início", null=True, blank=True)

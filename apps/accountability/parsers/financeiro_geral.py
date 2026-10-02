@@ -43,6 +43,8 @@ def _campo(*cabecalhos, tipo="dinheiro", opcional=False):
 _COMBINADO = _campo("REALIZADO + PROJETADO")
 _PROJETADO_TOTAL = _campo("PROJETADO TOTAL")
 _PROJETOS = {
+    "codigo_projeto_embrapii": _campo(
+        "CÓDIGO DO PROJETO EMBRAPII", tipo="texto", opcional=True),
     "nome": _campo("PROJETO", tipo="texto"),
     "status": _campo("STATUS", tipo="texto"),
     "sequencia": _campo("ITEM", tipo="inteiro", opcional=True),
@@ -127,11 +129,12 @@ _CAMPOS_RESUMO = (
     "percentual", "percentual_meta", "percentual_captado", "farol",
 )
 _CAMPOS_PROJETO = (
-    "sequencia", "nome", "status", "inicio", "fim", "orcado", "realizado",
+    "sequencia", "codigo_projeto_embrapii", "nome", "status", "inicio", "fim", "orcado", "realizado",
     "projetado_2026", "projetado_2027", "realizado_mais_projetado",
     "diferenca", "percentual",
 )
-_LIMITES_TEXTO = {"nome": 255, "status": 120, "farol": 20}
+_LIMITES_TEXTO = {"nome": 255, "status": 120, "farol": 20,
+                  "codigo_projeto_embrapii": 100}
 
 
 def _cabecalho(valor):
@@ -174,7 +177,7 @@ def parse_financeiro_geral(caminho: Path | str) -> dict:
         for nome in TABELAS_OBRIGATORIAS:
             if nome not in catalogo:
                 payload["erros"].append(
-                    f'Tabela obrigatória "{nome}" não encontrada. Envie o modelo FINANCEIRO GERAL - REFAT.xlsx.')
+                    f'Tabela obrigatória "{nome}" não encontrada. Envie o modelo FINANCEIRO GERAL - REFAT - v2.xlsx.')
         formulas = abrir_workbook(caminho, data_only=False)
         recursos.callback(formulas.close)
         chaves = set()
@@ -230,7 +233,10 @@ def _ler_tabela(payload, ws, tabela, formulas, especificacao, epoch, chaves):
         return
     primeira, inicio, ultima, fim = limites
     marcadores = [i for i, coluna in enumerate(tabela.tableColumns)
-                  if _cabecalho(coluna.name) in {"acao", "pilar", "projeto", "item", "coluna1"}]
+                  if _cabecalho(coluna.name) in {
+                      "acao", "pilar", "projeto", "item", "coluna1",
+                      "codigo do projeto embrapii",
+                  }]
     intervalo = dict(min_col=primeira, max_col=ultima, min_row=inicio + 1,
                      max_row=fim - (tabela.totalsRowCount or 0))
     if intervalo["min_row"] > intervalo["max_row"]:
@@ -246,6 +252,10 @@ def _ler_tabela(payload, ws, tabela, formulas, especificacao, epoch, chaves):
                               aba=ws.title, tabela=tabela.displayName, epoch=epoch)
             for campo, indice in mapa.items()
         }
+        if especificacao.projetos and not valores.get("codigo_projeto_embrapii"):
+            sequencia_legada = valores.get("sequencia")
+            if sequencia_legada is not None:
+                valores["codigo_projeto_embrapii"] = str(sequencia_legada)
         pilar = especificacao.pilar or _PILARES.get(normalizar(valores.get("rotulo")).replace(" ", ""))
         identidade = valores.get("nome") if especificacao.projetos else pilar
         coluna_identidade = "nome" if especificacao.projetos else "rotulo"

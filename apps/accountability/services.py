@@ -110,7 +110,7 @@ _PROJETO_VALORES = (
     "sequencia", "inicio", "fim", "orcado", "realizado", "projetado_2026",
     "projetado_2027", "realizado_mais_projetado", "diferenca", "percentual",
 )
-_PROJETO_TEXTOS = ("nome", "status")
+_PROJETO_TEXTOS = ("codigo_projeto_embrapii", "nome", "status")
 _KPI_VALORES = (
     "sequencia", "meta_2024", "meta_2025", "meta_2026", "meta_2027", "meta_total",
     "executado_2024", "executado_2025", "acumulado", "gap",
@@ -159,7 +159,7 @@ def _mensagem_tipo(arquivo_nome: str, abas: list[str], tipo_fonte, detectado, ta
         f'"{arquivo_nome}" pela estrutura (abas lidas: {lidas}; tabelas: {objetos}). '
         f"Tipo informado: {tipo_fonte!r}; tipo detectado: {detectado!r}. "
         f"Tabelas/abas exigidas por template — {exigidas}. "
-        f"Para dados financeiros, envie FINANCEIRO GERAL - REFAT.xlsx com as tabelas nomeadas."
+        f"Para dados financeiros, envie FINANCEIRO GERAL - REFAT - v2.xlsx com as tabelas nomeadas."
     )
 
 

@@ -521,6 +521,7 @@ _COLUNAS_PROJECAO_PROJETOS = (
     ("diferenca", "DIFERENÇA ORÇADO", "dinheiro"),
 )
 _COLUNAS_PROJETOS_PDI = (
+    ("codigo_projeto_embrapii", "CÓDIGO DO PROJETO EMBRAPII", "texto"),
     ("nome", "PROJETO", "texto"),
     ("status", "STATUS", "texto"),
     ("inicio", "INICIO", "data"),
@@ -531,7 +532,7 @@ _COLUNAS_PROJETOS_PDI = (
     ("percentual", "% REALIZADO ORÇADO", "percentual"),
 )
 _COLUNAS_PROJETOS_FCRH = (
-    ("sequencia", "ITEM", "inteiro"),
+    ("codigo_projeto_embrapii", "CÓDIGO DO PROJETO EMBRAPII", "texto"),
     ("nome", "PROJETO", "texto"),
     ("status", "STATUS", "texto"),
     ("inicio", "INICIO DO PROJETO", "data"),
@@ -542,7 +543,7 @@ _COLUNAS_PROJETOS_FCRH = (
     ("percentual", "% REALIZADO ORÇADO", "percentual"),
 )
 _COLUNAS_PROJETOS_ACS = (
-    ("sequencia", "ITEM", "inteiro"),
+    ("codigo_projeto_embrapii", "CÓDIGO DO PROJETO EMBRAPII", "texto"),
     ("nome", "PROJETO", "texto"),
     ("status", "STATUS", "texto"),
     ("fim", "DATA FINAL DO PROJETO", "data"),
@@ -604,9 +605,16 @@ def painel_financeiro_pilar(pilar, acomp):
     resumo = ResumoFinanceiro.objects.filter(
         acompanhamento=acomp, pilar=pilar, origem=contrato["origem_visao"], ano__isnull=True,
     ).values(*(c[0] for c in colunas_visao if c[0] != "rotulo")).first()
+    campos_projetos = [c[0] for c in colunas_projetos]
+    if "sequencia" not in campos_projetos:
+        campos_projetos.append("sequencia")
     projetos = list(ProjetoFinanceiro.objects.filter(
         acompanhamento=acomp, pilar=pilar, origem=contrato["origem_projetos"],
-    ).order_by("pk").values(*(c[0] for c in colunas_projetos)))
+    ).order_by("pk").values(*campos_projetos))
+    # Backfill de exibição para snapshots anteriores, cujo ITEM era numérico.
+    for registro in projetos:
+        if registro.get("codigo_projeto_embrapii") in (None, "") and registro["sequencia"] is not None:
+            registro["codigo_projeto_embrapii"] = str(registro["sequencia"])
     recurso = resumo.get("recurso_ou_meta") if resumo else None
     realizado = resumo.get("realizado") if resumo else None
     diferenca_importada = resumo.get("diferenca") if resumo else None
@@ -626,7 +634,7 @@ def painel_financeiro_pilar(pilar, acomp):
     if projetos:
         total = {campo: _somar(p[campo] for p in projetos)
                  for campo, _cabecalho, tipo in colunas_projetos if tipo == "dinheiro"}
-        total.update({colunas_projetos[0][0]: contrato["total"], "total": True})
+        total.update({"nome": contrato["total"], "total": True})
         linhas_projetos.append(total)
     bloco = {
         "pilar": pilar, "codigo": codigo, "rotulo": ROTULOS_PAINEL[codigo],
