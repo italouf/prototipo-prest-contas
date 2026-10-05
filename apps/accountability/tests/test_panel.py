@@ -285,7 +285,7 @@ class PainelPilarAcompanhamentoTestes(BasePanelTestes):
         assert painel_pilar["projetos"] == 18
         assert painel_pilar["unidade_projetos"] == "projetos"
         assert painel_pilar["serie_previsto"] == [None, None, None, None]
-        assert painel_pilar["grafico"]["acumulado_executado"] == Decimal("17675109.56")
+        self.assertNotIn("grafico", painel_pilar)
 
     def test_painel_fisico_do_pilar_usa_kpi_importado(self):
         from ..panel import painel_pilar_acompanhamento
@@ -299,6 +299,89 @@ class PainelPilarAcompanhamentoTestes(BasePanelTestes):
         assert painel_pilar["executado"] == Decimal("19")
         assert painel_pilar["serie_previsto"] == [Decimal("5"), Decimal("7"), Decimal("9"), Decimal("6")]
         assert painel_pilar["serie_executado"] == [Decimal("5"), Decimal("14"), None, None]
+
+
+class VisaoGerencialFisicaPilarTestes(BasePanelTestes):
+    def setUp(self):
+        self.client.force_login(self.user)
+
+    def visitar(self, codigo, ano="todos", **kwargs):
+        pilar = Pilar.objects.get(codigo=codigo)
+        return self.client.get(f"/pilar/{pilar.pk}/", {
+            "base": "fis", "ano": ano, "acompanhamento": self.acomp.pk,
+        }, **kwargs)
+
+    def test_tabela_filtra_todos_os_indicadores_do_pilar_e_vem_primeiro(self):
+        from django.utils.html import escape
+
+        for codigo, esperados in (
+            ("PDI", {"PE-01", "PE-08", "PE-09"}),
+            ("FORMACAO", {"PE-07"}),
+            ("STARTUPS", {"PE-05", "PE-06"}),
+        ):
+            for headers in ({}, {"HX-Request": "true"}):
+                with self.subTest(codigo=codigo, headers=headers):
+                    resposta = self.visitar(codigo, headers=headers)
+                    self.assertEqual(resposta.status_code, 200)
+                    grupos = resposta.context["painel_pilar"]["tabela_gerencial_fisica"]["grupos"]
+                    self.assertEqual(len(grupos), 1)
+                    self.assertEqual({linha["codigo"] for linha in grupos[0]["linhas"]}, esperados)
+                    html = resposta.content.decode()
+                    tabela = re.search(r'<table\b[^>]*>.*?</table>', html, re.S).group()
+                    for kpi in self.acomp.kpis.select_related("pilar"):
+                        if kpi.pilar.codigo == codigo:
+                            self.assertIn(escape(kpi.nome), tabela)
+                        else:
+                            self.assertNotIn(escape(kpi.nome), tabela)
+                    self.assertLess(html.index('data-testid="visao-gerencial-pilar"'),
+                                    html.index('data-testid="pilar-tabela"'))
+                    self.assertIn('aria-labelledby="gerencial-pilar-farol-titulo"', html)
+                    for id_cabecalho in ("gerencial-pilar-th-1", "th-1"):
+                        self.assertEqual(html.count(f'id="{id_cabecalho}"'), 1)
+
+    def test_pdi_repete_os_valores_da_imagem(self):
+        resposta = self.visitar("PDI")
+        linhas = resposta.context["painel_pilar"]["tabela_gerencial_fisica"]["grupos"][0]["linhas"]
+        self.assertEqual([(r["previsto"], r["executado"], r["saldo"], r["pct"]) for r in linhas], [
+            (Decimal(18), Decimal(15), Decimal(3), 83),
+            (Decimal(9), Decimal(4), Decimal(5), 44),
+            (Decimal(21), Decimal(9), Decimal(12), 43),
+        ])
+
+    def test_tabela_respeita_ano_overrides_e_execucao_ausente(self):
+        from .. import overrides
+
+        overrides.aplicar_overrides(self.acomp, "fisico", [
+            (2024, "PE-01", "previsto", Decimal(7)),
+            (2024, "PE-01", "executado", Decimal(3)),
+        ], self.user)
+        resposta = self.visitar("PDI", "2024", headers={"HX-Request": "true"})
+        linha = resposta.context["painel_pilar"]["tabela_gerencial_fisica"]["grupos"][0]["linhas"][0]
+        self.assertEqual((linha["previsto"], linha["executado"], linha["saldo"], linha["pct"]),
+                         (Decimal(7), Decimal(3), Decimal(4), 43))
+        resposta = self.visitar("PDI", "2026")
+        linhas = resposta.context["painel_pilar"]["tabela_gerencial_fisica"]["grupos"][0]["linhas"]
+        for linha in linhas:
+            self.assertIsNone(linha["executado"])
+            self.assertIsNone(linha["pct"])
+            self.assertEqual(linha["faixa"], "neutra")
+
+    def test_sem_kpis_exibe_estado_vazio(self):
+        self.acomp.kpis.filter(pilar__codigo="PDI").delete()
+        resposta = self.visitar("PDI")
+        self.assertEqual(resposta.status_code, 200)
+        self.assertContains(resposta, "Nenhum indicador físico importado")
+        self.assertNotContains(resposta, 'data-testid="pilares-table"')
+        self.assertContains(resposta, 'data-testid="pilar-tabela"')
+
+    def test_base_financeira_nao_exibe_tabela_fisica(self):
+        for codigo in ("PDI", "FORMACAO", "STARTUPS"):
+            pilar = Pilar.objects.get(codigo=codigo)
+            resposta = self.client.get(f"/pilar/{pilar.pk}/", {
+                "base": "fin", "acompanhamento": self.acomp.pk,
+            })
+            self.assertEqual(resposta.status_code, 200)
+            self.assertNotContains(resposta, 'data-testid="visao-gerencial-pilar"')
 
 
 class AcompanhamentoPadraoTestes(TestCase):

@@ -25,6 +25,10 @@
     </div>
   </section>
 
+  {% if base_param == 'fis' %}
+  {% include 'dashboard/_visao_gerencial_pilar.html' %}
+  {% endif %}
+
   {% if painel_pilar.codigo != 'PDI' and painel_pilar.codigo != 'FORMACAO' and painel_pilar.codigo != 'STARTUPS' and painel_pilar.projetos is not None %}
   <section class="mt-4 rounded-xl border border-border bg-surface-2 p-4" aria-label="Quantidade de projetos financeiros">
     <p class="text-xs font-semibold uppercase tracking-wide text-text-muted">Projetos financeiros</p>

@@ -692,6 +692,7 @@ def painel_captacao(pilar, ano, base, acomp, *, fontes_autorizadas):
         "tabela": [], "blocos_fisicos": [],
     }
     if base == BASE_FISICO:
+        bloco["tabela_gerencial_fisica"] = {"grupos": []}
         for fonte in Pilar.objects.filter(codigo__in=fontes, ativo=True).order_by("ordem", "pk"):
             if acomp is None:
                 sub = painel_pilar_legado(fonte, ano, base)
@@ -703,6 +704,9 @@ def painel_captacao(pilar, ano, base, acomp, *, fontes_autorizadas):
                 ).order_by("sequencia", "codigo").values_list("unidade", flat=True))
                 blocos = [_painel_pilar_fisico(fonte, ano, acomp, unidade=unidade)
                           for unidade in dict.fromkeys(unidades)]
+            if blocos:
+                bloco["tabela_gerencial_fisica"]["grupos"].extend(
+                    blocos[0].get("tabela_gerencial_fisica", {"grupos": []})["grupos"])
             for sub in blocos:
                 sub["chave"] = f"captacao-fisica-{fonte.codigo}-{len(bloco['blocos_fisicos'])}"
                 sub["barra_percentual"] = min(max(sub["pct"] or 0, 0), 100)
@@ -883,7 +887,7 @@ def _painel_pilar_fisico(pilar, ano, acomp, *, unidade=None):
     kpis = list(
         KpiAcompanhamento.objects.filter(
             acompanhamento=acomp, pilar=pilar
-        ).prefetch_related("overrides").order_by("sequencia", "codigo")
+        ).select_related("pilar").prefetch_related("overrides").order_by("sequencia", "codigo")
     )
     unidade = unidade if unidade is not None else _unidade_majoritaria(kpis)
     sub = [kpi for kpi in kpis if kpi.unidade == unidade]
@@ -974,6 +978,7 @@ def _painel_pilar_fisico(pilar, ano, acomp, *, unidade=None):
             percentual(executado, previsto)
         ),
         "tabela": tabela,
+        "tabela_gerencial_fisica": _tabela_gerencial_fisica(kpis, ano),
         "projetos": ProjetoFinanceiro.objects.filter(
             acompanhamento=acomp, pilar=pilar
         ).count(),
@@ -1038,11 +1043,8 @@ def _campos_kpi(kpi, referencia):
     return previsto, executado
 
 
-def _painel_fisico(ano, acomp):
-    kpis = list(
-        KpiAcompanhamento.objects.filter(acompanhamento=acomp)
-        .select_related("pilar").prefetch_related("overrides").order_by("sequencia", "codigo")
-    )
+def _tabela_gerencial_fisica(kpis, ano):
+    """Indicadores individuais dos KPIs já limitados ao escopo do painel."""
     por_pilar = {}
     for kpi in kpis:
         por_pilar.setdefault(kpi.pilar.codigo, []).append(kpi)
@@ -1063,6 +1065,16 @@ def _painel_fisico(ano, acomp):
         primeiro = por_pilar[codigo][0].pilar
         titulo = ROTULOS_PAINEL.get(codigo, primeiro.nome)
         grupos.append({"titulo": titulo, "bloco": titulo, "linhas": linhas})
+
+    return {"grupos": grupos}
+
+
+def _painel_fisico(ano, acomp):
+    kpis = list(
+        KpiAcompanhamento.objects.filter(acompanhamento=acomp)
+        .select_related("pilar").prefetch_related("overrides").order_by("sequencia", "codigo")
+    )
+    grupos = _tabela_gerencial_fisica(kpis, ano)["grupos"]
 
     def bloco_kpis(codigos):
         """KPIs do bloco restritos à unidade majoritária (soma válida)."""
@@ -1105,7 +1117,7 @@ def _painel_fisico(ano, acomp):
 
     # Total só soma KPIs de uma única unidade (a majoritária do conjunto) —
     # nunca mistura "Percentual" com "Número absoluto".
-    sub_total = bloco_kpis(tuple(por_pilar))
+    sub_total = bloco_kpis({kpi.pilar.codigo for kpi in kpis})
     cards.append(_card(
         "total", "Execução consolidada",
         soma(sub_total, ano, 1), soma(sub_total, ano, 0), "previstos"))
