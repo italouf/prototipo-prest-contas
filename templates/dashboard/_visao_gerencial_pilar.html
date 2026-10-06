@@ -1,0 +1,12 @@
+<section class="mt-4 rounded-xl border border-border bg-surface-2 p-5" aria-label="Visão gerencial dos pilares" data-testid="visao-gerencial-pilar">
+  <div class="flex flex-wrap items-center gap-1">
+    <h2 class="font-display text-lg font-semibold">Visão gerencial dos pilares</h2>
+    <c-dashboard.modal-farol prefixo_id="gerencial-pilar-" />
+  </div>
+  <p class="text-xs text-text-muted">Detalhamento por pilar no período selecionado, nas unidades de cada indicador (quantidade ou percentual).</p>
+  {% if painel_pilar.tabela_gerencial_fisica.grupos %}
+  <c-dashboard.pilares-table :tabela="painel_pilar.tabela_gerencial_fisica" base="fisico" prefixo_id="gerencial-pilar-" />
+  {% else %}
+  <p class="mt-3 text-sm text-text-muted">Nenhum indicador físico importado para os pilares exibidos neste dashboard.</p>
+  {% endif %}
+</section>

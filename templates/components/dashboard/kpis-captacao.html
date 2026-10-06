@@ -1,0 +1,20 @@
+{% load core_extras l10n %}
+<c-vars bloco="" base="fin" />
+{% localize off %}
+<div class="mt-3 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+  <c-dashboard.kpi-card :card="bloco.cards.0" base="{{ base }}" borda="kpi-borda-1" />
+  <c-dashboard.kpi-card :card="bloco.cards.1" base="{{ base }}" borda="kpi-borda-2" />
+  <c-dashboard.kpi-card :card="bloco.cards.2" base="{{ base }}" borda="kpi-borda-3" />
+  <article data-testid="kpi-percentual" class="rounded-xl border border-border bg-surface-2 p-5 kpi-borda-4">
+    <h3 class="text-xs font-semibold uppercase tracking-wide text-text-muted">% Executado</h3>
+    <p class="numerico mt-3 text-3xl font-bold">{% if bloco.pct is not None %}{{ bloco.pct }}<span class="text-base font-semibold text-text-muted">%</span>{% else %}—{% endif %}</p>
+    <p class="mt-1 text-xs text-text-muted">{% if base == 'fin' %}realizado em relação ao captado{% else %}taxa de execução no período{% endif %}</p>
+    <div class="mt-3 flex items-center gap-2">
+      <div class="h-1.5 flex-1 overflow-hidden rounded-full bg-quiin-mist/60" role="img" aria-label="{% if bloco.pct is not None %}{{ bloco.pct }}{% else %}—{% endif %}% executado">
+        <div class="h-full rounded-full {% if bloco.faixa == 'ok' %}bg-quiin-quantum-green{% elif bloco.faixa == 'parcial' %}bg-amber-400{% elif bloco.faixa == 'critica' %}bg-red-500{% else %}bg-quiin-mist{% endif %}" style="width: {{ bloco.barra_percentual }}%"></div>
+      </div>
+      <c-dashboard.farol-badge faixa="{{ bloco.faixa }}" rotulo="{% if bloco.faixa == 'ok' %}Meta atingida{% elif bloco.faixa == 'parcial' %}Execução parcial{% elif bloco.faixa == 'critica' %}Execução crítica{% else %}Sem meta{% endif %}" />
+    </div>
+  </article>
+</div>
+{% endlocalize %}

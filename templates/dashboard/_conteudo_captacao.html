@@ -1,0 +1,25 @@
+{% if base_param == 'fin' %}
+<section aria-label="Visão geral do pilar">
+  <h2 class="font-display text-lg font-semibold">Visão geral — {{ painel_pilar.rotulo }}</h2>
+  <p class="text-xs text-text-muted">Captação e realização acumuladas do ciclo completo, conforme as fontes autorizadas do acompanhamento selecionado.</p>
+  <c-dashboard.kpis-captacao :bloco="painel_pilar" base="fin" />
+</section>
+<section class="mt-6 rounded-xl border border-border bg-surface-2 p-5" aria-label="Visão financeira AT e Outras Fontes">
+  <h2 class="font-display text-lg font-semibold">Visão financeira — AT e Outras Fontes</h2>
+  <c-dashboard.tabela-financeira-pilar :tabela="painel_pilar.tabela_captacao" />
+</section>
+{% else %}
+{% include 'dashboard/_visao_gerencial_pilar.html' %}
+{% for bloco in painel_pilar.blocos_fisicos %}
+<section class="mt-4" aria-label="Indicadores físicos {{ bloco.rotulo }} {{ bloco.unidade_indicador }}" data-fonte="{{ bloco.codigo }}">
+  <h2 class="font-display text-lg font-semibold">{{ bloco.rotulo }} — {{ bloco.unidade_indicador }}</h2>
+  <p class="text-xs text-text-muted">{{ bloco.rotulo_periodo }}. Indicadores apresentados por fonte e unidade.</p>
+  <c-dashboard.kpis-captacao :bloco="bloco" base="fis" />
+  <div class="mt-4 rounded-xl border border-border bg-surface-2 p-5">
+    <c-dashboard.tabela-anual-pilar :linhas="bloco.tabela" base="fisico" rotulo_previsto="Meta" unidade="{{ bloco.unidade_indicador }}" prefixo_id="{{ bloco.chave }}-" />
+  </div>
+</section>
+{% empty %}
+<p class="mt-4 text-sm text-text-muted">Nenhum indicador físico importado para as fontes autorizadas.</p>
+{% endfor %}
+{% endif %}

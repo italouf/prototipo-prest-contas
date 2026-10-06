@@ -1,0 +1,31 @@
+{% load core_extras %}
+{# Tabelas dos snapshots financeiros PDI, Formação FCRH e ACS. #}
+<c-vars tabela="" />
+<div class="mt-3 overflow-x-auto" data-testid="{{ tabela.nome }}">
+  <table class="w-full border-collapse text-sm">
+    <thead>
+      <tr class="border-b border-border text-left text-xs uppercase tracking-wide text-text-muted">
+        {% for cabecalho in tabela.cabecalhos %}
+        <th scope="col" class="whitespace-nowrap px-3 py-3">{{ cabecalho }}</th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for linha in tabela.linhas %}
+      <tr class="border-b border-border/60 {% if linha.total %}bg-quiin-mist/30 font-bold{% endif %}">
+        {% for celula in linha.celulas %}
+        {% if forloop.first %}
+        <th scope="row" class="min-w-48 px-3 py-3 text-left font-semibold">{{ celula.valor|default_if_none:'—' }}</th>
+        {% else %}
+        <td class="px-3 py-3 {% if celula.tipo == 'texto' %}min-w-48 whitespace-pre-line{% else %}numerico whitespace-nowrap{% endif %}">
+          {% if celula.tipo == 'dinheiro' %}{{ celula.valor|moeda_ptbr }}{% elif celula.tipo == 'data' %}{{ celula.valor|date:'d/m/Y'|default:'—' }}{% elif celula.tipo == 'percentual' %}{% if celula.valor is not None %}{{ celula.valor|numero_curto }}%{% else %}—{% endif %}{% else %}{{ celula.valor|default:'—' }}{% endif %}
+        </td>
+        {% endif %}
+        {% endfor %}
+      </tr>
+      {% empty %}
+      <tr><td colspan="{{ tabela.cabecalhos|length }}" class="px-3 py-4 text-text-muted">Nenhuma informação financeira importada para esta tabela.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
