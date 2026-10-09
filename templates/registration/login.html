@@ -1,11 +1,14 @@
 {% extends 'base.html' %}
-{% load core_extras %}
+{% load core_extras static %}
 {% block title %}Entrar · Portal QuIIN{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/login.css' %}">
+{% endblock %}
 {% block content %}
-<div class="flex min-h-screen items-center justify-center bg-quiin-deep-purple px-4">
-  <div class="w-full max-w-md">
+<div class="login-screen" style="background-image: url('{% static 'img/login/fundo-login.png' %}')">
+  <div class="login-content w-full max-w-md">
     <div class="mb-6 flex items-center justify-center gap-2 text-white">
-      <span class="brand-mark">Q</span>
+      <span class="login-brand-logo"><img src="{% static 'img/login/selo-branco.png' %}" alt="" width="1080" height="1080"></span>
       <span class="font-display text-lg font-bold">Portal QuIIN</span>
     </div>
     <c-ui.card class="shadow-lg">
@@ -25,5 +28,8 @@
       <p class="mt-4 text-xs text-text-muted">Usuários demo: erica/erica123 · clarissa/clarissa123 · focal_pdi/focal123 · lideranca/lider123 · auditor/auditor123</p>
     </c-ui.card>
   </div>
+  <footer class="login-footer" aria-label="Instituições parceiras">
+    {% include 'components/layout/partner_logos.html' %}
+  </footer>
 </div>
 {% endblock %}

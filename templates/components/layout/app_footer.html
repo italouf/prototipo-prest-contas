@@ -1,8 +1,7 @@
-{% load static %}
 {# Rodapé institucional do painel anual (Anexo C). #}
 <footer data-testid="app-footer" class="border-t-4 border-quiin-royal bg-quiin-mist/40 px-4 pb-8 pt-8 text-center lg:px-8">
   <div class="mx-auto w-full max-w-[1440px]">
-    <p><img src="{% static 'img/logos-quiin.png' %}" alt="SENAI CIMATEC, QuIIN, EMBRAPII e Ministério da Ciência, Tecnologia e Inovação" width="850" height="130" class="mx-auto h-auto w-full max-w-[850px]"></p>
+    {% include 'components/layout/partner_logos.html' %}
     <p class="mt-4 text-sm font-semibold">SENAI CIMATEC, Educação, Ciência, Tecnologia, Inovação e Negócios para Indústria e a Sociedade</p>
     <p class="mt-1 text-sm font-semibold">Centro de Competência EMBRAPII CIMATEC em Tecnologias Quânticas</p>
     <div class="mt-3 space-y-1 text-xs text-text-muted">

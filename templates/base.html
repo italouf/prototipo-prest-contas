@@ -9,6 +9,8 @@
 <title>{% block title %}Portal QuIIN{% endblock %}</title>
 <link rel="stylesheet" href="{% static 'css/fonts.css' %}">
 {% tailwind_css %}
+<link rel="stylesheet" href="{% static 'css/brand.css' %}">
+{% block extra_head %}{% endblock %}
 <script>
   (function () {
     try {
