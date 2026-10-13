@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build do Render: instala deps, coleta estáticos, migra e popula base demo sintética.
+# Build do Render: instala dependências, coleta estáticos e aplica migrações.
 set -o errexit
 
 pip install -r requirements.txt
@@ -7,5 +7,3 @@ pip install -r requirements.txt
 python manage.py collectstatic --no-input
 
 python manage.py migrate
-
-python manage.py seed_demo
