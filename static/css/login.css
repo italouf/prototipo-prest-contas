@@ -30,7 +30,7 @@ button, input { font: inherit; }
 .login-bottom-link a { color: #fff; text-decoration: none; }
 .login-bottom-link a:hover { text-decoration: underline; }
 .login-footer { flex: none; width: 100%; min-height: 84px; padding: 12px 20px; border-top: 4px solid #1d438c; background: #f7f7f7; }
-.login-footer .brand-logos { width: 100%; min-height: 56px; justify-content: flex-end; gap: 32px; margin: 0; padding: 0; border-radius: 0; background: transparent; }
+.login-footer .brand-logos { width: 100%; min-height: 56px; justify-content: center; gap: 32px; margin: 0; padding: 0; border-radius: 0; background: transparent; }
 .login-footer .brand-logos > img { max-width: 152px; height: 48px; }
 .login-footer .brand-logos-principal { width: 152px; height: 56px; }
 .login-footer .brand-logos-principal img { width: 238px; height: 238px; left: -45px; top: -90px; }
@@ -62,7 +62,7 @@ button, input { font: inherit; }
   border: 0;
 }
 .login-page .login-brand { padding: 64px 5.5vw 0; }
-.login-page .login-brand-description { margin-top: 0; }
+.login-page .login-brand-description { margin-top: 0; font-size: 15px; line-height: 21px; }
 .login-page .login-content { margin-top: 50px; }
 .login-page .login-panel {
   padding: 22px 44px 24px;
@@ -110,6 +110,7 @@ button, input { font: inherit; }
   .login-brand-title { font-size: 34px; }
   .login-brand-subtitle { font-size: 16px; }
   .login-brand .login-brand-description { margin-top: 18px; font-size: 12px; }
+  .login-page .login-brand-description { margin-top: 0; font-size: 14px; line-height: 20px; }
   .login-footer .brand-logos { justify-content: center; gap: 16px 24px; }
 }
 @media (max-width: 480px) {
