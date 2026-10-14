@@ -10,14 +10,16 @@
   <link rel="stylesheet" href="{% static 'css/login.css' %}">
   <script src="{% static 'js/auth.js' %}" defer></script>
 </head>
-<body>
+<body class="{% block body_class %}{% endblock %}">
   <a href="#main" class="login-skip-link">Pular para o conteúdo</a>
   <div class="login-screen">
     <div class="login-stage" style="background-image: url('{% static 'img/login/fundo-login.png' %}')">
       <header class="login-brand">
+        {% block auth_brand %}
         <p class="login-brand-title">SIG QuIIN</p>
         <p class="login-brand-subtitle">Sistema de Informações Gerenciais do QuIIN</p>
         <p class="login-brand-description">Centro de Competências EMBRAPII CIMATEC em Tecnologias Quânticas<br>Quantum Industrial Innovation - QuIIN<br>Associação Tecnológica</p>
+        {% endblock %}
       </header>
       <main id="main" class="login-content" data-testid="login-shell">
         {% if messages %}

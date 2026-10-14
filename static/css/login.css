@@ -50,10 +50,62 @@ button, input { font: inherit; }
 .login-screen :is(input, button, a):focus-visible { outline: 3px solid #7dc8ff; outline-offset: 4px; }
 .login-skip-link { position: absolute; left: 12px; top: -100px; z-index: 1; padding: 12px; background: #fff; color: #153e75; }
 .login-skip-link:focus { top: 12px; }
+.login-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+.login-page .login-brand { padding: 64px 5.5vw 0; }
+.login-page .login-brand-description { margin-top: 0; }
+.login-page .login-content { margin-top: 50px; }
+.login-page .login-panel {
+  padding: 22px 44px 24px;
+  background: rgba(235, 249, 249, 0.8);
+  color: #08274d;
+}
+.login-sig-logo {
+  position: relative;
+  width: min(216px, 100%);
+  aspect-ratio: 925 / 282;
+  margin: 0 auto;
+  overflow: hidden;
+}
+.login-sig-logo img {
+  position: absolute;
+  width: 138.3784%;
+  max-width: none;
+  height: auto;
+  left: -18.7027%;
+  top: -66.6667%;
+}
+.login-entry-button {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  margin-top: 16px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #08274d;
+  font-size: 28px;
+  line-height: 36px;
+  cursor: pointer;
+}
+.login-entry-button:hover { background: rgba(255, 255, 255, 0.3); }
+.login-page .login-actions { margin-top: 44px; }
 @media (min-height: 900px) and (min-width: 769px) {
   .login-content { margin-top: clamp(0px, 4vh, 60px); }
 }
 @media (max-width: 768px) {
+  .login-page .login-brand { padding: 32px 24px 0; }
+  .login-page .login-content { margin-top: 32px; }
   .login-brand { padding: 32px 24px 28px; }
   .login-brand-title { font-size: 34px; }
   .login-brand-subtitle { font-size: 16px; }
@@ -61,6 +113,9 @@ button, input { font: inherit; }
   .login-footer .brand-logos { justify-content: center; gap: 16px 24px; }
 }
 @media (max-width: 480px) {
+  .login-page .login-brand { padding: 28px 20px 0; }
+  .login-page .login-panel { padding: 24px; }
+  .login-page .login-actions { margin-top: 28px; }
   .login-stage { padding-bottom: 28px; }
   .login-brand { padding: 28px 20px 24px; }
   .login-brand-title { font-size: 30px; }

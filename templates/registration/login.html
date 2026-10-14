@@ -1,12 +1,19 @@
 {% extends 'registration/base.html' %}
+{% load static %}
 {% block title %}Entrar · SIG QuIIN{% endblock %}
+{% block body_class %}login-page{% endblock %}
+{% block auth_brand %}
+<p class="login-brand-description">Centro de Competência EMBRAPII CIMATEC em Tecnologias Quânticas<br>Quantum Industrial Innovation - QuIIN<br>Associação Tecnológica</p>
+{% endblock %}
 {% block auth_content %}
 <form method="post" class="login-form">
   {% csrf_token %}
   <input type="hidden" name="next" value="{{ next }}">
   <section class="login-panel" aria-labelledby="login-title">
-    {% include 'registration/_user_icon.html' %}
-    <h1 id="login-title" class="login-panel-title">Sign Up</h1>
+    <h1 id="login-title" class="login-visually-hidden">Entrar no SIG QuIIN</h1>
+    <div class="login-sig-logo">
+      <img src="{% static 'img/login/sig-quiin.png' %}" alt="SIG QuIIN — Sistema de Informações Gerenciais" width="1280" height="800">
+    </div>
     {% if form.errors %}
       <p class="login-error" role="alert">Usuário e senha não conferem. Verifique os dados e tente novamente.</p>
     {% endif %}
@@ -23,9 +30,9 @@
         </div>
       </div>
     </div>
+    <button type="submit" class="login-entry-button">ENTRAR</button>
   </section>
   <div class="login-actions">
-    <button type="submit" class="login-button">Entrar</button>
     <a href="{% url 'accounts:password_reset' %}" class="login-button login-button-secondary">Esqueci minha senha</a>
   </div>
   <p class="login-bottom-link">Novo usuário? <a href="{% url 'accounts:cadastro' %}">Cadastre-se</a></p>

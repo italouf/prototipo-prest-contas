@@ -6,8 +6,8 @@ test.use({ locale: 'pt-BR' });
 test('login segue a composição da referência e carrega o novo logo', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto('/accounts/login/');
-  await expect(page.getByText('SIG QuIIN', { exact: true })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Sign Up' })).toBeVisible();
+  await expect(page.getByRole('img', { name: 'SIG QuIIN — Sistema de Informações Gerenciais', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Entrar no SIG QuIIN' })).toHaveCount(1);
   const painel = await page.locator('.login-panel').boundingBox();
   expect(painel!.width).toBe(486);
   expect(Math.abs(painel!.x + painel!.width / 2 - 640)).toBeLessThan(1);
