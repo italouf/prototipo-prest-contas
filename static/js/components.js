@@ -26,6 +26,19 @@ document.addEventListener('click', function (event) {
   });
 });
 
+var quiinEstadoImpressao = [];
+window.addEventListener('beforeprint', function () {
+  quiinEstadoImpressao = Array.from(document.querySelectorAll('.overview-accordion')).map(function (painel) {
+    var estado = { painel: painel, aberto: painel.open };
+    painel.open = true;
+    return estado;
+  });
+});
+window.addEventListener('afterprint', function () {
+  quiinEstadoImpressao.forEach(function (estado) { estado.painel.open = estado.aberto; });
+  quiinEstadoImpressao = [];
+});
+
 /* Toasts client-side (usados por HX-Trigger e ações de drag). */
 window.quiinToast = function (texto, tipo) {
   var container = document.getElementById("toasts");

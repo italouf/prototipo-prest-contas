@@ -4,6 +4,7 @@ Todo cálculo de negócio vive aqui (nunca no template). `painel()` lê as linha
 em 2 queries e computa cards, gráficos, tabela, consolidado e chips em memória.
 """
 from decimal import Decimal, ROUND_HALF_UP
+from .physical import percentual_fisico, resumo_fisico, saldo_fisico
 
 ANOS = [2024, 2025, 2026, 2027]
 BASE_FINANCEIRO = "financeiro"
@@ -205,13 +206,37 @@ def painel(ano, base, pilares_selecionados=None):
         "total_acumulado": e_ppi + e_at + e_ou if ano is None else None,
     }
 
-    return {
+    dto = {
         "ano": ano, "base": base,
         "unidade": "R$ mi" if base == BASE_FINANCEIRO else "metas",
         "rotulo_periodo": rotulo_periodo(ano),
         "cards": cards, "graficos": graficos,
         "tabela": {"grupos": grupos}, "consolidado": consolidado,
     }
+    if base == BASE_FISICO:
+        todas = []
+        por_fonte = {"ppi": [], "at": [], "outras": []}
+        for grupo in grupos:
+            detalhes = [linha for linha in grupo["linhas"] if not linha["total"]]
+            pares = [(linha["previsto"], linha["executado"]) for linha in detalhes]
+            todas.extend(pares)
+            fonte = "ppi" if grupo["bloco"] == "4.1 PPI" else "at" if grupo["bloco"] == "4.2 Captação de recursos" else "outras"
+            por_fonte[fonte].extend(pares)
+            for linha in grupo["linhas"]:
+                p = percentual_fisico(linha["executado"], linha["previsto"])
+                linha["pct"] = pct_inteiro(p, 100) if p is not None else None
+                linha["saldo"] = saldo_fisico(linha["previsto"], linha["executado"])
+                linha["faixa"] = faixa(p)
+                if linha["total"]:
+                    resumo = resumo_fisico(pares)
+                    linha.update(pct=resumo["pct"], faixa=resumo["faixa"],
+                                 saldo=sum((saldo_fisico(pv, ex) for pv, ex in pares), Decimal(0)))
+        for item in cards:
+            resumo = resumo_fisico(todas if item["chave"] == "total" else por_fonte[item["chave"]])
+            item.update(resumo)
+            if item["chave"] in graficos:
+                graficos[item["chave"]].update(rodape_pct=resumo["pct"], rodape_faixa=resumo["faixa"])
+    return dto
 
 
 def painel_pilar(pilar, ano, base):
@@ -238,11 +263,18 @@ def painel_pilar(pilar, ano, base):
     saldo = prev - exe
     pct = pct_inteiro(exe, prev)
     fx = faixa(percentual(exe, prev))
+    if base == BASE_FISICO:
+        saldo = saldo_fisico(prev, exe)
+        p = percentual_fisico(exe, prev)
+        pct = pct_inteiro(p, 100) if p is not None else None
+        fx = faixa(p)
     rot_prev = rotulo_previsto(codigo)
     denominador = "projetados" if codigo in PILARES_PPI else "captados"
 
     def card_pilar(chave, titulo, valor, ref, denom, com_farol):
         pp = pct_inteiro(valor, ref) if com_farol else None
+        if base == BASE_FISICO and com_farol:
+            pp = min(pp, 100) if pp is not None else None
         return {
             "chave": chave, "titulo": titulo, "executado": valor,
             "previsto": ref, "denominador": denom,
@@ -274,6 +306,11 @@ def painel_pilar(pilar, ano, base):
         "faixa": faixa(percentual(tot_exec, tot_prev)), "total": True,
         "destaque": False,
     })
+    if base == BASE_FISICO:
+        for linha in tabela:
+            p = percentual_fisico(linha["executado"], linha["previsto"])
+            linha.update(pct=pct_inteiro(p, 100) if p is not None else None,
+                         saldo=saldo_fisico(linha["previsto"], linha["executado"]), faixa=faixa(p))
 
     total_previsto = sum(prev_anos, Decimal(0))
     total_executado = sum(exec_anos, Decimal(0))

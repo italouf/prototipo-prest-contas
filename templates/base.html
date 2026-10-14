@@ -133,7 +133,8 @@
     var abrir = typeof forcar === 'boolean' ? forcar : ed.hidden;
     ed.hidden = !abrir;
     document.querySelectorAll('[data-editor-toggle]').forEach(function (b) {
-      b.textContent = abrir ? 'Fechar edição' : 'Editar dados';
+      var rotulo = b.querySelector('[data-editor-rotulo]');
+      (rotulo || b).textContent = abrir ? 'Fechar edição' : 'Editar dados';
     });
     if (abrir) ed.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }

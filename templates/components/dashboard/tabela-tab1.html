@@ -2,7 +2,7 @@
 <c-vars tabela="" />
 <div class="overview-table-scroll" data-testid="pilares-table">
   <table class="overview-table overview-financial-table">
-    <thead><tr><th scope="col">Ação</th><th scope="col">% executado</th><th scope="col">Recurso PPI total</th><th scope="col">Realizado total</th><th scope="col">Projetado total</th><th scope="col">Realizado + projetado</th><th scope="col">Diferença PPI</th><th scope="col">Farol</th></tr></thead>
+    <thead><tr><th scope="col">Ação</th><th scope="col">% executado</th><th scope="col">Recurso PPI / captado</th><th scope="col">Realizado total</th><th scope="col">Projetado total</th><th scope="col">Realizado + projetado</th><th scope="col">Saldo a executar</th><th scope="col">Farol</th></tr></thead>
     <tbody>{% for linha in tabela.linhas %}
       <tr {% if linha.total %}class="overview-total-row"{% endif %}>
         <th scope="row">{{ linha.rotulo }}</th>

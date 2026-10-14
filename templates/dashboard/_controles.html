@@ -3,23 +3,14 @@
       hx-swap="outerHTML" hx-push-url="true" hx-indicator="#progresso">
   <input type="hidden" name="base" value="{{ base_param }}">
   <input type="hidden" name="filtrar_pilares" value="1">
+  <input type="hidden" name="ano" value="{{ ano_param }}">
   <div class="overview-field overview-cycle-field">
     <label for="overview-start">Mês/ano inicial</label>
-    {% if painel.visao_financeiro_geral %}
-    <input id="overview-start" value="{{ inicio_periodo }}" readonly
-           title="Totais consolidados do ciclo. Selecione outro acompanhamento para mudar a base consultada.">
-    <input type="hidden" name="ano" value="todos">
-    {% else %}
-    <select id="overview-start" name="ano" data-testid="year-select" onchange="this.form.requestSubmit()" title="Selecione o ciclo completo ou um ano registrado na base.">
-      <option value="todos" {% if ano_param == 'todos' %}selected{% endif %}>Ciclo completo</option>
-      {% for ano in anos_dashboard %}<option value="{{ ano }}" {% if ano_param == ano|stringformat:'s' %}selected{% endif %}>01/{{ ano }}</option>{% endfor %}
-    </select>
-    {% endif %}
+    <div class="overview-month-input"><input type="month" id="overview-start" name="mes_inicial" value="{{ mes_inicial }}" aria-label="Mês/ano inicial" onchange="this.form.requestSubmit()">{% if not mes_inicial %}<span>Ciclo completo</span>{% endif %}{% if mes_inicial %}<button type="button" title="Usar ciclo completo no mês inicial" aria-label="Usar ciclo completo no mês inicial" onclick="document.getElementById('overview-start').value=''; this.form.requestSubmit()">×</button>{% endif %}</div>
   </div>
   <div class="overview-field overview-cycle-field">
     <label for="overview-end">Mês/ano final</label>
-    <input id="overview-end" value="{{ fim_periodo }}" readonly
-           title="O período acompanha o ano selecionado ou o ciclo completo da base importada.">
+    <div class="overview-month-input"><input type="month" id="overview-end" name="mes_final" value="{{ mes_final }}" aria-label="Mês/ano final" onchange="this.form.requestSubmit()">{% if not mes_final %}<span>Ciclo completo</span>{% endif %}{% if mes_final %}<button type="button" title="Usar ciclo completo no mês final" aria-label="Usar ciclo completo no mês final" onclick="document.getElementById('overview-end').value=''; this.form.requestSubmit()">×</button>{% endif %}</div>
   </div>
   {% if acompanhamentos %}
   <div class="overview-field overview-followup-field">
@@ -42,6 +33,7 @@
       </div>
     </details>
   </div>
+  <div class="overview-field overview-base-field"><span>Base de análise</span>
   <div class="overview-base-toggle" role="group" aria-label="Base de análise" data-testid="base-toggle">
     <a href="{% url 'core:dashboard' %}?{{ filtros_dashboard }}&base=fin" hx-get="{% url 'core:dashboard' %}?{{ filtros_dashboard }}&base=fin"
        hx-target="#dashboard-panel" hx-select="#dashboard-panel" hx-swap="outerHTML" hx-push-url="true" hx-indicator="#progresso"
@@ -49,6 +41,7 @@
     <a href="{% url 'core:dashboard' %}?{{ filtros_dashboard }}&base=fis" hx-get="{% url 'core:dashboard' %}?{{ filtros_dashboard }}&base=fis"
        hx-target="#dashboard-panel" hx-select="#dashboard-panel" hx-swap="outerHTML" hx-push-url="true" hx-indicator="#progresso"
        {% if base_param == 'fis' %}aria-current="true"{% endif %}>Físico</a>
+  </div>
   </div>
   <noscript><button type="submit">Aplicar filtros</button></noscript>
 </form>

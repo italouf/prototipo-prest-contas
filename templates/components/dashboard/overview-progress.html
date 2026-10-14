@@ -4,5 +4,5 @@
   <div class="overview-progress-track" role="img" aria-label="{% if linha.pct is not None %}{{ linha.pct|numero_curto }}% executado{% else %}Sem lançamento{% endif %}">
     <span style="width: {{ linha.barra|unlocalize }}%" {% if linha.pct > 100 %}class="overview-progress-exceeded"{% endif %}></span>
   </div>
-  <strong>{% if linha.pct is not None %}{% if preciso %}{{ linha.pct|numero_curto }}{% else %}{{ linha.pct }}{% endif %}%{% else %}—{% endif %}</strong>
+  <strong>{% if linha.pct is not None %}{% if linha.pct_exibicao is not None %}{{ linha.pct_exibicao|numero_curto }}{% elif preciso %}{{ linha.pct|numero_curto }}{% else %}{{ linha.pct|numero_curto }}{% endif %}%{% else %}—{% endif %}</strong>
 </div>

@@ -29,13 +29,13 @@ from apps.pillars.models import Pilar
 from apps.planning.services import ANOS, BASES, BASES_URL, PILARES_PPI, ROTULOS_PAINEL
 
 from . import panel
-from .models import KpiAcompanhamento, OverrideAcompanhamento
+from .models import KpiAcompanhamento, OverrideAcompanhamento, ResumoFinanceiro
 
 # Mesmo teto de `planning.views._parse_grade` (regras de valor idênticas às do
 # legado). Constante local para não importar `planning.views` (evita ciclo).
 LIMITE_VALOR = Decimal(10) ** 10
 
-CAMPOS = ("previsto", "executado")
+CAMPOS = ("previsto", "executado", "projetado")
 BASES_CURTA = {"financeiro": "fin", "fin": "fin", "fisico": "fis", "fis": "fis"}
 
 ACAO_EDITAR = "EDITAR_OVERRIDE_PRESTACAO"
@@ -50,31 +50,36 @@ def chave(base, codigo, ano, campo):
     return f"{curta}|{codigo}|{ano}|{campo}"
 
 
-def _validar_valor(base, valor, codigo):
+def _validar_valor(base, valor, codigo, unidade=None):
     try:
         valor = Decimal(valor)
     except (InvalidOperation, TypeError, ValueError):
         raise ValidationError(f"valor inválido: {codigo}")
-    if valor < 0 or valor >= LIMITE_VALOR:
+    if not valor.is_finite() or valor < 0 or valor >= LIMITE_VALOR:
         raise ValidationError(f"valor fora do intervalo: {codigo}")
-    if base == "fisico" and valor != valor.to_integral_value():
+    if base == "fisico" and unidade != "Percentual" and valor != valor.to_integral_value():
         raise ValidationError(f"base física exige inteiro: {codigo}")
+    casas = 2 if base == "financeiro" else 6
+    if valor != valor.quantize(Decimal(1).scaleb(-casas)):
+        raise ValidationError(f"máximo de {casas} casas decimais: {codigo}")
     return valor
 
 
 def _resolver_item(acomp, base, item, editaveis):
     """Valida um item e devolve (chave, ano, campo, valor, pilar, kpi) resolvido.
 
-    Mesmas restrições de `_parse_grade` (ano em `ANOS`, campo previsto|executado,
-    limites de valor) mais a resolução do `codigo` — pilar ativo (financeiro) ou
+    Valida ciclo completo (ano 0), anos em `ANOS`, valores e campos, com
+    resolução do `codigo` — pilar ativo (financeiro) ou
     KPI do acompanhamento (físico). Escopo: `PermissionDenied` fora dos pilares
     editáveis (no físico, o pilar do KPI).
     """
     ano, codigo, campo, valor = item
-    if not isinstance(ano, int) or ano not in ANOS:
+    if not isinstance(ano, int) or ano not in (0, *ANOS):
         raise ValidationError(f"ano inválido: {ano}")
     if campo not in CAMPOS:
         raise ValidationError(f"campo inválido: {campo}")
+    if base == "fisico" and campo == "projetado" and ano not in (2026, 2027):
+        raise ValidationError("Projeções físicas disponíveis para 2026 e 2027.")
     pilar = kpi = None
     if base == "financeiro":
         pilar = Pilar.objects.filter(ativo=True, codigo=codigo).first()
@@ -90,7 +95,7 @@ def _resolver_item(acomp, base, item, editaveis):
     if pilar_codigo not in editaveis:
         raise PermissionDenied
     if valor is not None:
-        valor = _validar_valor(base, valor, codigo)
+        valor = _validar_valor(base, valor, codigo, kpi.unidade if kpi else None)
     return chave(base, codigo, ano, campo), ano, campo, valor, pilar, kpi
 
 
@@ -120,6 +125,9 @@ def aplicar_overrides(acomp, base, itens, usuario):
     editaveis = set(pilares_editaveis_painel(usuario).values_list("codigo", flat=True))
     # Fase 1: valida o conjunto inteiro; nada é gravado com item inválido.
     resolvidos = [_resolver_item(acomp, base, item, editaveis) for item in itens]
+    from .overview_edit import valor_original
+    resumos = {(r.origem, r.pilar.codigo, r.ano): r for r in
+               ResumoFinanceiro.objects.filter(acompanhamento=acomp).select_related("pilar")} if base == "financeiro" else {}
     aplicados = 0
     with transaction.atomic():
         for chave_str, ano, campo, valor, pilar, kpi in resolvidos:
@@ -143,6 +151,8 @@ def aplicar_overrides(acomp, base, itens, usuario):
                 atual.usuario = usuario
                 atual.save(update_fields=["valor", "usuario", "atualizado_em"])
             else:
+                if valor == valor_original(base, ano, campo, pilar, kpi, resumos):
+                    continue
                 atual = OverrideAcompanhamento.objects.create(
                     acompanhamento=acomp, base=base, pilar=pilar, kpi=kpi,
                     ano=ano, campo=campo, valor=valor, chave=chave_str, usuario=usuario)

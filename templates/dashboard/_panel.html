@@ -1,44 +1,51 @@
 {% load core_extras %}
-<div id="dashboard-panel" data-testid="dashboard-panel" class="overview-dashboard">
-  <h1 class="overview-page-title">Visão geral</h1>
+<div id="dashboard-panel" data-testid="dashboard-panel" class="overview-dashboard" data-base="{{ base_param }}">
+  <div class="overview-page-heading">
+    <h1 class="overview-page-title">Visão geral</h1>
+    {% if not standalone %}<div class="overview-page-actions">
+      {% if pode_importar_financeiro %}<a href="{% url 'accountability:importar' %}" class="overview-action-button"><c-ui.icon name="upload" size="14" />Importar dados</a>{% endif %}
+      {% if pode_editar_painel %}<button type="button" class="overview-action-button overview-action-primary" data-testid="btn-editar-dados" data-editor-toggle onclick="quiinAlternarEditor()"><c-ui.icon name="pencil" size="14" /><span data-editor-rotulo>Editar dados</span></button>{% endif %}
+    </div>{% endif %}
+  </div>
   <div class="overview-context" data-testid="context-chips">
     <span>Período em análise <strong>{{ painel.rotulo_periodo }}</strong></span>
-    {% if acompanhamento %}<span class="overview-context-chip">Acompanhamento {{ acompanhamento.periodo_referencia }}</span>{% endif %}
-    <span class="overview-context-chip">Base {% if base_param == 'fin' %}Financeira{% else %}Física{% endif %}</span>
-    <span class="overview-context-chip">{% if base_param == 'fin' %}R$ milhões{% else %}unidades de cada indicador (metas ou %){% endif %}</span>
+    {% if base_param == 'fin' %}
+      {% if acompanhamento %}<span class="overview-context-chip">Acompanhamento {{ acompanhamento.periodo_referencia }}</span>{% endif %}
+      <span class="overview-context-chip">Base Financeira</span><span class="overview-context-chip">valores em R$ milhões</span>
+    {% else %}
+      <span class="overview-context-chip">Executado acumulado da base</span>
+      <span class="overview-context-chip">Projeção ano 3 (12 meses) e ano 4 (6 meses)</span><span class="overview-context-chip">Base Física</span>
+    {% endif %}
     <span class="overview-context-source">Fonte {{ fonte_dashboard }}</span>
   </div>
-
-  {% if not quantidade_pilares %}
-  <div class="overview-notice overview-empty" role="status">Selecione ao menos um pilar para visualizar os resultados.</div>
-  {% else %}
-  <section class="overview-cards" aria-label="Resumo da execução">
-    {% for card in painel.cards_resumo %}<c-dashboard.overview-card :card="card" base="{{ base_param }}" />{% endfor %}
-  </section>
-  {% if painel.visao_financeiro_geral and base_param == 'fin' %}
-  <section class="overview-section" aria-label="Visão consolidada do programa">
-    <div class="overview-section-heading"><h2>Visão consolidada do programa</h2>{% if not standalone %}<c-dashboard.modal-farol prefixo_id="programa-" />{% endif %}<p>Execução e projeção do recurso total do PPI</p></div>
-    <div class="overview-table-card">
-      <c-dashboard.tabela-tab1 :tabela="painel.tabela_tab1" />
-      {% include 'dashboard/_overview_legend.html' %}
-    </div>
-  </section>
-  <section class="overview-section" aria-label="Visão consolidada por ano">
-    <div class="overview-section-heading"><h2>Visão consolidada por ano</h2><p>Execução e projeção do recurso total do PPI</p></div>
-    <div class="overview-table-card overview-annual-card">
-      <c-dashboard.tabela-tab11 :tabela="painel.tabela_tab11" />
-    </div>
-  </section>
-  {% else %}
-  <section class="overview-section" aria-label="Visão gerencial dos pilares">
-    <div class="overview-section-heading"><h2>Visão gerencial dos pilares</h2>{% if not standalone %}<c-dashboard.modal-farol prefixo_id="pilares-" />{% endif %}<p>Detalhamento por pilar no período selecionado, {% if base_param == 'fin' %}em R$ milhões{% else %}nas unidades de cada indicador (quantidade ou percentual){% endif %}</p></div>
-    <div class="overview-table-card">
-      <c-dashboard.tabela-geral-fisica :tabela="painel.tabela" base="{{ painel.base }}" :valores-em-reais="painel.valores_em_reais" />
-      {% include 'dashboard/_overview_legend.html' %}
-    </div>
-  </section>
+  {% if erro_periodo %}<div class="overview-notice" role="alert">{{ erro_periodo }}</div>{% elif sem_dados_intervalo %}<div class="overview-notice" role="status">Sem dados para o intervalo selecionado. A base contém snapshots do ciclo completo e dados anuais; os meses escolhidos não têm lançamentos nessa granularidade.</div>{% endif %}
+  {% if not quantidade_pilares %}<div class="overview-notice overview-empty" role="status">Selecione ao menos um pilar para visualizar os resultados.</div>{% else %}
+    <section class="overview-cards" aria-label="Resumo da execução">{% for card in painel.cards_resumo %}<c-dashboard.overview-card :card="card" base="{{ base_param }}" />{% endfor %}</section>
+    {% if base_param == 'fin' and painel.visao_financeiro_geral %}
+    <details class="overview-accordion" data-testid="programa-accordion" {% if standalone %}open{% endif %}>
+      <summary><span class="overview-expand-icon" aria-hidden="true"></span><span class="overview-accordion-heading"><span class="overview-accordion-title"><strong>Visão consolidada do programa</strong>{% if not standalone %}<c-dashboard.modal-farol prefixo_id="programa-" />{% endif %}</span><span>Execução e projeção do recurso total, em R$ milhões</span></span>
+        <span class="overview-accordion-summary"><span>Consolidado</span><c-dashboard.overview-badge faixa="{{ painel.tabela_programa.total.faixa }}" /><strong>{% if painel.tabela_programa.total.pct_exibicao is not None %}{{ painel.tabela_programa.total.pct_exibicao|numero_curto }}%{% else %}—{% endif %}</strong><span class="overview-expand-label"></span></span>
+      </summary>
+      <div class="overview-accordion-body"><c-dashboard.tabela-programa :tabela="painel.tabela_programa" />{% include 'dashboard/_overview_legend.html' %}</div>
+    </details>
+    <details class="overview-accordion" data-testid="anual-accordion" {% if standalone %}open{% endif %}>
+      <summary><span class="overview-expand-icon" aria-hidden="true"></span><span class="overview-accordion-heading"><strong>Visão consolidada por ano</strong><span>Execução e projeção do recurso total, em R$ milhões</span></span>
+        <span class="overview-accordion-summary">{% if painel.tabela_tab11.sem_dados_anuais %}<c-dashboard.overview-badge faixa="neutra" rotulo="Sem lançamentos anuais" />{% endif %}<span class="overview-expand-label"></span></span>
+      </summary><div class="overview-accordion-body overview-annual-card"><c-dashboard.tabela-tab11 :tabela="painel.tabela_tab11" /></div>
+    </details>
+    {% else %}
+    <details class="overview-accordion" data-testid="pilares-accordion" {% if standalone %}open{% endif %}>
+      <summary><span class="overview-expand-icon" aria-hidden="true"></span><span class="overview-accordion-heading"><span class="overview-accordion-title"><strong>{% if base_param == 'fin' %}Visão consolidada do programa{% else %}Visão gerencial dos pilares{% endif %}</strong>{% if not standalone %}<c-dashboard.modal-farol prefixo_id="pilares-" />{% endif %}</span><span>{% if base_param == 'fin' %}Execução por pilar, em R$ milhões{% else %}Detalhamento por pilar, nas unidades de cada indicador{% endif %}</span></span>
+        <span class="overview-accordion-summary">{% if base_param == 'fis' %}<c-dashboard.overview-counts :counts="painel.status_fisico" />{% endif %}<span class="overview-expand-label"></span></span>
+      </summary><div class="overview-accordion-body"><c-dashboard.tabela-geral-fisica :tabela="painel.tabela" base="{{ painel.base }}" :valores-em-reais="painel.valores_em_reais" />{% include 'dashboard/_overview_legend.html' %}</div>
+    </details>
+    {% if base_param == 'fis' %}
+    <details class="overview-accordion" data-testid="anual-accordion" {% if standalone %}open{% endif %}>
+      <summary><span class="overview-expand-icon" aria-hidden="true"></span><span class="overview-accordion-heading"><strong>Visão consolidada por ano</strong><span>Meta anual, executado, a realizar e projeção por indicador</span></span>
+        <span class="overview-accordion-summary"><span>{{ painel.tabela_anual_fisica.linhas|length }} indicadores · 2024 a 2027</span><span class="overview-expand-label"></span></span>
+      </summary><div class="overview-accordion-body"><c-dashboard.tabela-anual-fisica :tabela="painel.tabela_anual_fisica" /></div>
+    </details>{% endif %}
+    {% endif %}
   {% endif %}
-  {% endif %}
-
-  {% if pode_editar_painel and not standalone %}{% include 'dashboard/editor.html' %}{% endif %}
+  {% if pode_editar_painel and not standalone %}{% include 'dashboard/_editor_geral.html' %}{% endif %}
 </div>

@@ -2,6 +2,7 @@
 
 Regras de cálculo:
 - Percentual = realizado / meta * 100 (evitando divisão por zero).
+- Metas físicas (QTD/PER) têm cumprimento limitado ao intervalo de 0% a 100%.
 - Meta ANUAL/ACUMULADA ou indicador acumulado usa o somatório YTD aprovado.
 - Meta MENSAL usa apenas o valor do mês.
 - Indicadores de texto (TXT) não possuem percentual.
@@ -9,6 +10,7 @@ Regras de cálculo:
 """
 from datetime import date
 from decimal import Decimal
+from apps.planning.physical import percentual_fisico
 
 ZERO = Decimal("0")
 
@@ -82,6 +84,8 @@ def meta_realizado_percentual(indicador, periodo):
     percentual = None
     if meta is not None and meta.valor and realizado is not None:
         percentual = (realizado / meta.valor) * 100
+        if indicador.tipo in ("QTD", "PER"):
+            percentual = percentual_fisico(realizado, meta.valor)
     return {
         "meta": meta.valor if meta else None,
         "realizado": realizado,
@@ -174,6 +178,8 @@ def itens_por_periodo(indicadores, periodos):
             percentual = None
             if meta is not None and meta.valor and realizado is not None:
                 percentual = (realizado / meta.valor) * 100
+                if ind.tipo in ("QTD", "PER"):
+                    percentual = percentual_fisico(realizado, meta.valor)
             itens.append({
                 "indicador": ind,
                 "meta": meta.valor if meta else None,
@@ -258,6 +264,8 @@ def itens_do_periodo(indicadores, periodo):
         percentual = None
         if meta is not None and meta.valor and realizado is not None:
             percentual = (realizado / meta.valor) * 100
+            if ind.tipo in ("QTD", "PER"):
+                percentual = percentual_fisico(realizado, meta.valor)
         itens.append(
             {
                 "indicador": ind,

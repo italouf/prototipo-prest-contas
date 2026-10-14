@@ -1,10 +1,10 @@
-{# Navegação lateral (L4/L9/L10): IA do mockup + grupos Operação/Gestão. Sem scroll exclusivo no desktop — acompanha a rolagem da página. #}
+{# Navegação lateral fixa no desktop; menu recolhível em telas menores. #}
 {% load core_extras static %}
 <aside data-testid="sidebar"
        class="sidebar fixed inset-y-0 left-0 z-40 flex w-64 shrink-0 flex-col overflow-y-auto border-r border-border bg-surface-2 pb-6 text-text lg:static lg:h-auto lg:overflow-visible">
   <div class="flex items-center gap-2 px-4 py-4">
     <a href="{% url 'core:dashboard' %}" class="flex items-center gap-2 text-text" aria-label="Ir ao painel do Portal QuIIN">
-      <span class="sidebar-sig-logo"><img src="{% static 'img/login/sig-quiin.png' %}" alt="SIG QuIIN — Sistema de Informações Gerenciais" width="1280" height="800"></span>
+      <svg class="sidebar-sig-logo" viewBox="160 175 960 315" role="img" aria-label="SIG QuIIN — Sistema de Informações Gerenciais"><image href="{% static 'img/login/sig-quiin.png' %}" width="1280" height="800" /></svg>
     </a>
     <button type="button" data-testid="sidebar-collapse" aria-label="Recolher menu" title="Recolher menu"
             class="ml-auto hidden rounded-md p-1.5 text-text-muted hover:bg-quiin-mist/40 hover:text-text lg:inline-flex"
@@ -137,15 +137,15 @@
           </a>
         </li>
         {% endif %}
-        {% if papel == 'Master' or papel == 'Admin' %}
-        <li>
-          <a href="/admin/" data-nav-link class="nav-clara {% if '/admin/' in request.path %}nav-ativo{% endif %}" {% if '/admin/' in request.path %}aria-current="page"{% endif %}>
-            <c-ui.icon name="settings" size="18" /><span class="nav-rotulo">Admin</span>
-          </a>
-        </li>
-        {% endif %}
       </ul>
     </div>
     {% endif %}
   </nav>
+  {% if papel == 'Master' or papel == 'Admin' %}
+  <div class="sidebar-admin border-t border-border mx-3 mt-2 pt-2">
+    <a href="/admin/" data-nav-link class="nav-clara {% if '/admin/' in request.path %}nav-ativo{% endif %}" {% if '/admin/' in request.path %}aria-current="page"{% endif %}>
+      <c-ui.icon name="settings" size="18" /><span class="nav-rotulo">Admin</span>
+    </a>
+  </div>
+  {% endif %}
 </aside>

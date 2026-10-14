@@ -1,10 +1,17 @@
 {# Corpo textual do modal do farol (Anexo B) — incluído no diálogo e no HTML standalone. #}
 <section aria-label="Como o indicador é calculado">
   <h4 class="font-display text-sm font-bold">Como o indicador é calculado</h4>
+  {% if base_param == 'fis' %}
+  <p class="mt-1 text-text-muted">Na base física, cada indicador contribui com no máximo 100% de cumprimento. Resultados acima da meta não compensam indicadores atrasados.</p>
+  <p class="numerico mt-2 rounded-md border border-border bg-quiin-mist/40 px-3 py-2 text-center font-semibold">Cumprimento = menor valor entre 100% e (Executado ÷ Meta) × 100</p>
+  {% if painel %}<p class="mt-2 text-text-muted">Nos cartões do Geral, o realizado de cada indicador é limitado à sua meta antes da soma. O percentual é a soma desses realizados dividida pela soma das metas, considerando apenas indicadores da mesma unidade. O consolidado reúne PPI e AT em número absoluto; indicadores percentuais são apresentados separadamente.</p><p class="mt-2 text-text-muted">As contagens de atingidas, parciais e críticas consideram todos os indicadores e seguem as faixas do farol. Lançamentos ausentes permanecem sem valor.</p>{% else %}<p class="mt-2 text-text-muted">O resumo apresenta a média de cumprimento dos indicadores, com o mesmo peso por indicador. Indicadores sem meta válida ou sem lançamento ficam fora da média.</p>{% endif %}
+  <p class="mt-2 text-text-muted">Saldo a executar = maior valor entre zero e (Meta − Executado). Os valores realizados são preservados na tabela.</p>
+  {% else %}
   <p class="mt-1 text-text-muted">O farol mede a taxa de execução de cada pilar em relação à meta pactuada no período selecionado.</p>
   <p class="numerico mt-2 rounded-md border border-border bg-quiin-mist/40 px-3 py-2 text-center font-semibold">% Executado = (Valor executado ÷ Valor projetado) × 100</p>
   <p class="mt-2 text-text-muted">Nos blocos de captação de recursos e de outras fontes, o denominador é o valor captado, e não o projetado, porque a execução só pode ocorrer sobre recursos efetivamente ingressados.</p>
   <p class="numerico mt-2 rounded-md border border-border bg-quiin-mist/40 px-3 py-2 text-center font-semibold">% Executado = (Valor executado ÷ Valor captado) × 100</p>
+  {% endif %}
 </section>
 <section aria-label="Faixas de classificação">
   <h4 class="font-display text-sm font-bold">Faixas de classificação</h4>
@@ -26,7 +33,7 @@
 <section aria-label="Como ler o painel">
   <h4 class="font-display text-sm font-bold">Como ler o painel</h4>
   <div class="mt-1 space-y-2 text-text-muted">
-    <p>O farol responde aos dois filtros do cabeçalho. Ao selecionar um ano, a taxa considera apenas a meta e a execução daquele exercício. Ao selecionar todos os anos, a taxa considera o acumulado de 2024 a 2027, que é a leitura adequada para prestação de contas do plano como um todo.</p>
+    {% if painel %}<p>Os filtros de mês inicial e final definem o intervalo da análise. Ciclo completo considera jan/2024 a jun/2027. Quando não existem dados na granularidade escolhida, os valores ficam sem preenchimento; o consolidado do ciclo não é distribuído entre meses.</p>{% else %}<p>Ao selecionar um ano, o farol considera a meta e a execução daquele exercício. Todos os anos considera o acumulado do ciclo.</p>{% endif %}
     <p>Na base financeira os valores estão em R$ milhões. Na base física os valores correspondem à quantidade de metas físicas pactuadas e realizadas.</p>
     <p>As cores mantêm a convenção de semáforo pactuada, verde, amarelo e laranja, e o rótulo traduz cada faixa na decisão que ela exige. Um pilar com percentual alto e valor absoluto baixo indica meta pouco ambiciosa, e não desempenho superior. A leitura do farol deve sempre ser acompanhada da coluna de saldo a executar.</p>
   </div>

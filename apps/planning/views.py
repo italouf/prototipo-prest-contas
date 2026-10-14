@@ -40,7 +40,7 @@ def _float_series(values):
     return [None if value is None else float(value) for value in values]
 
 
-def contexto_painel(ano_param, base_param, usuario, acompanhamento=None, pilares_selecionados=None):
+def contexto_painel(ano_param, base_param, usuario, acompanhamento=None, pilares_selecionados=None, periodo=None):
     """Contexto completo do painel anual (usado pela view `/` e pelo export).
 
     Com acompanhamento importado (o mais recente quando não indicado), o painel
@@ -50,6 +50,9 @@ def contexto_painel(ano_param, base_param, usuario, acompanhamento=None, pilares
     acompanhamento no banco, o fluxo legado sobre `PlanoAnual` segue inalterado.
     """
     ano = None if ano_param == "todos" else int(ano_param)
+    if periodo:
+        ano = periodo["ano"] if not periodo["ciclo"] and base_param == "fis" else None
+        ano_param = str(ano) if ano is not None else "todos"
     if acompanhamento is None:
         acompanhamento = painel_prestacao.acompanhamento_padrao()
     if (acompanhamento is not None and base_param == BASE_FIN
@@ -62,17 +65,21 @@ def contexto_painel(ano_param, base_param, usuario, acompanhamento=None, pilares
     )
     if acompanhamento is not None:
         painel = painel_prestacao.painel_acompanhamento(
-            ano, base_param, acompanhamento, pilares_selecionados)
+            ano, base_param, acompanhamento, pilares_selecionados,
+            anos=periodo["anos"] if periodo and not periodo["ciclo"] and base_param == "fis" and len(periodo["anos"]) > 1 else None)
         grade = overrides_prestacao.grade_edicao_overrides(
             acompanhamento, base_param, editaveis or None)
+        from apps.accountability.overview_edit import grade_dashboard
+        grade_geral = grade_dashboard(acompanhamento, painel["base"], editaveis if pilares_selecionados is None else editaveis & set(pilares_selecionados))
     else:
         painel = painel_anual(ano, base_param, pilares_selecionados)
         grade = grade_edicao(base_param, editaveis or None)
+        grade_geral = []
     destaque = None if ano is None else ANOS.index(ano)
     bloco_ppi = painel.get("graficos_ciclo", {}).get("ppi")
     from apps.core.overview import contexto_visao_geral
 
-    return contexto_visao_geral({
+    contexto = {
         "painel": painel,
         "ano_param": ano_param,
         "base_param": base_param,
@@ -89,11 +96,15 @@ def contexto_painel(ano_param, base_param, usuario, acompanhamento=None, pilares
             _float_series(bloco_ppi["serie_executado"]),
         ) if bloco_ppi and len(bloco_ppi["serie_previsto"]) == len(PILARES_PPI) else None,
         "grade_edicao": grade,
+        "grade_edicao_geral": grade_geral,
         "base_plano": painel["base"],
         "pode_editar_painel": pode_editar_painel(usuario),
         "acompanhamento": acompanhamento,
         "acompanhamentos": painel_prestacao.lista_acompanhamentos(),
-    }, pilares_selecionados)
+    }
+    from apps.core.overview_period import aplicar_periodo, resolver_periodo
+    aplicar_periodo(contexto, periodo or resolver_periodo({}, ano_param))
+    return contexto_visao_geral(contexto, pilares_selecionados)
 
 
 def _resolver_acomp_exportacao(request):
@@ -232,16 +243,17 @@ def _parse_grade(post, codigos_permitidos):
     return itens
 
 
-def _parse_grade_overrides(post):
+def _parse_grade_overrides(post, acomp=None):
     """Itens de override do POST: [(ano, codigo, base, campo, valor|None)].
 
-    Mesma chave e restrições de valor de `_parse_grade` — 5 partes, ano em
-    `ANOS`, base válida, campo previsto|executado, limites e inteiro no físico —
-    com duas diferenças do caminho de overrides (SDD §9): o `codigo` é resolvido
-    depois (pilar no financeiro, KPI no físico) e valor vazio vira `None`
-    (remove o override, restaurando o importado).
+    Ano 0 representa o ciclo completo; os demais anos pertencem a `ANOS`.
+    A unidade do KPI determina a precisão validada pelo serviço. Valores
+    percentuais de Outras fontes são convertidos à fração usada na base.
+    Valor vazio remove o ajuste e restaura o valor importado.
     """
     itens = []
+    percentuais = set(KpiAcompanhamento.objects.filter(acompanhamento=acomp,
+        pilar__codigo="OUTRASFONTES", unidade="Percentual").values_list("codigo", flat=True)) if acomp and post.get("edicao_dashboard") else set()
     for chave, bruto in post.items():
         if not chave.startswith("v__"):
             continue
@@ -249,11 +261,11 @@ def _parse_grade_overrides(post):
         if len(partes) != 5:
             raise ValueError(f"campo inválido: {chave}")
         _, ano_s, base, codigo, campo = partes
-        if not ano_s.isdigit() or int(ano_s) not in ANOS:
+        if not ano_s.isdigit() or int(ano_s) not in (0, *ANOS):
             raise ValueError(f"ano inválido: {chave}")
         if base not in BASES:
             raise ValueError(f"base inválida: {chave}")
-        if campo not in ("previsto", "executado"):
+        if campo not in overrides_prestacao.CAMPOS:
             raise ValueError(f"campo inválido: {chave}")
         limpo = str(bruto).strip().replace(" ", "").replace(",", ".")
         if limpo == "":
@@ -263,10 +275,10 @@ def _parse_grade_overrides(post):
             valor = Decimal(limpo)
         except InvalidOperation:
             raise ValueError(f"valor inválido: {chave}")
-        if valor < 0 or valor >= LIMITE_VALOR:
+        if not valor.is_finite() or valor < 0 or valor >= LIMITE_VALOR:
             raise ValueError(f"valor fora do intervalo: {chave}")
-        if base == "fisico" and valor != valor.to_integral_value():
-            raise ValueError(f"base física exige inteiro: {chave}")
+        if base == "fisico" and codigo in percentuais:
+            valor /= 100
         itens.append((int(ano_s), codigo, base, campo, valor))
     return itens
 
@@ -288,16 +300,26 @@ def _aplicar_overrides(request, acomp):
     if combinado and base_param == BASE_FIN:
         return sem_permissao(request)
     destino = (f"/pilar/{pilar_escopo.pk}/?ano={ano_param}&base={base_param}&acompanhamento={acomp.pk}"
-               if pilar_escopo is not None else f"/?ano={ano_param}&base={base_param}")
+               if pilar_escopo is not None else f"/?ano={ano_param}&base={base_param}&acompanhamento={acomp.pk}")
+    if request.POST.get("edicao_dashboard"):
+        from django.http import QueryDict
+        filtros_destino = QueryDict(mutable=True)
+        for campo in ("ano", "base", "mes_inicial", "mes_final", "filtrar_pilares"):
+            filtros_destino[campo] = request.POST.get(campo, "")
+        filtros_destino["acompanhamento"] = str(acomp.pk)
+        filtros_destino.setlist("pilares", request.POST.getlist("pilares"))
+        destino = "/?" + filtros_destino.urlencode()
     if request.POST.get("acao") == ACAO_RESTAURAR:
         escopo = ({"codigos": fontes_captacao_visiveis(request.user), "base": "fisico"}
                   if combinado else {})
+        if request.POST.get("edicao_dashboard"):
+            escopo = {"base": "financeiro" if base_param == "fin" else "fisico", "codigos": request.POST.getlist("pilares")}
         removidos = overrides_prestacao.restaurar_tudo(acomp, request.user, **escopo)
         messages.success(
             request, f"Valores importados restaurados ({removidos} ajuste(s) removido(s)).")
         return redirect(destino)
     try:
-        itens = _parse_grade_overrides(request.POST)
+        itens = _parse_grade_overrides(request.POST, acomp)
     except ValueError as exc:
         messages.error(request, f"Edição rejeitada: {exc}")
         return redirect(destino)
@@ -407,8 +429,9 @@ def exportar_csv(request):
     ano = None if ano_param == "todos" else int(ano_param)
     from apps.core.overview import resolver_pilares
 
-    painel = _painel_exportacao(
-        ano, base_param, _resolver_acomp_exportacao(request), resolver_pilares(request.GET))
+    from apps.core.overview_period import resolver_periodo
+    painel = contexto_painel(ano_param, base_param, request.user,
+        _resolver_acomp_exportacao(request), resolver_pilares(request.GET), resolver_periodo(request.GET, ano_param))["painel"]
     unidade = "R$ milhoes" if painel["base"] == "financeiro" else "metas"
     periodo = painel["rotulo_periodo"]
     linhas = ["Bloco;Item;Indicador;Unidade;Período;Valor"]
@@ -504,14 +527,18 @@ def _csv_pilar(request, pilar, ano_param, base_param):
     return resposta
 
 
-def _html_standalone(ano_param, base_param, usuario, pilar=None, acompanhamento=None):
+def _html_standalone(ano_param, base_param, usuario, pilar=None, acompanhamento=None, parametros=None):
     import re
 
     from django.contrib.staticfiles.finders import find
     from django.template.loader import render_to_string
 
     if pilar is None:
-        contexto = contexto_painel(ano_param, base_param, usuario, acompanhamento)
+        from apps.core.overview import resolver_pilares
+        from apps.core.overview_period import resolver_periodo
+        parametros = parametros or {}
+        contexto = contexto_painel(ano_param, base_param, usuario, acompanhamento,
+            resolver_pilares(parametros), resolver_periodo(parametros, ano_param))
         template = "dashboard/standalone.html"
     else:
         contexto = contexto_pilar(
@@ -544,7 +571,8 @@ def exportar_html(request, ano_param="todos", base_param="fin", pilar_pk=None):
             return erro
     # O painel geral e o painel do pilar exportam a visão corrente importada.
     acompanhamento = _resolver_acomp_exportacao(request)
-    html = _html_standalone(ano_param, base_param, request.user, pilar, acompanhamento)
+    html = _html_standalone(ano_param, base_param, request.user, pilar, acompanhamento,
+                            request.GET if request.method == "GET" else request.POST)
     hoje = date.today().isoformat()
     sufixo = f"_{pilar.codigo}" if pilar is not None else ""
     resposta = HttpResponse(html, content_type="text/html; charset=utf-8")

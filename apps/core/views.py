@@ -32,6 +32,7 @@ from .prestacao import (
 )
 from .utils import periodo_selecionado
 from .overview import resolver_pilares
+from .overview_period import resolver_periodo as resolver_periodo_analise
 
 URL_PADRAO_PAINEL = "/?ano=todos&base=fin"
 
@@ -85,8 +86,8 @@ def dashboard(request):
     ano_param = form.cleaned_data["ano"] if params else "todos"
     base_param = form.cleaned_data["base"] if params else BASE_FIN
     contexto = contexto_painel(
-        ano_param, base_param, request.user, acompanhamento, resolver_pilares(params))
-    if contexto["painel"].get("visao_financeiro_geral") and ano_param != "todos":
+        ano_param, base_param, request.user, acompanhamento, resolver_pilares(params), resolver_periodo_analise(params, ano_param))
+    if contexto["painel"].get("visao_financeiro_geral") and ano_param != "todos" and not any(c in params for c in ("mes_inicial", "mes_final")):
         return redirect(f"/?{contexto['filtros_dashboard']}&base=fin")
     if _hx_parcial(request):
         return render(request, "dashboard/_fragmento.html", contexto)

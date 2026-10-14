@@ -1,0 +1,11 @@
+{% load core_extras %}
+<c-vars tabela="" />
+<div class="overview-table-scroll overview-program-tables">
+{% for grupo in tabela.grupos %}<table class="overview-table overview-financial-table overview-fund-{{ grupo.codigo }}" aria-label="{{ grupo.titulo }}">
+  {% if grupo.codigo != 'ppi' %}<caption>{{ grupo.titulo }}</caption>{% endif %}
+  {% include 'dashboard/_programa_colunas.html' %}
+  {% if grupo.codigo == 'ppi' %}<thead><tr><th>Ação</th><th>% executado</th><th>Recurso total<br><small>PPI ou captado</small></th><th>Realizado total</th><th>Projetado total</th><th>Realizado + projetado</th><th>Diferença</th><th>Farol</th></tr></thead>{% endif %}
+  <tbody>{% for linha in grupo.linhas %}{% include 'dashboard/_programa_linha.html' %}{% endfor %}</tbody>
+</table>{% endfor %}
+<table class="overview-table overview-financial-table overview-consolidated-table" aria-label="Consolidado PPI, AT e outras fontes">{% include 'dashboard/_programa_colunas.html' %}<tbody>{% include 'dashboard/_programa_linha.html' with linha=tabela.total %}</tbody></table>
+</div>
