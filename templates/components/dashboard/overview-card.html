@@ -1,0 +1,21 @@
+{% load core_extras l10n %}
+<c-vars card="" base="fin" />
+<article class="overview-card {% if card.chave == 'total' %}overview-card-total{% endif %}" data-testid="kpi-{{ card.chave }}" data-status="{{ card.faixa }}">
+  {% if card.chave == 'total' %}
+  <div class="overview-ring" role="img" aria-label="{% if card.pct is not None %}{{ card.pct }}% executado{% else %}Sem lançamento{% endif %}">
+    <svg viewBox="0 0 100 100" aria-hidden="true"><circle class="overview-ring-track" cx="50" cy="50" r="42" />{% if card.barra > 0 %}<circle class="overview-ring-value" cx="50" cy="50" r="42" pathLength="100" stroke-dasharray="{{ card.barra|unlocalize }} 100" />{% endif %}</svg>
+    <div><strong>{% if card.pct is not None %}{{ card.pct }}%{% else %}—{% endif %}</strong><span>executado</span></div>
+  </div>
+  {% endif %}
+  <div class="overview-card-content">
+    <div class="overview-card-title"><h3>{{ card.titulo }}{% if base == 'fin' and card.chave != 'total' %} · realizado{% endif %}</h3>{% if card.chave == 'total' and not standalone %}<c-dashboard.modal-farol prefixo_id="resumo-" />{% endif %}</div>
+    <p class="overview-card-value">{% if base == 'fin' %}{% if card.valores_em_reais %}{{ card.executado|escala_precisa_ptbr }}{% else %}R$ {{ card.executado|numero_curto }} <small>mi</small>{% endif %}{% elif card.valores_percentuais %}{{ card.executado|percentual_fracao }}{% else %}{{ card.executado|numero_curto }} <small>{{ card.unidade|default:'metas' }}</small>{% endif %}</p>
+    <p class="overview-card-reference">de {% if base == 'fin' %}{% if card.valores_em_reais %}{{ card.previsto|escala_precisa_ptbr }}{% else %}R$ {{ card.previsto|numero_curto }} mi{% endif %}{% elif card.valores_percentuais %}{{ card.previsto|percentual_fracao }}{% else %}{{ card.previsto|numero_curto }} {{ card.unidade|default:'metas' }}{% endif %} {{ card.denominador }}</p>
+    {% if card.chave == 'total' %}
+    <p class="overview-card-reference">PPI + captação AT + outras fontes</p>
+    <div class="overview-card-farol"><c-dashboard.overview-badge faixa="{{ card.faixa }}" /></div>
+    {% else %}
+    <div class="overview-card-progress"><div class="overview-progress-track" role="img" aria-label="{% if card.pct is not None %}{{ card.pct }}% executado{% else %}Sem lançamento{% endif %}"><span style="width: {{ card.barra|unlocalize }}%"></span></div><c-dashboard.overview-badge faixa="{{ card.faixa }}" rotulo="{% if card.pct is not None %}{{ card.pct }}%{% else %}—{% endif %}" /></div>
+    {% endif %}
+  </div>
+</article>

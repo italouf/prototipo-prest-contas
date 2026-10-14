@@ -1,0 +1,2 @@
+<c-vars faixa="neutra" rotulo="" />
+<span class="overview-status" data-status="{{ faixa }}"><i aria-hidden="true"></i>{% if rotulo %}{{ rotulo }}{% elif faixa == 'ok' %}Meta atingida{% elif faixa == 'parcial' %}Execução parcial{% elif faixa == 'critica' %}Execução crítica{% else %}Sem lançamento{% endif %}</span>

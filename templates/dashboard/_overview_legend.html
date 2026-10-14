@@ -1,0 +1,7 @@
+<div class="overview-legend" data-testid="farol-legenda">
+  <span><i data-status="ok" aria-hidden="true"></i><strong>Meta atingida</strong> execução igual ou superior a 90% da meta</span>
+  <span><i data-status="parcial" aria-hidden="true"></i><strong>Execução parcial</strong> entre 50% e 90%, exige acompanhamento</span>
+  <span><i data-status="critica" aria-hidden="true"></i><strong>Execução crítica</strong> inferior a 50%, exige ação corretiva</span>
+  <span><i data-status="neutra" aria-hidden="true"></i><strong>Sem lançamento</strong> período sem dado registrado</span>
+  {% if base_param == 'fis' %}<span><b aria-hidden="true">│</b> traço no fim da barra indica execução acima de 100%</span>{% endif %}
+</div>
