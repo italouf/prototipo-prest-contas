@@ -1,0 +1,36 @@
+{% load static %}<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>{% block title %}SIG QuIIN{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'css/fonts.css' %}">
+  <link rel="stylesheet" href="{% static 'css/brand.css' %}">
+  <link rel="stylesheet" href="{% static 'css/login.css' %}">
+  <script src="{% static 'js/auth.js' %}" defer></script>
+</head>
+<body>
+  <a href="#main" class="login-skip-link">Pular para o conteúdo</a>
+  <div class="login-screen">
+    <div class="login-stage" style="background-image: url('{% static 'img/login/fundo-login.png' %}')">
+      <header class="login-brand">
+        <p class="login-brand-title">SIG QuIIN</p>
+        <p class="login-brand-subtitle">Sistema de Informações Gerenciais do QuIIN</p>
+        <p class="login-brand-description">Centro de Competências EMBRAPII CIMATEC em Tecnologias Quânticas<br>Quantum Industrial Innovation - QuIIN<br>Associação Tecnológica</p>
+      </header>
+      <main id="main" class="login-content" data-testid="login-shell">
+        {% if messages %}
+          {% for message in messages %}
+            <p class="login-notice" role="status">{{ message }}</p>
+          {% endfor %}
+        {% endif %}
+        {% block auth_content %}{% endblock %}
+      </main>
+    </div>
+    <footer class="login-footer" aria-label="Instituições parceiras">
+      {% include 'components/layout/partner_logos.html' %}
+    </footer>
+  </div>
+</body>
+</html>

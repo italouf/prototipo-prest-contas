@@ -1,0 +1,24 @@
+{% if form.non_field_errors %}
+  <div class="login-error" role="alert">{{ form.non_field_errors }}</div>
+{% endif %}
+<div class="login-fields">
+  {% for field in form %}
+    <div class="login-field">
+      <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+      {% if field.field.widget.input_type == 'password' %}
+        <div class="login-password">
+          {{ field }}
+          {% include 'registration/_password_toggle.html' with input_id=field.id_for_label %}
+        </div>
+      {% else %}
+        {{ field }}
+      {% endif %}
+      {% if field.help_text %}
+        <div class="login-help" id="{{ field.auto_id }}_helptext">{{ field.help_text|safe }}</div>
+      {% endif %}
+      {% if field.errors %}
+        <div class="login-field-error" id="{{ field.auto_id }}_error" role="alert">{{ field.errors }}</div>
+      {% endif %}
+    </div>
+  {% endfor %}
+</div>

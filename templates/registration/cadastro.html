@@ -1,0 +1,15 @@
+{% extends 'registration/base.html' %}
+{% block title %}Cadastro · SIG QuIIN{% endblock %}
+{% block auth_content %}
+<section class="login-panel login-panel-extended" aria-labelledby="cadastro-title">
+  {% include 'registration/_user_icon.html' %}
+  <h1 id="cadastro-title" class="login-panel-title">Cadastro</h1>
+  <p class="login-panel-description">Crie sua conta para acessar o SIG QuIIN.</p>
+  <form method="post">
+    {% csrf_token %}
+    {% include 'registration/_form_fields.html' %}
+    <button class="login-button login-submit" type="submit">Cadastrar</button>
+  </form>
+</section>
+<p class="login-bottom-link">Já tem uma conta? <a href="{% url 'accounts:login' %}">Entrar</a></p>
+{% endblock %}

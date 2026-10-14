@@ -1,35 +1,33 @@
-{% extends 'base.html' %}
-{% load core_extras static %}
-{% block title %}Entrar · Portal QuIIN{% endblock %}
-{% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/login.css' %}">
-{% endblock %}
-{% block content %}
-<div class="login-screen" style="background-image: url('{% static 'img/login/fundo-login.png' %}')">
-  <div class="login-content w-full max-w-md">
-    <div class="mb-6 flex items-center justify-center gap-2 text-white">
-      <span class="login-brand-logo"><img src="{% static 'img/login/selo-branco.png' %}" alt="" width="1080" height="1080"></span>
-      <span class="font-display text-lg font-bold">Portal QuIIN</span>
-    </div>
-    <c-ui.card class="shadow-lg">
-      <h1 class="font-display text-xl font-bold">Entrar no Portal QuIIN</h1>
-      <p class="mt-1 text-sm text-text-muted">Acesse com suas credenciais locais para gerenciar indicadores e a prestação de contas mensal.</p>
-      {% if form.errors %}
-        <div class="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
-          Usuário e senha não conferem. Verifique os dados e tente novamente.
+{% extends 'registration/base.html' %}
+{% block title %}Entrar · SIG QuIIN{% endblock %}
+{% block auth_content %}
+<form method="post" class="login-form">
+  {% csrf_token %}
+  <input type="hidden" name="next" value="{{ next }}">
+  <section class="login-panel" aria-labelledby="login-title">
+    {% include 'registration/_user_icon.html' %}
+    <h1 id="login-title" class="login-panel-title">Sign Up</h1>
+    {% if form.errors %}
+      <p class="login-error" role="alert">Usuário e senha não conferem. Verifique os dados e tente novamente.</p>
+    {% endif %}
+    <div class="login-fields">
+      <div class="login-field">
+        <label for="id_username">Usuário</label>
+        <input name="username" id="id_username" type="text" value="{{ form.username.value|default_if_none:'' }}" placeholder="user" autocomplete="username" maxlength="150" required {% if form.errors %}aria-invalid="true"{% endif %}>
+      </div>
+      <div class="login-field">
+        <label for="id_password">Senha</label>
+        <div class="login-password">
+          <input name="password" id="id_password" type="password" placeholder="********" autocomplete="current-password" required {% if form.errors %}aria-invalid="true"{% endif %}>
+          {% include 'registration/_password_toggle.html' with input_id='id_password' %}
         </div>
-      {% endif %}
-      <form method="post" novalidate class="mt-4 space-y-4">
-        {% csrf_token %}
-        <c-ui.input name="username" id="id_username" label="Usuário" type="text" autofocus autocomplete="username" required />
-        <c-ui.input name="password" id="id_password" label="Senha" type="password" autocomplete="current-password" required />
-        <c-ui.button type="submit" class="w-full">Entrar</c-ui.button>
-      </form>
-      <p class="mt-4 text-xs text-text-muted">Usuários demo: erica/erica123 · clarissa/clarissa123 · focal_pdi/focal123 · lideranca/lider123 · auditor/auditor123</p>
-    </c-ui.card>
+      </div>
+    </div>
+  </section>
+  <div class="login-actions">
+    <button type="submit" class="login-button">Entrar</button>
+    <a href="{% url 'accounts:password_reset' %}" class="login-button login-button-secondary">Esqueci minha senha</a>
   </div>
-  <footer class="login-footer" aria-label="Instituições parceiras">
-    {% include 'components/layout/partner_logos.html' %}
-  </footer>
-</div>
+  <p class="login-bottom-link">Novo usuário? <a href="{% url 'accounts:cadastro' %}">Cadastre-se</a></p>
+</form>
 {% endblock %}

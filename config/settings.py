@@ -144,6 +144,17 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 LOGIN_URL = "accounts:login"
 LOGIN_REDIRECT_URL = "core:dashboard"
 
+# No protótipo local, mensagens de recuperação aparecem no console do servidor.
+# Um ambiente com envio real pode selecionar o backend SMTP via variáveis.
+EMAIL_BACKEND = os.environ.get("EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend")
+DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "SIG QuIIN <nao-responda@quiin.local>")
+EMAIL_HOST = os.environ.get("EMAIL_HOST", "localhost")
+EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "25"))
+EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
+EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "False") == "True"
+EMAIL_USE_SSL = os.environ.get("EMAIL_USE_SSL", "False") == "True"
+
 # ---------- Front-end (retrofit visual) ----------
 TAILWIND_CLI_VERSION = "4.3.3"  # versão pinada após `manage.py tailwind config`
 TAILWIND_CLI_SRC_CSS = "assets/styles/input.css"
