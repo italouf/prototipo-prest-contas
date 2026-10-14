@@ -22,13 +22,13 @@ from apps.core.permissions import (
     sem_permissao,
     usuario_pode_dashboard_pilar,
 )
-from apps.core.templatetags.core_extras import numero_curto
+from apps.core.templatetags.core_extras import milhoes_ptbr, numero_curto
 from apps.pillars.models import Pilar
 
 from .charts import geometria_fonte, geometria_pilares_ppi
 from .forms import BASE_FIN, PainelFiltroForm
 from .models import PlanoAnual
-from .services import ANOS, BASES, grade_edicao, painel as painel_anual, painel_pilar
+from .services import ANOS, BASES, PILARES_PPI, grade_edicao, painel as painel_anual, painel_pilar
 
 LIMITE_VALOR = Decimal(10) ** 10
 ACAO_BAIXAR = "baixar"
@@ -40,7 +40,7 @@ def _float_series(values):
     return [None if value is None else float(value) for value in values]
 
 
-def contexto_painel(ano_param, base_param, usuario, acompanhamento=None):
+def contexto_painel(ano_param, base_param, usuario, acompanhamento=None, pilares_selecionados=None):
     """Contexto completo do painel anual (usado pela view `/` e pelo export).
 
     Com acompanhamento importado (o mais recente quando não indicado), o painel
@@ -61,15 +61,18 @@ def contexto_painel(ano_param, base_param, usuario, acompanhamento=None):
         if usuario and usuario.is_authenticated else set()
     )
     if acompanhamento is not None:
-        painel = painel_prestacao.painel_acompanhamento(ano, base_param, acompanhamento)
+        painel = painel_prestacao.painel_acompanhamento(
+            ano, base_param, acompanhamento, pilares_selecionados)
         grade = overrides_prestacao.grade_edicao_overrides(
             acompanhamento, base_param, editaveis or None)
     else:
-        painel = painel_anual(ano, base_param)
+        painel = painel_anual(ano, base_param, pilares_selecionados)
         grade = grade_edicao(base_param, editaveis or None)
     destaque = None if ano is None else ANOS.index(ano)
     bloco_ppi = painel.get("graficos_ciclo", {}).get("ppi")
-    return {
+    from apps.core.overview import contexto_visao_geral
+
+    return contexto_visao_geral({
         "painel": painel,
         "ano_param": ano_param,
         "base_param": base_param,
@@ -84,13 +87,13 @@ def contexto_painel(ano_param, base_param, usuario, acompanhamento=None):
         "geo_ppi": geometria_pilares_ppi(
             _float_series(bloco_ppi["serie_previsto"]),
             _float_series(bloco_ppi["serie_executado"]),
-        ) if bloco_ppi else None,
+        ) if bloco_ppi and len(bloco_ppi["serie_previsto"]) == len(PILARES_PPI) else None,
         "grade_edicao": grade,
         "base_plano": painel["base"],
         "pode_editar_painel": pode_editar_painel(usuario),
         "acompanhamento": acompanhamento,
         "acompanhamentos": painel_prestacao.lista_acompanhamentos(),
-    }
+    }, pilares_selecionados)
 
 
 def _resolver_acomp_exportacao(request):
@@ -110,11 +113,11 @@ def _resolver_acomp_exportacao(request):
     return get_object_or_404(Acompanhamento, pk=int(bruto))
 
 
-def _painel_exportacao(ano, base_param, acomp):
+def _painel_exportacao(ano, base_param, acomp, pilares_selecionados=None):
     """DTO da exportação — a mesma fonte do painel da tela (Ruling 25)."""
     if acomp is not None:
-        return painel_prestacao.painel_acompanhamento(ano, base_param, acomp)
-    return painel_anual(ano, base_param)
+        return painel_prestacao.painel_acompanhamento(ano, base_param, acomp, pilares_selecionados)
+    return painel_anual(ano, base_param, pilares_selecionados)
 
 
 def _filtros_ou_padrao(params):
@@ -402,7 +405,10 @@ def exportar_csv(request):
     if pilar_escopo is not None:
         return _csv_pilar(request, pilar_escopo, ano_param, base_param)
     ano = None if ano_param == "todos" else int(ano_param)
-    painel = _painel_exportacao(ano, base_param, _resolver_acomp_exportacao(request))
+    from apps.core.overview import resolver_pilares
+
+    painel = _painel_exportacao(
+        ano, base_param, _resolver_acomp_exportacao(request), resolver_pilares(request.GET))
     unidade = "R$ milhoes" if painel["base"] == "financeiro" else "metas"
     periodo = painel["rotulo_periodo"]
     linhas = ["Bloco;Item;Indicador;Unidade;Período;Valor"]
@@ -413,8 +419,17 @@ def exportar_csv(request):
             if linha.get("total"):
                 continue
             ref = "Captado" if captacao else "Projetado"
-            linhas.append(f"{bloco};{linha['rotulo']};{ref};{unidade};{periodo};{numero_curto(linha['previsto'])}")
-            linhas.append(f"{bloco};{linha['rotulo']};Executado;{unidade};{periodo};{numero_curto(linha['executado'])}")
+            unidade_linha = unidade
+            previsto, executado = linha["previsto"], linha["executado"]
+            formatar = numero_curto
+            if painel["base"] == "financeiro" and painel.get("valores_em_reais"):
+                formatar = milhoes_ptbr
+            elif linha.get("valores_percentuais"):
+                unidade_linha = "%"
+                previsto = None if previsto is None else previsto * 100
+                executado = None if executado is None else executado * 100
+            linhas.append(f"{bloco};{linha['rotulo']};{ref};{unidade_linha};{periodo};{formatar(previsto)}")
+            linhas.append(f"{bloco};{linha['rotulo']};Executado;{unidade_linha};{periodo};{formatar(executado)}")
     hoje = date.today().isoformat()
     resposta = HttpResponse("﻿" + "\n".join(linhas) + "\n", content_type="text/csv; charset=utf-8")
     resposta["Content-Disposition"] = f"attachment; filename=dados_quiin_{base_param}_{ano_param}_{hoje}.csv"
@@ -505,6 +520,10 @@ def _html_standalone(ano_param, base_param, usuario, pilar=None, acompanhamento=
         template = "dashboard/standalone_pilar.html"
     caminho_css = find("css/tailwind.css")
     contexto["standalone_css"] = open(caminho_css, encoding="utf-8").read() if caminho_css else ""
+    caminho_overview = find("css/overview.css")
+    if caminho_overview:
+        with open(caminho_overview, encoding="utf-8") as arquivo:
+            contexto["standalone_css"] += "\n" + arquivo.read()
     caminho_sprite = find("icons/sprite.svg")
     sprite = open(caminho_sprite, encoding="utf-8").read() if caminho_sprite else ""
     contexto["standalone_sprite"] = re.sub(r"<\?xml.*?\?>", "", sprite)

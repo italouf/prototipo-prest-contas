@@ -10,6 +10,7 @@
 <link rel="stylesheet" href="{% static 'css/fonts.css' %}">
 {% tailwind_css %}
 <link rel="stylesheet" href="{% static 'css/brand.css' %}">
+<link rel="stylesheet" href="{% static 'css/overview.css' %}">
 {% block extra_head %}{% endblock %}
 <script>
   (function () {
@@ -32,7 +33,6 @@
      :data-aberto="aberto" :data-recolhida="recolhida"
      class="min-h-screen">
   {% if user.is_authenticated %}
-  <c-layout.app_header />
   <div id="progresso" class="htmx-indicator fixed inset-x-0 top-0 z-50 h-0.5 bg-quiin-sky"></div>
   <div id="toasts" class="messages pointer-events-none fixed right-4 top-4 z-[80] w-80 space-y-2" role="status" aria-live="polite"></div>
   <div id="skeleton-global" class="htmx-indicator fixed inset-x-0 top-0 bottom-0 z-30 bg-surface/95 p-6" aria-hidden="true">
@@ -43,10 +43,11 @@
       <div class="skeleton h-48 sm:col-span-3"></div>
     </div>
   </div>
-  <div class="lg:flex">
+  <div class="app-shell lg:flex">
     <div x-show="aberto" x-cloak @click="aberto = false" class="fixed inset-0 z-30 bg-black/50 lg:hidden"></div>
     <c-layout.sidebar />
-    <div class="min-w-0 flex-1">
+    <div class="app-workspace min-w-0 flex-1">
+      <c-layout.app_header />
   {% endif %}
       <main id="main" {% if not user.is_authenticated %}data-testid="login-shell"{% endif %}
             class="{% if user.is_authenticated %}mx-auto w-full max-w-[1440px] px-4 py-6 lg:px-8{% endif %}">
@@ -66,9 +67,9 @@
       {% block content %}{% endblock %}
       </main>
   {% if user.is_authenticated %}
+      <c-layout.app_footer />
     </div>
   </div>
-  <c-layout.app_footer />
   {% endif %}
 </div>
 
@@ -108,7 +109,9 @@
     try { return localStorage.getItem('quiin-barra') === 'oculta'; } catch (e) { return false; }
   }
   function quiinAplicarBarra() {
-    var oculta = quiinBarraOculta();
+    // O cabeçalho do Geral mantém os filtros disponíveis mesmo com a preferência antiga.
+    var filtrosFixos = document.querySelector('#dashboard-controls[data-filtros-fixos]');
+    var oculta = !filtrosFixos && quiinBarraOculta();
     document.documentElement.setAttribute('data-barra-oculta', oculta ? 'true' : 'false');
     var botao = document.querySelector('[data-testid="barra-toggle"]');
     if (!botao) return;

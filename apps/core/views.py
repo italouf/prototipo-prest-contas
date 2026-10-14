@@ -31,6 +31,7 @@ from .prestacao import (
     resolver_semestre,
 )
 from .utils import periodo_selecionado
+from .overview import resolver_pilares
 
 URL_PADRAO_PAINEL = "/?ano=todos&base=fin"
 
@@ -69,21 +70,24 @@ def dashboard(request):
         destino = f"/?ano={ano_legado}&base=fin" if ano_legado in ANOS else URL_PADRAO_PAINEL
         return redirect(destino, permanent=True)
     acompanhamento = _resolver_acompanhamento(params)
-    sufixo_acomp = f"&acompanhamento={acompanhamento.pk}" if acompanhamento else ""
     if params:
         base_crua = (params.get("base") or "").strip().lower()
         if base_crua in ALIASES_BASE:
             form_previa = PainelFiltroForm({"ano": params.get("ano") or "todos"})
             ano_previo = form_previa["ano"].value() if form_previa.is_valid() else "todos"
-            return redirect(f"/?ano={ano_previo}&base={ALIASES_BASE[base_crua]}{sufixo_acomp}")
+            destino = params.copy()
+            destino["ano"] = ano_previo
+            destino["base"] = ALIASES_BASE[base_crua]
+            return redirect(f"/?{destino.urlencode()}")
     form = PainelFiltroForm(params or None)
     if params and not form.is_valid():
         return redirect(URL_PADRAO_PAINEL)
     ano_param = form.cleaned_data["ano"] if params else "todos"
     base_param = form.cleaned_data["base"] if params else BASE_FIN
-    contexto = contexto_painel(ano_param, base_param, request.user, acompanhamento)
+    contexto = contexto_painel(
+        ano_param, base_param, request.user, acompanhamento, resolver_pilares(params))
     if contexto["painel"].get("visao_financeiro_geral") and ano_param != "todos":
-        return redirect(f"/?ano=todos&base=fin{sufixo_acomp}")
+        return redirect(f"/?{contexto['filtros_dashboard']}&base=fin")
     if _hx_parcial(request):
         return render(request, "dashboard/_fragmento.html", contexto)
     return render(request, "dashboard/anual.html", contexto)

@@ -6,6 +6,14 @@ from django import template
 register = template.Library()
 
 
+@register.filter
+def milhoes_ptbr(valor):
+    """Valor financeiro em milhões, com duas casas na tabela executiva."""
+    if valor is None:
+        return "—"
+    return _numero_brl(Decimal(str(valor)) / Decimal("1000000"), 2)
+
+
 def _numero_brl(valor, decimais=2):
     """Formata número no padrão pt-BR: 75.000.000,00 (separador de milhar '.')."""
     texto = f"{valor:,.{decimais}f}"

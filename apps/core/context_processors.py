@@ -39,7 +39,19 @@ def nav(request):
 
     pendencias_nav = {}
     total_pendencias = 0
+    pendencias_lancamentos = 0
+    pendencias_aprovacao = 0
     if periodo_aberto is not None:
+        contagens = dict(
+            Lancamento.objects.filter(
+                periodo=periodo_aberto, status__in=("ENVIADO", "DEVOLVIDO"),
+                indicador__pilar__in=pilares,
+            ).values("status").annotate(total=Count("pk")).values_list("status", "total")
+        )
+        if pode_lancar(request.user):
+            pendencias_lancamentos = contagens.get("DEVOLVIDO", 0)
+        if pode_aprovar(request.user):
+            pendencias_aprovacao = contagens.get("ENVIADO", 0)
         if pode_aprovar(request.user):
             status_alvo = "ENVIADO"
         elif pode_lancar(request.user):
@@ -71,4 +83,6 @@ def nav(request):
         "periodos_nav": Periodo.objects.order_by("-competencia"),
         "pendencias_nav": pendencias_nav,
         "total_pendencias": total_pendencias,
+        "pendencias_lancamentos": pendencias_lancamentos,
+        "pendencias_aprovacao": pendencias_aprovacao,
     }

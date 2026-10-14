@@ -1,6 +1,31 @@
 /* Componentes Alpine globais do Portal QuIIN (carregados antes do Alpine).
    Ficam globais para continuarem disponíveis após navegação com hx-boost. */
 
+window.quiinAtualizarPilares = function (form) {
+  var caixas = Array.from(form.querySelectorAll('input[name="pilares"]'));
+  var total = caixas.filter(function (caixa) { return caixa.checked; }).length;
+  var todos = form.querySelector('[data-pilares-todos]');
+  todos.checked = total === caixas.length;
+  todos.indeterminate = total > 0 && total < caixas.length;
+  form.querySelector('.overview-selection-count').textContent = total;
+  form.querySelector('#overview-pillars-summary').textContent = total === caixas.length
+    ? 'Todos os pilares' : total ? total + ' pilares selecionados' : 'Selecionar pilares';
+};
+
+window.quiinSelecionarPilares = function (alvo, selecionar) {
+  var form = alvo.closest('form');
+  form.querySelectorAll('input[name="pilares"]').forEach(function (caixa) {
+    caixa.checked = selecionar;
+  });
+  window.quiinAtualizarPilares(form);
+};
+
+document.addEventListener('click', function (event) {
+  document.querySelectorAll('.overview-pillars[open], .overview-more-actions[open]').forEach(function (menu) {
+    if (!menu.contains(event.target)) menu.open = false;
+  });
+});
+
 /* Toasts client-side (usados por HX-Trigger e ações de drag). */
 window.quiinToast = function (texto, tipo) {
   var container = document.getElementById("toasts");

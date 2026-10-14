@@ -1,71 +1,54 @@
-{# Faixas de filtros/chips/toolbar do painel anual (L3/L10/L18). Incluída no app_header e no fragmento htmx. #}
-{# Faixas alinhadas à direita como no mockup: filtros acima, chips em faixa própria, ações em linha própria. #}
-<div class="flex flex-col gap-y-2">
-  <div class="flex flex-wrap items-end justify-end gap-x-6 gap-y-2">
-  <form method="get" action="{% url 'core:dashboard' %}"
-        hx-get="{% url 'core:dashboard' %}" hx-target="#dashboard-panel" hx-select="#dashboard-panel"
-        hx-swap="outerHTML" hx-push-url="true" hx-indicator="#progresso, #skeleton-global"
-        class="flex flex-wrap items-end gap-x-4 gap-y-2">
-    <input type="hidden" name="base" value="{{ base_param }}">
-    {% if acompanhamento and not acompanhamentos %}
-    <input type="hidden" name="acompanhamento" value="{{ acompanhamento.pk }}">
+<form method="get" action="{% url 'core:dashboard' %}" class="overview-filters"
+      hx-get="{% url 'core:dashboard' %}" hx-target="#dashboard-panel" hx-select="#dashboard-panel"
+      hx-swap="outerHTML" hx-push-url="true" hx-indicator="#progresso">
+  <input type="hidden" name="base" value="{{ base_param }}">
+  <input type="hidden" name="filtrar_pilares" value="1">
+  <div class="overview-field overview-cycle-field">
+    <label for="overview-start">Mês/ano inicial</label>
+    {% if painel.visao_financeiro_geral %}
+    <input id="overview-start" value="{{ inicio_periodo }}" readonly
+           title="Totais consolidados do ciclo. Selecione outro acompanhamento para mudar a base consultada.">
+    <input type="hidden" name="ano" value="todos">
+    {% else %}
+    <select id="overview-start" name="ano" data-testid="year-select" onchange="this.form.requestSubmit()" title="Selecione o ciclo completo ou um ano registrado na base.">
+      <option value="todos" {% if ano_param == 'todos' %}selected{% endif %}>Ciclo completo</option>
+      {% for ano in anos_dashboard %}<option value="{{ ano }}" {% if ano_param == ano|stringformat:'s' %}selected{% endif %}>01/{{ ano }}</option>{% endfor %}
+    </select>
     {% endif %}
-    {% if painel.visao_financeiro_geral %}<input type="hidden" name="ano" value="todos">{% else %}
-    <div>
-      <label for="year-select" class="block text-[0.65rem] font-semibold uppercase tracking-widest text-text-muted">Ano</label>
-      <select id="year-select" name="ano" data-testid="year-select" onchange="this.form.requestSubmit()"
-              class="mt-1 rounded-md border border-border bg-surface px-3 py-2 text-sm text-text">
-        <option value="todos" {% if ano_param == 'todos' %}selected{% endif %}>Todos os anos</option>
-        <option value="2024" {% if ano_param == '2024' %}selected{% endif %}>Ano 1: 2024</option>
-        <option value="2025" {% if ano_param == '2025' %}selected{% endif %}>Ano 2: 2025</option>
-        <option value="2026" {% if ano_param == '2026' %}selected{% endif %}>Ano 3: 2026</option>
-        <option value="2027" {% if ano_param == '2027' %}selected{% endif %}>Ano 4: 2027</option>
-      </select>
-    </div>
-    {% endif %}
-    {% if acompanhamentos %}
-    <div>
-      <label for="acompanhamento-select" class="block text-[0.65rem] font-semibold uppercase tracking-widest text-text-muted">Acompanhamento</label>
-      <select id="acompanhamento-select" name="acompanhamento" data-testid="acompanhamento-select"
-              onchange="this.form.requestSubmit()"
-              class="mt-1 rounded-md border border-border bg-surface px-3 py-2 text-sm text-text">
-        {% for a in acompanhamentos %}
-        <option value="{{ a.pk }}" {% if a.pk == acompanhamento.pk %}selected{% endif %}>{{ a.centro.nome }} · {{ a.periodo_referencia }}</option>
+  </div>
+  <div class="overview-field overview-cycle-field">
+    <label for="overview-end">Mês/ano final</label>
+    <input id="overview-end" value="{{ fim_periodo }}" readonly
+           title="O período acompanha o ano selecionado ou o ciclo completo da base importada.">
+  </div>
+  {% if acompanhamentos %}
+  <div class="overview-field overview-followup-field">
+    <label for="acompanhamento-select">Acompanhamento</label>
+    <select id="acompanhamento-select" name="acompanhamento" data-testid="acompanhamento-select" onchange="this.form.requestSubmit()">
+      {% for a in acompanhamentos %}<option value="{{ a.pk }}" {% if a.pk == acompanhamento.pk %}selected{% endif %}>{{ a.centro.nome }} · {{ a.periodo_referencia }}</option>{% endfor %}
+    </select>
+  </div>
+  {% endif %}
+  <div class="overview-field overview-pillars-field">
+    <span id="overview-pillars-label">Pilares</span>
+    <details class="overview-pillars" data-testid="pilares-filter" onkeydown="if(event.key === 'Escape') this.open = false">
+      <summary aria-labelledby="overview-pillars-label overview-pillars-summary"><span id="overview-pillars-summary">{% if todos_pilares %}Todos os pilares{% elif quantidade_pilares %}{{ quantidade_pilares }} pilares selecionados{% else %}Selecionar pilares{% endif %}</span><span class="overview-selection-count">{{ quantidade_pilares }}</span></summary>
+      <div class="overview-pillars-menu">
+        <label class="overview-select-all"><input type="checkbox" data-pilares-todos {% if todos_pilares %}checked{% endif %} onchange="quiinSelecionarPilares(this, this.checked)">Selecionar todos</label>
+        {% for opcao in opcoes_pilares %}
+        <label><input type="checkbox" name="pilares" value="{{ opcao.codigo }}" {% if opcao.selecionado %}checked{% endif %} onchange="quiinAtualizarPilares(this.form)">{{ opcao.rotulo }}</label>
         {% endfor %}
-      </select>
-    </div>
-    {% endif %}
-  </form>
-
-  <div>
-    <span id="base-rotulo" class="block text-[0.65rem] font-semibold uppercase tracking-widest text-text-muted">Base de análise</span>
-    <div class="mt-1 inline-flex overflow-hidden rounded-md border border-border" role="group" aria-labelledby="base-rotulo" data-testid="base-toggle">
-      <a href="{% url 'core:dashboard' %}?ano={{ ano_param }}&base=fin{% if acompanhamento %}&acompanhamento={{ acompanhamento.pk }}{% endif %}"
-         hx-get="{% url 'core:dashboard' %}?ano={{ ano_param }}&base=fin{% if acompanhamento %}&acompanhamento={{ acompanhamento.pk }}{% endif %}" hx-target="#dashboard-panel" hx-select="#dashboard-panel"
-         hx-swap="outerHTML" hx-push-url="true" hx-indicator="#progresso, #skeleton-global"
-         {% if base_param == 'fin' %}aria-current="true"{% endif %}
-         class="px-4 py-2 text-sm font-semibold {% if base_param == 'fin' %}bg-quiin-navy text-white{% else %}bg-surface-2 text-text hover:bg-quiin-mist/40{% endif %}">Financeiro</a>
-      <a href="{% url 'core:dashboard' %}?ano={{ ano_param }}&base=fis{% if acompanhamento %}&acompanhamento={{ acompanhamento.pk }}{% endif %}"
-         hx-get="{% url 'core:dashboard' %}?ano={{ ano_param }}&base=fis{% if acompanhamento %}&acompanhamento={{ acompanhamento.pk }}{% endif %}" hx-target="#dashboard-panel" hx-select="#dashboard-panel"
-         hx-swap="outerHTML" hx-push-url="true" hx-indicator="#progresso, #skeleton-global"
-         {% if base_param == 'fis' %}aria-current="true"{% endif %}
-         class="border-l border-border px-4 py-2 text-sm font-semibold {% if base_param == 'fis' %}bg-quiin-navy text-white{% else %}bg-surface-2 text-text hover:bg-quiin-mist/40{% endif %}">Físico</a>
-    </div>
+        <div class="overview-pillars-actions"><button type="button" onclick="quiinSelecionarPilares(this, false)">Limpar</button><button type="submit">Aplicar</button></div>
+      </div>
+    </details>
   </div>
+  <div class="overview-base-toggle" role="group" aria-label="Base de análise" data-testid="base-toggle">
+    <a href="{% url 'core:dashboard' %}?{{ filtros_dashboard }}&base=fin" hx-get="{% url 'core:dashboard' %}?{{ filtros_dashboard }}&base=fin"
+       hx-target="#dashboard-panel" hx-select="#dashboard-panel" hx-swap="outerHTML" hx-push-url="true" hx-indicator="#progresso"
+       {% if base_param == 'fin' %}aria-current="true"{% endif %}>Financeiro</a>
+    <a href="{% url 'core:dashboard' %}?{{ filtros_dashboard }}&base=fis" hx-get="{% url 'core:dashboard' %}?{{ filtros_dashboard }}&base=fis"
+       hx-target="#dashboard-panel" hx-select="#dashboard-panel" hx-swap="outerHTML" hx-push-url="true" hx-indicator="#progresso"
+       {% if base_param == 'fis' %}aria-current="true"{% endif %}>Físico</a>
   </div>
-
-  <div class="flex flex-wrap justify-end gap-1.5" data-testid="context-chips">
-    <span class="rounded-full border border-border bg-quiin-mist/40 px-3 py-1 text-xs">Período: <strong>{{ painel.rotulo_periodo }}</strong></span>
-    <span class="rounded-full border border-border bg-quiin-mist/40 px-3 py-1 text-xs">Base: <strong>{% if base_param == 'fin' %}Financeiro{% else %}Físico{% endif %}</strong></span>
-    <span class="rounded-full border border-border bg-quiin-mist/40 px-3 py-1 text-xs">Unidade: <strong>{% if base_param == 'fin' %}R$ milhões{% else %}quantidade de metas{% endif %}</strong></span>
-  </div>
-
-  <div class="flex flex-wrap items-center justify-end gap-2" role="toolbar" aria-label="Ações do painel">
-    {% if pode_editar_painel %}
-    <c-ui.button variant="primary" size="toolbar" data-testid="btn-editar-dados" data-editor-toggle onclick="quiinAlternarEditor()">Editar dados</c-ui.button>
-    {% endif %}
-    <c-ui.button variant="ghost" size="toolbar" href="{% url 'planning:csv' %}?ano={{ ano_param }}&base={{ base_param }}{% if acompanhamento %}&acompanhamento={{ acompanhamento.pk }}{% endif %}">Baixar dados (CSV)</c-ui.button>
-    <c-ui.button variant="ghost" size="toolbar" onclick="window.print()">Imprimir</c-ui.button>
-    <c-ui.button size="toolbar" variant="ghost" href="{% url 'core:dashboard' %}">Restaurar padrão</c-ui.button>
-  </div>
-</div>
+  <noscript><button type="submit">Aplicar filtros</button></noscript>
+</form>

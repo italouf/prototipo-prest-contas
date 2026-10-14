@@ -1,5 +1,8 @@
 {# Cabeçalho global do portal (L3): identidade + utilitários sempre; filtros/chips/toolbar só no painel anual. #}
 <header id="app-header" data-testid="app-header" class="sticky top-0 z-20 border-b border-border bg-surface-2/95 backdrop-blur">
+  {% if painel %}
+  {% include 'dashboard/_header.html' %}
+  {% else %}
   <div class="flex items-center gap-3 px-4 py-2.5 lg:px-8">
     <button type="button" data-testid="sidebar-toggle" aria-label="Abrir menu"
             class="rounded-md border border-border p-2 text-text lg:hidden" @click="aberto = true">
@@ -59,11 +62,7 @@
     </div>
   </div>
 
-  {% if painel %}
-  <div id="dashboard-controls" class="border-t border-border px-4 py-2.5 lg:px-8" data-testid="dashboard-controls">
-    {% include 'dashboard/_controles.html' %}
-  </div>
-  {% elif painel_pilar %}
+  {% if painel_pilar %}
   <div id="dashboard-controls" class="border-t border-border px-4 py-2.5 lg:px-8" data-testid="dashboard-controls">
     {% include 'dashboard/_controles_pilar.html' %}
   </div>
@@ -75,5 +74,6 @@
   <div id="dashboard-controls" class="border-t border-border px-4 py-2.5 lg:px-8" data-testid="dashboard-controls">
     {% include 'dashboard/_controles_semestral.html' %}
   </div>
+  {% endif %}
   {% endif %}
 </header>

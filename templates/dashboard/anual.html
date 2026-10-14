@@ -1,9 +1,9 @@
 {% extends 'base.html' %}
-{% block title %}Gestão do QuIIN · Portal QuIIN{% endblock %}
+{% block title %}Dashboard Geral · SIG QuIIN{% endblock %}
 {% block content %}
 <div data-testid="page-painel-anual">
   <div class="print-only" data-testid="print-cabecalho">
-    <h1 class="font-display text-2xl font-bold">Gestão do QuIIN — Painel anual</h1>
+    <h1 class="font-display text-2xl font-bold">Dashboard Geral — SIG QuIIN</h1>
     <p class="text-sm">Período: <strong>{{ painel.rotulo_periodo }}</strong> · Base: <strong>{% if base_param == 'fin' %}Financeiro{% else %}Físico{% endif %}</strong> · Unidade: <strong>{% if base_param == 'fin' %}R$ milhões{% else %}quantidade de metas{% endif %}</strong></p>
   </div>
   {% include 'dashboard/_panel.html' %}

@@ -284,7 +284,7 @@ def _linha_tab11(rotulo, recurso, r2024, r2025, r2026, p2026, p2027, projetado_t
     }
 
 
-def _visao_financeiro_geral(acomp):
+def _visao_financeiro_geral(acomp, pilares_selecionados=None):
     """Valores do ciclo completo das TAB. 1, 1.1 e 9, sem inferir anos da TAB. 9."""
     resumos = ResumoFinanceiro.objects.filter(
         acompanhamento=acomp, origem__in=("TAB. 1", "TAB. 1.1", "TAB. 9"),
@@ -300,6 +300,8 @@ def _visao_financeiro_geral(acomp):
     linhas_tab1 = []
     linhas_tab11 = []
     for codigo, rotulo in ROTULOS_TAB_PPI:
+        if pilares_selecionados is not None and codigo not in pilares_selecionados:
+            continue
         tab1 = resumo("TAB. 1", codigo)
         tab11 = resumo("TAB. 1.1", codigo)
         ano24 = resumo("TAB. 1.1", codigo, 2024)
@@ -366,8 +368,11 @@ def _visao_financeiro_geral(acomp):
             "tabela_tab11": {"linhas": linhas_tab11, "total": linhas_tab11[-1]}, "graficos_ciclo": graficos}
 
 
-def _painel_financeiro(ano, acomp):
+def _painel_financeiro(ano, acomp, pilares_selecionados=None):
     consolidado, anual = _resumos_financeiros(acomp)
+    if pilares_selecionados is not None:
+        consolidado = {c: v for c, v in consolidado.items() if c in pilares_selecionados}
+        anual = {chave: v for chave, v in anual.items() if chave[0] in pilares_selecionados}
     temporal = agregar_despesas_por_ano(acomp)
     overrides = _overrides_financeiros(acomp)
 
@@ -381,6 +386,8 @@ def _painel_financeiro(ano, acomp):
         return None
 
     def executado_pilar(codigo, ano_coluna):
+        if pilares_selecionados is not None and codigo not in pilares_selecionados:
+            return None
         override_key = (codigo, ano_coluna, "executado")
         if override_key in overrides:
             return overrides[override_key]
@@ -465,6 +472,10 @@ def _painel_financeiro(ano, acomp):
 
     grupos = []
     for titulo, bloco, codigos in GRUPOS_FINANCEIRO:
+        if pilares_selecionados is not None:
+            codigos = [c for c in codigos if c in pilares_selecionados]
+        if not codigos:
+            continue
         linhas = [linha_pilar(codigo) for codigo in codigos]
         if bloco == "4.1 PPI":
             linhas.append(_linha(
@@ -483,7 +494,7 @@ def _painel_financeiro(ano, acomp):
         valores_em_reais=True)
     if ResumoFinanceiro.objects.filter(acompanhamento=acomp, origem="TAB. 1").exists():
         dto["visao_financeiro_geral"] = True
-        dto.update(_visao_financeiro_geral(acomp))
+        dto.update(_visao_financeiro_geral(acomp, pilares_selecionados))
         for card in dto["cards"]:
             card["precisao_financeira"] = True
             card["valor_compacto"] = card["chave"] in ("at", "outras")
@@ -1061,6 +1072,8 @@ def _tabela_gerencial_fisica(kpis, ano):
                 codigo=kpi.codigo, pilar=kpi.pilar)
             linha["valores_percentuais"] = (
                 codigo == "OUTRASFONTES" and kpi.unidade == "Percentual")
+            linha["codigo_pilar"] = codigo
+            linha["barra"] = min(max(linha["pct"] or 0, 0), 100)
             linhas.append(linha)
         primeiro = por_pilar[codigo][0].pilar
         titulo = ROTULOS_PAINEL.get(codigo, primeiro.nome)
@@ -1069,9 +1082,12 @@ def _tabela_gerencial_fisica(kpis, ano):
     return {"grupos": grupos}
 
 
-def _painel_fisico(ano, acomp):
+def _painel_fisico(ano, acomp, pilares_selecionados=None):
+    consulta = KpiAcompanhamento.objects.filter(acompanhamento=acomp)
+    if pilares_selecionados is not None:
+        consulta = consulta.filter(pilar__codigo__in=pilares_selecionados)
     kpis = list(
-        KpiAcompanhamento.objects.filter(acompanhamento=acomp)
+        consulta
         .select_related("pilar").prefetch_related("overrides").order_by("sequencia", "codigo")
     )
     grupos = _tabela_gerencial_fisica(kpis, ano)["grupos"]
@@ -1121,6 +1137,7 @@ def _painel_fisico(ano, acomp):
     cards.append(_card(
         "total", "Execução consolidada",
         soma(sub_total, ano, 1), soma(sub_total, ano, 0), "previstos"))
+    cards[-1]["valores_percentuais"] = _unidade_majoritaria(sub_total) == "Percentual"
 
     return _dto(
         ano, BASE_FISICO, cards, graficos, grupos, series,
@@ -1129,7 +1146,7 @@ def _painel_fisico(ano, acomp):
 
 # ----------------------------------------------------------------- interface
 
-def painel_acompanhamento(ano, base, acomp):
+def painel_acompanhamento(ano, base, acomp, pilares_selecionados=None):
     """DTO do painel anual (ano|None, base) a partir dos snapshots importados.
 
     Mesmo contrato de `planning.services.painel()`; `ano=None` = todos os anos.
@@ -1142,5 +1159,5 @@ def painel_acompanhamento(ano, base, acomp):
     if ano is not None and ano not in ANOS:
         raise ValueError(f"ano inválido: {ano!r}")
     if base == BASE_FINANCEIRO:
-        return _painel_financeiro(ano, acomp)
-    return _painel_fisico(ano, acomp)
+        return _painel_financeiro(ano, acomp, pilares_selecionados)
+    return _painel_fisico(ano, acomp, pilares_selecionados)

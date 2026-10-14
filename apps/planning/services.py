@@ -84,14 +84,15 @@ def _validar(ano, base):
     return base
 
 
-def painel(ano, base):
+def painel(ano, base, pilares_selecionados=None):
     """DTO completo do painel para (ano|None, base). `ano=None` = todos os anos."""
     from .models import PlanoAnual
 
     base = _validar(ano, base)
-    linhas = list(
-        PlanoAnual.objects.filter(base=base).select_related("pilar").order_by("pilar__ordem")
-    )
+    consulta = PlanoAnual.objects.filter(base=base)
+    if pilares_selecionados is not None:
+        consulta = consulta.filter(pilar__codigo__in=pilares_selecionados)
+    linhas = list(consulta.select_related("pilar").order_by("pilar__ordem"))
     por_pilar = {}
     for linha in linhas:
         por_pilar.setdefault(linha.pilar.codigo, {"pilar": linha.pilar, "valores": {}})
@@ -172,6 +173,8 @@ def painel(ano, base):
     grupos = []
     linhas_ppi = []
     for codigo in PILARES_PPI:
+        if pilares_selecionados is not None and codigo not in pilares_selecionados:
+            continue
         prev = no_periodo(serie_anos(codigo, "previsto"))
         exe = no_periodo(serie_anos(codigo, "executado"))
         pct = pct_inteiro(exe, prev)
@@ -185,6 +188,12 @@ def painel(ano, base):
     grupos.append({"titulo": "4.3 Outras fontes: captado x executado", "bloco": "4.3 Outras fontes", "linhas": [
         _linha_tabela(por_pilar["OUTRASFONTES"]["pilar"], "OUTRASFONTES", p_ou, e_ou, pct_inteiro(e_ou, p_ou)),
     ]})
+
+    if pilares_selecionados is not None:
+        for grupo in grupos:
+            grupo["linhas"] = [linha for linha in grupo["linhas"]
+                               if linha.get("total") or linha.get("codigo") in pilares_selecionados]
+        grupos = [grupo for grupo in grupos if any(not l.get("total") for l in grupo["linhas"])]
 
     consolidado = {
         "anos": list(ANOS),
