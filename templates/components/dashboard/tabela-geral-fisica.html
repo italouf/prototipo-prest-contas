@@ -4,9 +4,9 @@
   <table class="overview-table overview-physical-table">
     <thead><tr><th scope="col">Pilar e indicador</th><th scope="col">% executado</th><th scope="col">{% if base == 'financeiro' %}Projetado (R$ mi){% else %}Projetado (metas / %){% endif %}</th><th scope="col">{% if base == 'financeiro' %}Executado (R$ mi){% else %}Executado (metas / %){% endif %}</th><th scope="col">Saldo a executar</th><th scope="col">Farol</th></tr></thead>
     <tbody>{% for grupo in tabela.grupos %}
-      <tr class="overview-pillar-heading"><th colspan="6" scope="rowgroup">{{ grupo.titulo }}</th></tr>
+      <tr class="overview-pillar-heading {% if pilar_overview %}pillar-source-heading-row pillar-source-{{ grupo.codigo }}{% endif %}"><th colspan="6" scope="rowgroup">{{ grupo.titulo }}</th></tr>
       {% for linha in grupo.linhas %}<tr {% if linha.total %}class="overview-total-row"{% endif %}>
-        <th scope="row">{{ linha.rotulo }}</th>
+        <th scope="row">{% if linha.nome %}{{ linha.nome }}<small>{{ linha.unidade }}</small>{% else %}{{ linha.rotulo }}{% endif %}</th>
         <td><c-dashboard.overview-progress :linha="linha" /></td>
         <td>{% if base == 'fisico' and linha.valores_percentuais %}{{ linha.previsto|percentual_fracao }}{% elif valores_em_reais %}{{ linha.previsto|milhoes_ptbr }}{% else %}{{ linha.previsto|numero_curto }}{% endif %}</td>
         <td class="overview-executed">{% if base == 'fisico' and linha.valores_percentuais %}{{ linha.executado|percentual_fracao }}{% elif valores_em_reais %}{{ linha.executado|milhoes_ptbr }}{% else %}{{ linha.executado|numero_curto }}{% endif %}</td>

@@ -1,5 +1,6 @@
 {# Painel anual do pilar (L13): 3 kpi-cards + card %/farol + gráfico + tabela. #}
 {% load core_extras %}
+{% if pilar_overview %}{% include 'dashboard/_pilar_overview.html' %}{% else %}
 <div id="painel-pilar" data-testid="painel-pilar" class="mt-4">
   {% if painel_pilar.visao_captacao %}
   {% include 'dashboard/_conteudo_captacao.html' %}
@@ -73,3 +74,4 @@
   {% include 'dashboard/editor.html' %}
   {% endif %}
 </div>
+{% endif %}

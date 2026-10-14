@@ -177,6 +177,8 @@ def _bloco_grafico(chave, serie_previsto, serie_executado, nome_previsto,
 
 
 def _rotulo_periodo(ano):
+    if isinstance(ano, tuple):
+        return f"Anos {ano[0]} a {ano[-1]}"
     if ano is None:
         return "Acumulado 2024 a 2027"
     return f"Ano {ANOS.index(ano) + 1}: {ano}"
@@ -639,7 +641,7 @@ def _tabela_financeira_pilar(nome, colunas, registros):
             valor = registro.get(campo)
             if tipo == "percentual" and valor is not None:
                 valor *= 100
-            celulas.append({"tipo": tipo, "valor": valor})
+            celulas.append({"campo": campo, "tipo": tipo, "valor": valor})
         linhas.append({"celulas": celulas, "total": registro.get("total", False)})
     return {"nome": nome, "cabecalhos": [c[1] for c in colunas], "linhas": linhas}
 
@@ -671,6 +673,15 @@ def painel_financeiro_pilar(pilar, acomp):
     for registro in projetos:
         if registro.get("codigo_projeto_embrapii") in (None, "") and registro["sequencia"] is not None:
             registro["codigo_projeto_embrapii"] = str(registro["sequencia"])
+    if resumo:
+        ajustes = _overrides_financeiros(acomp)
+        for campo, chave in (("recurso_ou_meta", "previsto"), ("realizado", "executado"), ("projetado", "projetado")):
+            if (codigo, 0, chave) in ajustes:
+                resumo[campo] = ajustes[(codigo, 0, chave)]
+        if any((codigo, 0, campo) in ajustes for campo in ("previsto", "executado", "projetado")):
+            real, proj, rec = resumo["realizado"], resumo["projetado"], resumo["recurso_ou_meta"]
+            resumo["realizado_mais_projetado"] = real + (proj or Decimal(0)) if real is not None else None
+            resumo["diferenca"] = rec - resumo["realizado_mais_projetado"] if rec is not None and real is not None else None
     recurso = resumo.get("recurso_ou_meta") if resumo else None
     realizado = resumo.get("realizado") if resumo else None
     diferenca_importada = resumo.get("diferenca") if resumo else None
@@ -702,6 +713,7 @@ def painel_financeiro_pilar(pilar, acomp):
         "serie_previsto": [None] * len(ANOS), "serie_executado": [None] * len(ANOS),
         "tabela": [], "projetos": len(projetos), "unidade_projetos": "projetos",
         "valores_em_reais": True, "visao_financeira_pilar": True,
+        "registros_projetos": projetos,
         "tabela_visao_financeira": _tabela_financeira_pilar(
             contrato["nome_visao"], colunas_visao,
             [{**resumo, "rotulo": "RECURSO PPI", "diferenca": diferenca}] if resumo else [],
@@ -734,9 +746,11 @@ _COLUNAS_CAPTACAO = (
 _ROTULOS_CAPTACAO = {"AT": "ASSOCIAÇÃO TECNOLÓGICA", "OUTRASFONTES": "OUTRAS FONTES"}
 
 
-def painel_captacao(pilar, ano, base, acomp, *, fontes_autorizadas):
+def painel_captacao(pilar, ano, base, acomp, *, fontes_autorizadas, anos=None):
     """Dashboard combinado; o escopo explícito vale também para os totais."""
     base = BASES_CANONICAS[base]
+    if base == BASE_FISICO and anos:
+        ano = tuple(anos)
     fontes = tuple(codigo for codigo in _ROTULOS_CAPTACAO if codigo in fontes_autorizadas)
     bloco = {
         "pilar": pilar, "codigo": "AT", "rotulo": "AT e Outras Fontes",
@@ -775,6 +789,16 @@ def painel_captacao(pilar, ano, base, acomp, *, fontes_autorizadas):
         acompanhamento=acomp, origem="TAB. 9", ano__isnull=True, pilar__codigo__in=fontes,
     ).values("pilar__codigo", *(c[0] for c in _COLUNAS_CAPTACAO if c[0] != "rotulo")))
     por_fonte = {r["pilar__codigo"]: r for r in registros}
+    ajustes = _overrides_financeiros(acomp) if acomp else {}
+    for codigo, registro in por_fonte.items():
+        for campo, chave in (("captado", "previsto"), ("realizado", "executado"), ("recurso_ou_meta", "meta_captacao"), ("captado_anos_1_2", "captado_anos_1_2"), ("captado_ano3_ytd", "captado_ano3_ytd")):
+            if (codigo, 0, chave) in ajustes:
+                registro[campo] = ajustes[(codigo, 0, chave)]
+        registro["percentual_meta"] = _percentual_disponivel(registro["captado"], registro["recurso_ou_meta"])
+        registro["percentual_captado"] = _percentual_disponivel(registro["realizado"], registro["captado"])
+        for campo in ("percentual_meta", "percentual_captado"):
+            if registro[campo] is not None:
+                registro[campo] /= 100
     linhas = [{**por_fonte[codigo], "rotulo": _ROTULOS_CAPTACAO[codigo]}
               for codigo in fontes if codigo in por_fonte]
     total = {campo: _somar(r[campo] for r in linhas)
@@ -803,6 +827,8 @@ def painel_captacao(pilar, ano, base, acomp, *, fontes_autorizadas):
         cards=cards, previsto=captado, executado=realizado, saldo=saldo, pct=pct,
         faixa=faixa(taxa), barra_percentual=min(max(pct or 0, 0), 100),
         valores_em_reais=True,
+        registros_captacao=linhas[:-1] if linhas and linhas[-1].get("total") else linhas,
+        total_captacao=total,
         tabela_captacao=_tabela_financeira_pilar("tbl_CaptaoATeOutros", _COLUNAS_CAPTACAO, linhas),
     )
     return bloco
@@ -961,8 +987,12 @@ def _painel_pilar_fisico(pilar, ano, acomp, *, unidade=None):
     serie_previsto = [soma(a, 0) for a in ANOS]
     serie_executado = [soma(a, 1) for a in ANOS]
     previsto, executado = soma(ano, 0), soma(ano, 1)
+    executado_limitado = _somar(min(ex, pv) if ex is not None and pv is not None else None
+                               for pv, ex in (_campos_kpi(kpi, ano) for kpi in sub))
     saldo_periodo = saldo(ano)
     resumo_periodo = resumo(ano)
+    pct_periodo = percentual_fisico(executado_limitado, previsto)
+    pct_periodo = pct_inteiro(pct_periodo, 100) if pct_periodo is not None else None
     cards = [
         _card_pilar("previsto", "Meta", previsto, previsto, "projetados", False),
         _card_pilar("executado", "Executado", executado, previsto, "projetados"),
@@ -972,15 +1002,19 @@ def _painel_pilar_fisico(pilar, ano, acomp, *, unidade=None):
     ]
     for card in cards:
         if card["chave"] in ("executado", "percentual"):
-            card.update(pct=resumo_periodo["pct"], faixa=resumo_periodo["faixa"],
-                        barra=resumo_periodo["barra"])
+            card.update(pct=pct_periodo, faixa=faixa(pct_periodo), barra=pct_periodo or 0)
     tabela = []
     for referencia in [*ANOS, None]:
-        stats = resumo(referencia)
+        pv, ex = soma(referencia, 0), soma(referencia, 1)
+        pct_anual = percentual_fisico(ex, pv) if referencia is not None else percentual_fisico(
+            _somar(min(e, p) if e is not None and p is not None else None for p, e in
+                   (_campos_kpi(kpi, None) for kpi in sub)), pv)
+        pct_anual = pct_inteiro(pct_anual, 100) if pct_anual is not None else None
         tabela.append({
             "rotulo": "Total" if referencia is None else f"Ano {ANOS.index(referencia) + 1}: {referencia}",
-            "previsto": soma(referencia, 0), "executado": soma(referencia, 1),
-            "saldo": saldo(referencia), "pct": stats["pct"], "faixa": stats["faixa"],
+            "ano": referencia, "previsto": pv, "executado": ex,
+            "saldo": saldo(referencia) if referencia is None else saldo_fisico(pv, ex),
+            "pct": pct_anual, "faixa": faixa(pct_anual),
             "total": referencia is None,
             "destaque": ano is not None and ano == referencia,
         })
@@ -991,22 +1025,23 @@ def _painel_pilar_fisico(pilar, ano, acomp, *, unidade=None):
         "unidade_indicador": unidade, "rotulo_periodo": _rotulo_periodo(ano),
         "rotulo_previsto": "Meta", "denominador": "projetados",
         "previsto": previsto, "executado": executado, "saldo": saldo_periodo,
-        "pct": resumo_periodo["pct"], "faixa": resumo_periodo["faixa"],
+        "pct": pct_periodo, "faixa": faixa(pct_periodo),
+        "executado_limitado": executado_limitado, "status_counts": resumo_periodo,
         "cards": cards, "serie_previsto": serie_previsto, "serie_executado": serie_executado,
         "grafico": {
             "chave": "pilar", "serie_previsto": serie_previsto, "serie_executado": serie_executado,
             "acumulado_previsto": soma(None, 0), "acumulado_executado": soma(None, 1),
             "nome_previsto": "Meta", "nome_executado": "Executado",
-            "rodape_pct": resumo_periodo["pct"], "rodape_faixa": resumo_periodo["faixa"],
+            "rodape_pct": pct_periodo, "rodape_faixa": faixa(pct_periodo),
         },
-        "rodape_pct": resumo_periodo["pct"], "rodape_faixa": resumo_periodo["faixa"],
+        "rodape_pct": pct_periodo, "rodape_faixa": faixa(pct_periodo),
         "tabela": tabela, "tabela_gerencial_fisica": _tabela_gerencial_fisica(kpis, ano),
         "projetos": ProjetoFinanceiro.objects.filter(acompanhamento=acomp, pilar=pilar).count(),
         "unidade_projetos": "projetos",
     }
 
 
-def painel_pilar_acompanhamento(pilar, ano, base, acomp):
+def painel_pilar_acompanhamento(pilar, ano, base, acomp, anos=None):
     """DTO do pilar usando o acompanhamento importado selecionado."""
     base = BASES_CANONICAS.get(base)
     if base not in (BASE_FINANCEIRO, BASE_FISICO):
@@ -1015,7 +1050,7 @@ def painel_pilar_acompanhamento(pilar, ano, base, acomp):
         raise ValueError(f"ano inválido: {ano!r}")
     if base == BASE_FINANCEIRO:
         return _painel_pilar_financeiro(pilar, ano, acomp)
-    return _painel_pilar_fisico(pilar, ano, acomp)
+    return _painel_pilar_fisico(pilar, tuple(anos) if anos else ano, acomp)
 
 
 # ----------------------------------------------------------------- base física
@@ -1086,13 +1121,13 @@ def _tabela_gerencial_fisica(kpis, ano):
             linha["saldo"] = saldo_fisico(previsto, executado)
             linha["faixa"] = faixa(percentual_meta)
             linha["valores_percentuais"] = (
-                codigo == "OUTRASFONTES" and kpi.unidade == "Percentual")
+                codigo in ("AT", "OUTRASFONTES") and kpi.unidade == "Percentual")
             linha["codigo_pilar"] = codigo
             linha["barra"] = min(max(linha["pct"] or 0, 0), 100)
             linhas.append(linha)
         primeiro = por_pilar[codigo][0].pilar
         titulo = ROTULOS_PAINEL.get(codigo, primeiro.nome)
-        grupos.append({"titulo": titulo, "bloco": titulo, "linhas": linhas})
+        grupos.append({"codigo": codigo, "titulo": titulo, "bloco": titulo, "linhas": linhas})
 
     return {"grupos": grupos}
 

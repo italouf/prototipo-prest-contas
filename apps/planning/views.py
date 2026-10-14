@@ -156,9 +156,16 @@ def _resolver_pilar_escopo(request, fonte):
     return pilar, None
 
 
-def contexto_pilar(pilar, ano_param, base_param, usuario, acompanhamento=None):
+def contexto_pilar(pilar, ano_param, base_param, usuario, acompanhamento=None, periodo=None):
     """Contexto do painel anual do pilar, legado ou importado."""
     ano = None if ano_param == "todos" else int(ano_param)
+    novo = pilar.codigo in ("PDI", "FORMACAO", "STARTUPS", "AT")
+    if novo:
+        from apps.core.overview_period import resolver_periodo
+        periodo = periodo or resolver_periodo({}, ano_param)
+        ano = periodo["ano"] if base_param == "fis" and not periodo["ciclo"] else None
+        ano_param = str(ano) if ano is not None else "todos"
+    anos = periodo["anos"] if novo and base_param == "fis" and not periodo["ciclo"] and len(periodo["anos"]) > 1 else None
     if acompanhamento is None:
         acompanhamento = painel_prestacao.acompanhamento_padrao()
     editaveis = (
@@ -170,7 +177,7 @@ def contexto_pilar(pilar, ano_param, base_param, usuario, acompanhamento=None):
     codigos_edicao = set(fontes) & editaveis
     if combinado:
         pp = painel_prestacao.painel_captacao(
-            pilar, ano, base_param, acompanhamento, fontes_autorizadas=fontes)
+            pilar, ano, base_param, acompanhamento, fontes_autorizadas=fontes, anos=anos)
         if base_param == BASE_FIN:
             ano_param = "todos"
             grade = []
@@ -186,13 +193,13 @@ def contexto_pilar(pilar, ano_param, base_param, usuario, acompanhamento=None):
         grade = grade_edicao(base_param, ({pilar.codigo} & editaveis) or {"__nenhum__"})
     else:
         pp = painel_prestacao.painel_pilar_acompanhamento(
-            pilar, ano, base_param, acompanhamento
+            pilar, ano, base_param, acompanhamento, anos=anos
         )
         grade = overrides_prestacao.grade_edicao_overrides(
             acompanhamento, base_param, ({pilar.codigo} & editaveis) or {"__nenhum__"}
         )
     destaque = None if ano is None else ANOS.index(ano)
-    return {
+    contexto = {
         "painel_pilar": pp,
         "ano_param": ano_param,
         "base_param": base_param,
@@ -204,10 +211,16 @@ def contexto_pilar(pilar, ano_param, base_param, usuario, acompanhamento=None):
         "grade_edicao": grade,
         "base_plano": pp["base"],
         "pilar_pk": pilar.pk,
-        "pode_editar_pilar": bool(codigos_edicao) and not (combinado and base_param == BASE_FIN),
+        "pode_editar_pilar": bool(codigos_edicao) and (novo or not (combinado and base_param == BASE_FIN)),
         "acompanhamento": acompanhamento,
         "acompanhamentos": painel_prestacao.lista_acompanhamentos(),
     }
+    if novo:
+        from apps.accountability.overview_edit import grade_dashboard
+        from apps.core.pillar_overview import apresentar_pilar
+        contexto.update(pilar_overview=True, grade_edicao_geral=grade_dashboard(acompanhamento, pp["base"], codigos_edicao) if acompanhamento else [], editor_codigos=sorted(codigos_edicao))
+        return apresentar_pilar(contexto, periodo)
+    return contexto
 
 
 def _parse_grade(post, codigos_permitidos):
@@ -253,7 +266,7 @@ def _parse_grade_overrides(post, acomp=None):
     """
     itens = []
     percentuais = set(KpiAcompanhamento.objects.filter(acompanhamento=acomp,
-        pilar__codigo="OUTRASFONTES", unidade="Percentual").values_list("codigo", flat=True)) if acomp and post.get("edicao_dashboard") else set()
+        pilar__codigo__in=("AT", "OUTRASFONTES"), unidade="Percentual").values_list("codigo", flat=True)) if acomp and post.get("edicao_dashboard") else set()
     for chave, bruto in post.items():
         if not chave.startswith("v__"):
             continue
@@ -297,7 +310,7 @@ def _aplicar_overrides(request, acomp):
     if erro is not None:
         return erro
     combinado = pilar_escopo is not None and pilar_escopo.codigo in FONTES_CAPTACAO
-    if combinado and base_param == BASE_FIN:
+    if combinado and base_param == BASE_FIN and not request.POST.get("edicao_dashboard"):
         return sem_permissao(request)
     destino = (f"/pilar/{pilar_escopo.pk}/?ano={ano_param}&base={base_param}&acompanhamento={acomp.pk}"
                if pilar_escopo is not None else f"/?ano={ano_param}&base={base_param}&acompanhamento={acomp.pk}")
@@ -308,12 +321,13 @@ def _aplicar_overrides(request, acomp):
             filtros_destino[campo] = request.POST.get(campo, "")
         filtros_destino["acompanhamento"] = str(acomp.pk)
         filtros_destino.setlist("pilares", request.POST.getlist("pilares"))
-        destino = "/?" + filtros_destino.urlencode()
+        destino = (f"/pilar/{pilar_escopo.pk}/" if pilar_escopo else "/") + "?" + filtros_destino.urlencode()
     if request.POST.get("acao") == ACAO_RESTAURAR:
         escopo = ({"codigos": fontes_captacao_visiveis(request.user), "base": "fisico"}
                   if combinado else {})
         if request.POST.get("edicao_dashboard"):
-            escopo = {"base": "financeiro" if base_param == "fin" else "fisico", "codigos": request.POST.getlist("pilares")}
+            codigos = fontes_captacao_visiveis(request.user) if combinado else [pilar_escopo.codigo] if pilar_escopo else request.POST.getlist("pilares")
+            escopo = {"base": "financeiro" if base_param == "fin" else "fisico", "codigos": codigos}
         removidos = overrides_prestacao.restaurar_tudo(acomp, request.user, **escopo)
         messages.success(
             request, f"Valores importados restaurados ({removidos} ajuste(s) removido(s)).")
@@ -323,12 +337,19 @@ def _aplicar_overrides(request, acomp):
     except ValueError as exc:
         messages.error(request, f"Edição rejeitada: {exc}")
         return redirect(destino)
+    if request.POST.get("edicao_dashboard") and any(item[2] != ("financeiro" if base_param == "fin" else "fisico") for item in itens):
+        return sem_permissao(request)
     if combinado:
         fontes = set(fontes_captacao_visiveis(request.user))
         fontes_kpis = dict(KpiAcompanhamento.objects.filter(
             acompanhamento=acomp, codigo__in=[item[1] for item in itens],
         ).values_list("codigo", "pilar__codigo"))
-        if any(base != "fisico" or fontes_kpis.get(codigo) not in fontes
+        if any((base == "fisico" and fontes_kpis.get(codigo) not in fontes) or (base == "financeiro" and codigo not in fontes)
+               for _ano, codigo, base, _campo, _valor in itens):
+            return sem_permissao(request)
+    elif pilar_escopo is not None and request.POST.get("edicao_dashboard"):
+        kpis = dict(KpiAcompanhamento.objects.filter(acompanhamento=acomp).values_list("codigo", "pilar__codigo"))
+        if any((codigo if base == "financeiro" else kpis.get(codigo)) != pilar_escopo.codigo
                for _ano, codigo, base, _campo, _valor in itens):
             return sem_permissao(request)
     por_base = {}
@@ -464,7 +485,8 @@ def _csv_pilar(request, pilar, ano_param, base_param):
     from .services import ROTULOS_PAINEL
 
     acompanhamento = _resolver_acomp_exportacao(request)
-    contexto = contexto_pilar(pilar, ano_param, base_param, request.user, acompanhamento)
+    from apps.core.overview_period import resolver_periodo
+    contexto = contexto_pilar(pilar, ano_param, base_param, request.user, acompanhamento, resolver_periodo(request.GET, ano_param))
     pp = contexto["painel_pilar"]
     ano_param = contexto["ano_param"]
     rotulo = ROTULOS_PAINEL.get(pilar.codigo, pilar.nome)
@@ -485,10 +507,13 @@ def _csv_pilar(request, pilar, ano_param, base_param):
         writer.writerow(["Fonte", "Unidade", "Ano", "Meta", "Executado", "Saldo", "% Executado"])
         for bloco in pp["blocos_fisicos"]:
             for linha in bloco["tabela"]:
+                valores = [linha[campo] for campo in ("previsto", "executado", "saldo")]
+                if bloco.get("valores_percentuais"):
+                    valores = [valor * 100 if valor is not None else None for valor in valores]
                 writer.writerow([
-                    bloco["rotulo"], bloco["unidade_indicador"], linha["rotulo"],
-                    numero_curto(linha["previsto"]), numero_curto(linha["executado"]),
-                    numero_curto(linha["saldo"]), f"{linha['pct']}%" if linha["pct"] is not None else "—",
+                    bloco["rotulo"], "%" if bloco.get("valores_percentuais") else bloco["unidade_indicador"], linha["rotulo"],
+                    *(numero_curto(valor) for valor in valores),
+                    f"{linha['pct']}%" if linha["pct"] is not None else "—",
                 ])
         conteudo = documento.getvalue()
     elif pp.get("visao_financeira_pilar"):
@@ -532,17 +557,18 @@ def _html_standalone(ano_param, base_param, usuario, pilar=None, acompanhamento=
 
     from django.contrib.staticfiles.finders import find
     from django.template.loader import render_to_string
+    from apps.core.overview_period import resolver_periodo
 
     if pilar is None:
         from apps.core.overview import resolver_pilares
-        from apps.core.overview_period import resolver_periodo
         parametros = parametros or {}
         contexto = contexto_painel(ano_param, base_param, usuario, acompanhamento,
             resolver_pilares(parametros), resolver_periodo(parametros, ano_param))
         template = "dashboard/standalone.html"
     else:
         contexto = contexto_pilar(
-            pilar, ano_param, base_param, usuario, acompanhamento
+            pilar, ano_param, base_param, usuario, acompanhamento,
+            resolver_periodo(parametros or {}, ano_param)
         )
         template = "dashboard/standalone_pilar.html"
     caminho_css = find("css/tailwind.css")

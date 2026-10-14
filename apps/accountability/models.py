@@ -314,7 +314,7 @@ class OverrideAcompanhamento(models.Model):
         related_name="overrides", verbose_name="KPI",
     )  # base=fisico
     ano = models.PositiveSmallIntegerField("Ano")  # 0 = ciclo completo
-    campo = models.CharField("Campo", max_length=20)  # previsto|executado|projetado
+    campo = models.CharField("Campo", max_length=20)  # valores de execução, projeção e captação
     valor = models.DecimalField("Valor", max_digits=18, decimal_places=6)
     chave = models.CharField(
         "Chave", max_length=120

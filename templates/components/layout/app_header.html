@@ -1,6 +1,6 @@
 {# Cabeçalho global do portal (L3): identidade + utilitários sempre; filtros/chips/toolbar só no painel anual. #}
 <header id="app-header" data-testid="app-header" class="sticky top-0 z-20 border-b border-border bg-surface-2/95 backdrop-blur">
-  {% if painel %}
+  {% if painel or pilar_overview %}
   {% include 'dashboard/_header.html' %}
   {% else %}
   <div class="flex items-center gap-3 px-4 py-2.5 lg:px-8">

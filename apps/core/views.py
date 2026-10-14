@@ -193,7 +193,7 @@ def pilar(request, pk):
     ano_param = form.cleaned_data["ano"] if params else "todos"
     base_param = form.cleaned_data["base"] if params else BASE_FIN
     contexto_anual = contexto_pilar(
-        pilar_obj, ano_param, base_param, request.user, acompanhamento
+        pilar_obj, ano_param, base_param, request.user, acompanhamento, resolver_periodo_analise(params, ano_param)
     )
     periodo, periodos = periodo_selecionado(request)
     itens = []

@@ -1,6 +1,6 @@
 <div class="overview-header-row">
   <button type="button" data-testid="sidebar-toggle" aria-label="Abrir menu" class="overview-icon-button overview-mobile-menu" @click="aberto = true"><c-ui.icon name="menu" size="16" /></button>
-  <div id="dashboard-controls" data-testid="dashboard-controls" data-filtros-fixos>{% include 'dashboard/_controles.html' %}</div>
+  <div id="dashboard-controls" data-testid="dashboard-controls" data-filtros-fixos>{% if pilar_overview %}{% include 'dashboard/_controles_pilar_overview.html' %}{% else %}{% include 'dashboard/_controles.html' %}{% endif %}</div>
   <div class="overview-header-utilities">
     {% include 'components/layout/partner_logos.html' %}
     <div class="overview-header-actions" role="toolbar" aria-label="Ações do painel">
@@ -12,7 +12,7 @@
       <form method="post" action="{% url 'accounts:logout' %}">{% csrf_token %}<button type="submit" class="overview-icon-button" aria-label="Sair" title="Sair"><c-ui.icon name="log-out" size="14" /></button></form>
       <details class="overview-more-actions"><summary class="overview-icon-button" aria-label="Mais ações" title="Mais ações">···</summary><div>
         <button type="button" onclick="window.print()">Imprimir</button>
-        <a href="{% url 'core:dashboard' %}">Restaurar padrão</a>
+        <a href="{% if pilar_overview %}{{ dashboard_url }}{% else %}{% url 'core:dashboard' %}{% endif %}">Restaurar padrão</a>
         <button type="button" data-testid="dark-toggle" aria-label="Alternar tema" onclick="document.documentElement.classList.toggle('dark'); localStorage.setItem('quiin-theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light')">Alternar tema</button>
       </div></details>
     </div>

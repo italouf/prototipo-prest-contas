@@ -1,9 +1,10 @@
 {% extends 'base.html' %}
 {% load core_extras %}
 {% block title %}{% if painel_pilar.visao_captacao %}{{ painel_pilar.rotulo }}{% else %}{{ pilar.nome }}{% endif %} · Portal QuIIN{% endblock %}
-{% block breadcrumbs %}{% if painel_pilar.visao_captacao %}{% include "partials/breadcrumbs.html" with atual=painel_pilar.rotulo %}{% else %}{% include "partials/breadcrumbs.html" with atual=pilar.nome %}{% endif %}{% endblock %}
+{% block breadcrumbs %}{% if not pilar_overview %}{% if painel_pilar.visao_captacao %}{% include "partials/breadcrumbs.html" with atual=painel_pilar.rotulo %}{% else %}{% include "partials/breadcrumbs.html" with atual=pilar.nome %}{% endif %}{% endif %}{% endblock %}
 {% block content %}
 <div data-testid="page-pilar">
+  {% if pilar_overview %}{% include 'dashboard/painel-pilar.html' %}{% else %}
   <div class="print-only" data-testid="print-cabecalho">
     <h1 class="font-display text-2xl font-bold">{% if painel_pilar.visao_captacao %}{{ painel_pilar.rotulo }}{% else %}{{ pilar.nome }}{% endif %} — Painel anual</h1>
     <p class="text-sm">Período: <strong>{{ painel_pilar.rotulo_periodo }}</strong> · Base: <strong>{% if base_param == 'fin' %}Financeiro{% else %}Físico{% endif %}</strong> · Unidade: <strong>{% if painel_pilar.visao_financeira_pilar %}R${% elif base_param == 'fin' %}R$ milhões{% elif painel_pilar.visao_captacao %}por indicador{% else %}quantidade de metas{% endif %}</strong></p>
@@ -85,6 +86,7 @@
       </tbody>
     </table>
   </section>
+  {% endif %}
   {% endif %}
   {% endif %}
 </div>

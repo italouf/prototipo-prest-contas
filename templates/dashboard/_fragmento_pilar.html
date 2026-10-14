@@ -1,6 +1,8 @@
 {# Fragmento htmx do painel anual do pilar: painel + controles (OOB). #}
 {# O div OOB precisa espelhar os atributos do #dashboard-controls do app_header: o swap outerHTML o substitui por inteiro. #}
 {% include 'dashboard/painel-pilar.html' %}
+{% if pilar_overview %}<header id="app-header" hx-swap-oob="true" data-testid="app-header" class="sticky top-0 z-20 border-b border-border bg-surface-2">{% include 'dashboard/_header.html' %}</header>{% else %}
 <div id="dashboard-controls" hx-swap-oob="true" class="border-t border-border px-4 py-2.5 lg:px-8" data-testid="dashboard-controls">
   {% include 'dashboard/_controles_pilar.html' %}
 </div>
+{% endif %}
