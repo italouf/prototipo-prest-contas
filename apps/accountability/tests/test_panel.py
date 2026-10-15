@@ -27,7 +27,7 @@ class BasePanelTestes(TestCase):
         for codigo, nome in (("PDI", "PDI"), ("FORMACAO", "Formação FCRH"),
                              ("STARTUPS", "ACS"), ("INFRA", "Infraestrutura"),
                              ("AT", "AT"), ("OUTRASFONTES", "Outras Fontes")):
-            Pilar.objects.create(codigo=codigo, nome=nome)
+            Pilar.objects.get_or_create(codigo=codigo, defaults={"nome": nome})
         services.ingestar("FINANCEIRO_GERAL", FINANCEIRO, CENTRO, "2T/2024", cls.user)
         services.ingestar("INDICADORES_PE", INDICADORES, CENTRO, "2T/2024", cls.user)
         cls.acomp = Acompanhamento.objects.get()
@@ -382,6 +382,69 @@ class VisaoGerencialFisicaPilarTestes(BasePanelTestes):
             })
             self.assertEqual(resposta.status_code, 200)
             self.assertNotContains(resposta, 'data-testid="visao-gerencial-pilar"')
+
+
+class AcumuladoFisicoEditadoTestes(BasePanelTestes):
+    def ajustar(self, itens):
+        from ..overrides import aplicar_overrides
+
+        aplicar_overrides(self.acomp, "fisico", itens, self.user)
+
+    def linha(self):
+        painel = panel.painel_acompanhamento(None, "fisico", self.acomp)
+        return next(l for g in painel["tabela"]["grupos"] for l in g["linhas"]
+                    if l["codigo"] == "PE-01")
+
+    def test_execucao_2026_atualiza_gerencial_geral_e_pilar(self):
+        self.ajustar([(2026, "PE-01", "executado", Decimal(1))])
+        linha = self.linha()
+        self.assertEqual((linha["previsto"], linha["executado"], linha["saldo"], linha["pct"]),
+                         (Decimal(18), Decimal(16), Decimal(2), 89))
+        self.assertEqual(linha["faixa"], "parcial")
+        pilar = Pilar.objects.get(codigo="PDI")
+        dto = panel.painel_pilar_acompanhamento(pilar, None, "fisico", self.acomp)
+        gerencial = dto["tabela_gerencial_fisica"]["grupos"][0]["linhas"][0]
+        self.assertEqual(gerencial, linha)
+        anual = panel.painel_acompanhamento(None, "fisico", self.acomp)["tabela_anual_fisica"]
+        indicador = next(l for l in anual["linhas"] if l["codigo"] == "PE-01")
+        self.assertEqual(indicador["anos"][2]["executado"], Decimal(1))
+
+    def test_alteracoes_repetidas_nao_duplicam_e_restauracao_remove_delta(self):
+        for valor, esperado, faixa in ((1, 16, "parcial"), (2, 17, "ok"), (0, 15, "parcial")):
+            self.ajustar([(2026, "PE-01", "executado", Decimal(valor))])
+            linha = self.linha()
+            self.assertEqual(linha["executado"], Decimal(esperado))
+            self.assertEqual(linha["faixa"], faixa)
+        self.ajustar([(2026, "PE-01", "executado", None)])
+        self.assertEqual(self.linha()["executado"], Decimal(15))
+
+    def test_ano_com_dados_substitui_contribuicao_original(self):
+        self.ajustar([(2025, "PE-01", "executado", Decimal(8)),
+                     (2026, "PE-01", "previsto", Decimal(7)),
+                     (2027, "PE-01", "executado", Decimal(2))])
+        linha = self.linha()
+        self.assertEqual((linha["previsto"], linha["executado"], linha["saldo"]),
+                         (Decimal(20), Decimal(15), Decimal(5)))
+
+    def test_ajuste_explicito_do_ciclo_tem_prioridade_por_campo(self):
+        self.ajustar([(0, "PE-01", "executado", Decimal(12)),
+                     (2026, "PE-01", "executado", Decimal(1)),
+                     (2026, "PE-01", "previsto", Decimal(6))])
+        linha = self.linha()
+        self.assertEqual((linha["previsto"], linha["executado"]), (Decimal(19), Decimal(12)))
+        self.ajustar([(0, "PE-01", "executado", None)])
+        self.assertEqual(self.linha()["executado"], Decimal(16))
+
+    def test_projecoes_nao_sao_contadas_como_execucao(self):
+        self.ajustar([(2026, "PE-01", "projetado", Decimal(99)),
+                     (2027, "PE-01", "projetado", Decimal(88))])
+        self.assertEqual(self.linha()["executado"], Decimal(15))
+
+    def test_acumulado_ausente_usa_anos_disponiveis_apos_edicao(self):
+        self.acomp.kpis.filter(codigo="PE-01").update(acumulado=None)
+        self.assertIsNone(self.linha()["executado"])
+        self.ajustar([(2026, "PE-01", "executado", Decimal(1))])
+        self.assertEqual(self.linha()["executado"], Decimal(16))
 
 
 class AcompanhamentoPadraoTestes(TestCase):

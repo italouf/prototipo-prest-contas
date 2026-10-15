@@ -33,10 +33,11 @@ campos monetários são `Decimal(18,2)`.
 Override manual (SDD §9): `OverrideAcompanhamento` vence o valor importado **no
 ano correspondente** — aplicado já na extração (`_resumos_financeiros`,
 `_campos_kpi`), de modo que a grade de edição e o painel leem os mesmos
-efetivos e `saldo`/`pct`/`faixa` recalculam em `_linha`. O consolidado
-(TAB. 1/TAB. 9) e o acumulado do físico (`meta_total`/`acumulado`) são figuras
-importadas próprias e **não** são afetados por overrides anuais.
-O editor do Geral usa `ano=0` para ajustar essas figuras do ciclo completo.
+efetivos e `saldo`/`pct`/`faixa` recalculam em `_linha`. O consolidado financeiro
+(TAB. 1/TAB. 9) é uma figura importada própria. No físico, os ajustes anuais
+corrigem `meta_total`/`acumulado` pela diferença em relação ao ano importado.
+O editor do Geral usa `ano=0` para definir explicitamente os valores do ciclo
+completo, com prioridade sobre esse cálculo.
 """
 from decimal import Decimal
 
@@ -1077,9 +1078,11 @@ def _campos_kpi(kpi, referencia):
     """(previsto, executado) do KPI em `referencia` (ano ou None = acumulado).
 
     2026/2027 só têm projeção — o executado é `None`, nunca projeção (SDD §8).
-    Override manual vence o importado no ano correspondente; `ano=0` ajusta
-    o acumulado (`referencia=None`). Um intervalo anual exige dados de todos
-    os anos selecionados, sem converter lacunas em zero.
+    Override manual vence o importado no ano correspondente. No acumulado,
+    os ajustes anuais de meta/execução corrigem o total importado pela diferença
+    para o valor original; um ajuste explícito de `ano=0` tem prioridade.
+    Um intervalo anual exige dados de todos os anos selecionados, sem
+    converter lacunas em zero. Projeções nunca compõem o executado.
     """
     if isinstance(referencia, tuple):
         pares = [_campos_kpi(kpi, ano) for ano in referencia]
@@ -1087,6 +1090,22 @@ def _campos_kpi(kpi, referencia):
                      for valores in zip(*pares))
     if referencia is None:
         previsto, executado = kpi.meta_total, kpi.acumulado
+        ajustes_anuais = [o for o in kpi.overrides.all() if o.ano in ANOS]
+        for campo, prefixo in (("previsto", "meta"), ("executado", "executado")):
+            ajustes = [o for o in ajustes_anuais if o.campo == campo]
+            if not ajustes:
+                continue
+            total = previsto if campo == "previsto" else executado
+            if total is None:
+                indice = 0 if campo == "previsto" else 1
+                total = _somar(_campos_kpi(kpi, ano)[indice] for ano in ANOS)
+            else:
+                total += sum((o.valor - (getattr(kpi, f"{prefixo}_{o.ano}", None)
+                                         or Decimal(0)) for o in ajustes), Decimal(0))
+            if campo == "previsto":
+                previsto = total
+            else:
+                executado = total
     else:
         previsto = getattr(kpi, f"meta_{referencia}")
         executado = getattr(kpi, f"executado_{referencia}", None)
