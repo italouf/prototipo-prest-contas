@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     "apps.highlights",
     "apps.crm_at",
     "apps.talentos",
+    "apps.gestao_at",
     "apps.planning",
     "apps.seed",
 ]

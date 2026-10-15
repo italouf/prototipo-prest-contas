@@ -1,48 +1,7 @@
-{% extends 'base.html' %}
-{% load static core_extras %}
-{% block title %}Aprovação · {{ periodo.rotulo }} · Portal QuIIN{% endblock %}
-{% block breadcrumbs %}{% include "partials/breadcrumbs.html" with atual="Aprovação" %}{% endblock %}
-{% block content %}
-<div x-data="painelAprovacao" data-testid="page-aprovacao">
-  <div class="flex flex-wrap items-end justify-between gap-3">
-    <div>
-      <h1 class="text-2xl font-bold">Painel de aprovação</h1>
-      <p class="text-sm text-text-muted">Período <strong>{{ periodo.rotulo }}</strong> ({{ periodo.get_status_display }})</p>
-    </div>
-  </div>
-
-  {% include "partials/entries/_kanban.html" %}
-
-  <div x-show="devolver.aberto" style="display: none" class="fixed inset-0 z-50" data-testid="modal-devolucao" role="dialog" aria-modal="true" aria-labelledby="titulo-devolucao">
-    <div class="absolute inset-0 bg-black/40" @click="fecharDevolucao()"></div>
-    <div class="absolute left-1/2 top-1/2 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-xl bg-surface-2 p-5 shadow-2xl">
-      <h2 id="titulo-devolucao" class="font-display text-lg font-semibold">Devolver <span class="numerico" x-text="devolver.codigo"></span></h2>
-      <form method="post" class="mt-3">
-        {% csrf_token %}
-        <input type="hidden" name="lancamento_id" :value="devolver.id">
-        <label for="motivo-devolucao" class="mb-1 block text-sm font-semibold">Justificativa (obrigatória)</label>
-        <textarea id="motivo-devolucao" name="comentario_revisao" rows="3" required data-testid="motivo-devolucao"
-                  class="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm"></textarea>
-        <div class="mt-4 flex justify-end gap-2">
-          <c-ui.button type="button" variant="ghost" @click="fecharDevolucao()">Cancelar</c-ui.button>
-          <c-ui.button type="submit" variant="danger" name="devolver" value="1">Confirmar devolução</c-ui.button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <div x-show="drawerAberto" style="display: none" class="fixed inset-0 z-40" data-testid="drawer-timeline" role="dialog" aria-modal="true" aria-label="Timeline do lançamento">
-    <div class="absolute inset-0 bg-black/40" @click="drawerAberto = false"></div>
-    <aside class="absolute right-0 top-0 h-full w-full max-w-md overflow-y-auto bg-surface-2 p-5 shadow-2xl">
-      <div class="flex items-center justify-between">
-        <h2 class="font-display text-lg font-semibold">Timeline</h2>
-        <button type="button" @click="drawerAberto = false" aria-label="Fechar timeline" title="Fechar"
-                class="rounded-md border border-border p-1.5 text-text-muted hover:text-text" data-testid="drawer-timeline-fechar">
-          <c-ui.icon name="x" size="16" />
-        </button>
-      </div>
-      <div id="drawer-conteudo" class="mt-4"></div>
-    </aside>
-  </div>
-</div>
+{% extends 'features/base.html' %}
+{% block title %}Painel de aprovação · SIG QuIIN{% endblock %}
+{% block feature_content %}
+<p class="feature-crumb">Início / Operação / Aprovação</p><div class="feature-heading"><h1>Painel de aprovação</h1></div><p class="feature-description">Valide os lançamentos enviados pelos pontos focais. Devoluções exigem justificativa e ficam registradas na auditoria.</p>
+<form method="get" class="feature-filters"><div><label for="approve-period">Período</label><select id="approve-period" data-feature-navigate>{% for p in periodos %}<option value="{% url 'entries:aprovacao' p.pk %}" {% if p.pk == periodo.pk %}selected{% endif %}>{{ p.competencia|date:'m/Y' }} · {{ p.get_status_display }}</option>{% endfor %}</select></div><div><label for="approve-pillar">Pilar</label><select id="approve-pillar" name="pilar"><option value="">Todos</option>{% for p in pilares_operacao %}<option value="{{ p.pk }}" {% if filtro_pilar == p.pk|stringformat:'s' %}selected{% endif %}>{{ p.nome }}</option>{% endfor %}</select></div><button class="feature-button">Filtrar</button></form>
+{% include 'partials/entries/_kanban.html' %}
 {% endblock %}

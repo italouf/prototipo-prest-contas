@@ -1,11 +1,13 @@
 ﻿app_name = "core"
 
 from django.urls import path
+from django.http import HttpResponse
 
 from .search_views import busca
 from .views import dashboard, mensal, pilar, pilar_drawer, semestral, semestral_csv
 
 urlpatterns = [
+    path("health/", lambda request: HttpResponse("ok", content_type="text/plain"), name="health"),
     path("", dashboard, name="dashboard"),
     path("prestacao/mensal/", mensal, name="mensal"),
     path("prestacao/semestral/", semestral, name="semestral"),

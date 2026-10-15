@@ -16,7 +16,7 @@ from apps.periods.models import Periodo
 
 
 @login_required
-def relatorio_mensal(request, periodo_pk):
+def _relatorio_mensal_legado(request, periodo_pk):
     periodo = get_object_or_404(Periodo, pk=periodo_pk)
     pilares = list(pilares_visiveis(request.user))
     secoes = []
@@ -81,3 +81,9 @@ def relatorio_mensal(request, periodo_pk):
             "assinatura": assinatura,
         },
     )
+
+
+@login_required
+def relatorio_mensal(request, periodo_pk):
+    from django.shortcuts import render
+    return render(request, "features/construcao.html", {"titulo": "Prestação mensal", "grupo": "Prestação de contas"})

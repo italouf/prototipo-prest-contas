@@ -11,6 +11,7 @@ def registrar_auditoria(
     valor_anterior="",
     valor_novo="",
     justificativa="",
+    origem="Portal",
 ):
     """Cria um registro de auditoria de forma centralizada (RN-011)."""
     return AuditLog.objects.create(
@@ -19,7 +20,8 @@ def registrar_auditoria(
         entidade=entidade,
         registro_id=str(registro_id or ""),
         campo=campo,
-        valor_anterior=str(valor_anterior or ""),
-        valor_novo=str(valor_novo or ""),
+        valor_anterior=str(valor_anterior if valor_anterior is not None else ""),
+        valor_novo=str(valor_novo if valor_novo is not None else ""),
         justificativa=justificativa,
+        origem=origem,
     )

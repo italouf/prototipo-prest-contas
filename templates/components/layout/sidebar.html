@@ -59,87 +59,45 @@
             <c-ui.icon name="calendar" size="18" /><span class="nav-rotulo">Semestral</span>
           </a>
         </li>
-        {% if pode_importar_financeiro %}
-        <li>
-          <a href="{% url 'accountability:importar' %}" data-nav-link class="nav-clara {% if request.resolver_match.url_name == 'importar' %}nav-ativo{% endif %}" {% if request.resolver_match.url_name == 'importar' %}aria-current="page"{% endif %}>
-            <c-ui.icon name="file-text" size="18" /><span class="nav-rotulo">Importar planilhas</span>
-          </a>
-        </li>
-        {% endif %}
+
       </ul>
     </div>
 
-    {% if ultimo_periodo_nav %}
-    <a href="{% url 'reports:mensal' ultimo_periodo_nav.pk %}" data-nav-link class="nav-clara mt-1 {% if '/relatorio/' in request.path %}nav-ativo{% endif %}" {% if '/relatorio/' in request.path %}aria-current="page"{% endif %}>
-      <c-ui.icon name="file-text" size="18" /><span class="nav-rotulo">Relatórios</span>
-    </a>
-    {% endif %}
 
-    {% if pode_lancar or pode_aprovar or pode_importar_financeiro %}
     <div class="mt-1">
-      <button type="button" data-nav-grupo="grp-operacao" aria-expanded="true" aria-controls="grp-operacao"
-              class="nav-clara w-full">
-        <span class="nav-rotulo mr-auto">Operação</span>
-        <c-ui.icon name="chevron-down" size="16" class="nav-grupo-chev" />
+      <button type="button" data-nav-grupo="grp-operacao" aria-expanded="true" aria-controls="grp-operacao" class="nav-clara w-full">
+        <span class="nav-rotulo mr-auto">Operação</span><c-ui.icon name="chevron-down" size="16" class="nav-grupo-chev" />
       </button>
       <ul id="grp-operacao" class="mt-0.5 space-y-0.5">
         {% if pode_lancar and periodo_aberto_nav and pilares_nav %}
-        <li>
-          <a href="{% url 'entries:formulario' periodo_aberto_nav.pk pilares_nav.0.pk %}" data-nav-link class="nav-clara {% if '/lancamentos/' in request.path %}nav-ativo{% endif %}" {% if '/lancamentos/' in request.path %}aria-current="page"{% endif %}>
-            <c-ui.icon name="pencil" size="18" /><span class="nav-rotulo">Lançamentos</span>
-            {% if pendencias_lancamentos %}<span class="sidebar-badge operation-badge" aria-label="{{ pendencias_lancamentos }} lançamentos devolvidos">{{ pendencias_lancamentos }}</span>{% endif %}
-          </a>
-        </li>
+        <li><a href="{% url 'entries:formulario' periodo_aberto_nav.pk pilares_nav.0.pk %}" data-nav-link class="nav-clara {% if '/lancamentos/' in request.path %}nav-ativo{% endif %}"><c-ui.icon name="pencil" size="18" /><span class="nav-rotulo">Lançamentos</span>{% if pendencias_lancamentos %}<span class="sidebar-badge operation-badge">{{ pendencias_lancamentos }}</span>{% endif %}</a></li>
         {% endif %}
         {% if pode_aprovar and periodo_aberto_nav %}
-        <li>
-          <a href="{% url 'entries:aprovacao' periodo_aberto_nav.pk %}" data-nav-link class="nav-clara {% if '/aprovacao/' in request.path %}nav-ativo{% endif %}" {% if '/aprovacao/' in request.path %}aria-current="page"{% endif %}>
-            <c-ui.icon name="check-circle" size="18" /><span class="nav-rotulo">Aprovação</span>
-            {% if pendencias_aprovacao %}<span class="sidebar-badge operation-badge" aria-label="{{ pendencias_aprovacao }} lançamentos aguardando aprovação">{{ pendencias_aprovacao }}</span>{% endif %}
-          </a>
-        </li>
-        {% endif %}
-        {% if pode_importar_financeiro %}
-        <li>
-          <a href="{% url 'finance:consolidado' %}" data-nav-link class="nav-clara {% if '/financeiro/' in request.path and '/prestacao/' not in request.path %}nav-ativo{% endif %}" {% if '/financeiro/' in request.path and '/prestacao/' not in request.path %}aria-current="page"{% endif %}>
-            <c-ui.icon name="dollar" size="18" /><span class="nav-rotulo">Financeiro</span>
-          </a>
-        </li>
-        {% endif %}
-      </ul>
-    </div>
-    {% endif %}
-
-    {% if pode_ver_auditoria or papel == 'Master' or papel == 'Admin' %}
-    <div class="mt-1">
-      <button type="button" data-nav-grupo="grp-gestao" aria-expanded="true" aria-controls="grp-gestao"
-              class="nav-clara w-full">
-        <span class="nav-rotulo mr-auto">Gestão</span>
-        <c-ui.icon name="chevron-down" size="16" class="nav-grupo-chev" />
-      </button>
-      <ul id="grp-gestao" class="mt-0.5 space-y-0.5">
-        {% if pode_lancar or pode_aprovar %}
-        <li>
-          <a href="{% url 'crm_at:funil' %}" data-nav-link class="nav-clara {% if '/crm-at/' in request.path %}nav-ativo{% endif %}" {% if '/crm-at/' in request.path %}aria-current="page"{% endif %}>
-            <c-ui.icon name="funnel" size="18" /><span class="nav-rotulo">Funil AT</span>
-          </a>
-        </li>
-        <li>
-          <a href="{% url 'talentos:organograma' %}" data-nav-link class="nav-clara {% if '/talentos/' in request.path %}nav-ativo{% endif %}" {% if '/talentos/' in request.path %}aria-current="page"{% endif %}>
-            <c-ui.icon name="users" size="18" /><span class="nav-rotulo">Talentos</span>
-          </a>
-        </li>
+        <li><a href="{% url 'entries:aprovacao' periodo_aberto_nav.pk %}" data-nav-link class="nav-clara {% if '/aprovacao/' in request.path %}nav-ativo{% endif %}"><c-ui.icon name="check-circle" size="18" /><span class="nav-rotulo">Aprovação</span>{% if pendencias_aprovacao %}<span class="sidebar-badge operation-badge">{{ pendencias_aprovacao }}</span>{% endif %}</a></li>
         {% endif %}
         {% if pode_ver_auditoria %}
-        <li>
-          <a href="{% url 'audit:lista' %}" data-nav-link class="nav-clara {% if '/auditoria/' in request.path %}nav-ativo{% endif %}" {% if '/auditoria/' in request.path %}aria-current="page"{% endif %}>
-            <c-ui.icon name="shield" size="18" /><span class="nav-rotulo">Auditoria</span>
-          </a>
-        </li>
+        <li><a href="{% url 'audit:lista' %}" data-nav-link class="nav-clara {% if '/auditoria/' in request.path %}nav-ativo{% endif %}"><c-ui.icon name="shield" size="18" /><span class="nav-rotulo">Auditoria</span></a></li>
         {% endif %}
       </ul>
     </div>
-    {% endif %}
+    <div class="mt-1">
+      <p class="nav-secao-clara">Gestão da AT</p>
+      {% if pode_ver_associados_at %}
+      <a href="{% url 'gestao_at:associados' %}" data-nav-link class="nav-clara"><c-ui.icon name="users" size="18" /><span class="nav-rotulo">Associados</span></a>
+      {% endif %}
+      <ul class="ml-5 border-l border-border pl-2">
+        <li><a href="{% url 'gestao_at:solicitacoes' %}" data-nav-link class="nav-clara {% if '/gestao-at/solicitacoes/' in request.path %}nav-ativo{% endif %}"><span aria-hidden="true">•</span><span class="nav-rotulo">Solicitações</span></a></li>
+        {% if pode_ver_associados_at %}
+        <li><a href="{% url 'gestao_at:acompanhamento' %}" data-nav-link class="nav-clara {% if '/gestao-at/acompanhamento/' in request.path %}nav-ativo{% endif %}"><span aria-hidden="true">•</span><span class="nav-rotulo">Acompanhamento</span></a></li>
+        {% endif %}
+      </ul>
+      {% if pode_ver_associados_at %}
+      <a href="{% url 'crm_at:funil' %}" data-nav-link class="nav-clara {% if '/crm-at/' in request.path %}nav-ativo{% endif %}"><c-ui.icon name="funnel" size="18" /><span class="nav-rotulo">Funil de prospecção</span></a>
+      {% endif %}
+    </div>
+    <p class="nav-secao-clara">Talentos</p>
+    <a href="{% url 'talentos:organograma' %}" data-nav-link class="nav-clara {% if '/talentos/' in request.path %}nav-ativo{% endif %}"><c-ui.icon name="users" size="18" /><span class="nav-rotulo">Talentos</span></a>
+
   </nav>
   {% if papel == 'Master' or papel == 'Admin' %}
   <div class="sidebar-admin border-t border-border mx-3 mt-2 pt-2">

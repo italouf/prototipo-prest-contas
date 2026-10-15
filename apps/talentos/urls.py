@@ -6,6 +6,7 @@ from .views import (
     alocacao_editar,
     colaborador_criar,
     colaborador_editar,
+    colaborador_arquivar,
 )
 
 app_name = "talentos"
@@ -14,6 +15,7 @@ urlpatterns = [
     path("organograma/", OrganogramaView.as_view(), name="organograma"),
     path("colaboradores/novo/", colaborador_criar, name="colaborador_criar"),
     path("colaboradores/<int:pk>/editar/", colaborador_editar, name="colaborador_editar"),
+    path("colaboradores/<int:pk>/arquivar/", colaborador_arquivar, name="colaborador_arquivar"),
     path(
         "colaboradores/<int:colaborador_pk>/alocacoes/nova/",
         alocacao_criar,

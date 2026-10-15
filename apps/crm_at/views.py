@@ -31,7 +31,7 @@ def _pode_editar_crm(usuario):
     return pode_lancar(usuario) and usuario_pode_pilar(usuario, pilar_at)
 
 
-class FunilATView(LoginRequiredMixin, View):
+class FunilATLegadoView(LoginRequiredMixin, View):
     def get(self, request):
         pilar_at = Pilar.objects.filter(codigo="AT").first()
         if pilar_at is None or not usuario_pode_pilar(request.user, pilar_at):
@@ -93,7 +93,7 @@ def _destino_seguro(request, padrao):
 
 
 @login_required
-def oportunidade_criar(request):
+def _oportunidade_criar_legado(request):
     if not _pode_editar_crm(request.user):
         return sem_permissao(request)
     if request.method == "POST":
@@ -124,7 +124,7 @@ def oportunidade_criar(request):
 
 
 @login_required
-def oportunidade_editar(request, pk):
+def _oportunidade_editar_legado(request, pk):
     if not _pode_editar_crm(request.user):
         return sem_permissao(request)
     oportunidade = get_object_or_404(Oportunidade, pk=pk)
@@ -159,7 +159,7 @@ def oportunidade_editar(request, pk):
 
 
 @login_required
-def empresa_criar(request):
+def _empresa_criar_legado(request):
     if not _pode_editar_crm(request.user):
         return sem_permissao(request)
     padrao = reverse("crm_at:funil")
@@ -185,3 +185,26 @@ def empresa_criar(request):
         "crm_at/empresa_form.html",
         {"form": form, "titulo": "Nova empresa", "next": proximo},
     )
+
+
+def _construcao(request):
+    pilar = Pilar.objects.filter(codigo="AT").first()
+    if pilar is None or not usuario_pode_pilar(request.user, pilar):
+        return sem_permissao(request)
+    return render(request, "features/construcao.html", {"titulo": "Funil de prospecção", "grupo": "Gestão da AT"})
+
+class FunilATView(LoginRequiredMixin, View):
+    def get(self, request):
+        return _construcao(request)
+
+@login_required
+def oportunidade_criar(request):
+    return _construcao(request)
+
+@login_required
+def oportunidade_editar(request, pk):
+    return _construcao(request)
+
+@login_required
+def empresa_criar(request):
+    return _construcao(request)

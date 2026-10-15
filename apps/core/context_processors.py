@@ -70,6 +70,7 @@ def nav(request):
             total_pendencias = sum(pendencias_nav.values())
 
     return {
+        "pode_ver_associados_at": pilares.filter(codigo="AT").exists(),
         "papel": papel_do_usuario(request.user),
         "pode_lancar": pode_lancar(request.user),
         "pode_aprovar": pode_aprovar(request.user),

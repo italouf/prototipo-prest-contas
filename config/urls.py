@@ -14,6 +14,7 @@ urlpatterns = [
     path("financeiro/prestacao/", include("apps.accountability.urls", namespace="accountability")),
     path("relatorio/", include("apps.reports.urls", namespace="reports")),
     path("crm-at/", include("apps.crm_at.urls", namespace="crm_at")),
+    path("gestao-at/", include("apps.gestao_at.urls", namespace="gestao_at")),
     path("talentos/", include("apps.talentos.urls", namespace="talentos")),
     path("auditoria/", include("apps.audit.urls", namespace="audit")),
     path("plano-anual/", include("apps.planning.urls", namespace="planning")),

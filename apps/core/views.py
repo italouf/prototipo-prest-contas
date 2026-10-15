@@ -95,7 +95,7 @@ def dashboard(request):
 
 
 @login_required
-def mensal(request):
+def _mensal_legado(request):
     """Prestação mensal no padrão do painel anual (L20): `?periodo=YYYY-MM-DD`."""
     params = request.GET
     estado, periodo = resolver_periodo(params)
@@ -115,7 +115,7 @@ def mensal(request):
 
 
 @login_required
-def semestral(request):
+def _semestral_legado(request):
     """Visão geral semestral no padrão do painel anual (L21): `?ano=&semestre=`."""
     params = request.GET
     estado, ano, semestre = resolver_semestre(params)
@@ -133,7 +133,7 @@ def semestral(request):
 
 
 @login_required
-def semestral_csv(request):
+def _semestral_csv_legado(request):
     """CSV do semestre: `Mês;Pilar;Indicador;Meta;Realizado;% Executado`."""
     from django.http import HttpResponse
 
@@ -230,3 +230,16 @@ def pilar_drawer(request, pk):
     )
 
 
+
+
+@login_required
+def mensal(request):
+    return render(request, "features/construcao.html", {"titulo": "Prestação mensal", "grupo": "Prestação de contas"})
+
+@login_required
+def semestral(request):
+    return render(request, "features/construcao.html", {"titulo": "Prestação semestral", "grupo": "Prestação de contas"})
+
+@login_required
+def semestral_csv(request):
+    return semestral(request)

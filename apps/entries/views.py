@@ -9,7 +9,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
 from apps.audit.models import AuditLog
-from apps.core.permissions import pode_aprovar, pode_lancar, sem_permissao, usuario_pode_pilar
+from apps.core.permissions import pilares_visiveis, pode_aprovar, pode_lancar, sem_permissao, usuario_pode_pilar
 from apps.indicators.models import Indicador
 from apps.periods.models import Periodo
 from apps.pillars.models import Pilar
@@ -25,6 +25,10 @@ def formulario(request, periodo_pk, pilar_pk):
         return sem_permissao(request)
     indicadores = Indicador.objects.filter(pilar=pilar, ativo=True)
     existentes = {lc.indicador_id: lc for lc in Lancamento.objects.filter(periodo=periodo, indicador__in=indicadores)}
+    linhas = []
+    for ind in indicadores:
+        lc = existentes.get(ind.pk)
+        linhas.append({"indicador": ind, "lancamento": lc, "bloqueado": not periodo.permite_edicao or (lc and lc.status in ("ENVIADO", "APROVADO"))})
 
     if request.method == "POST":
         dados = {
@@ -54,11 +58,17 @@ def formulario(request, periodo_pk, pilar_pk):
             "existentes": existentes,
             "bloqueado": not periodo.permite_edicao,
             "tipos": Indicador.TIPOS,
+            "linhas": linhas,
+            "pilares_operacao": pilares_visiveis(request.user),
+            "periodos": Periodo.objects.all(),
+            "editaveis": sum(not l["bloqueado"] for l in linhas),
+            "enviados_total": sum(l["lancamento"] is not None and l["lancamento"].status == "ENVIADO" for l in linhas),
+            "aprovados_total": sum(l["lancamento"] is not None and l["lancamento"].status == "APROVADO" for l in linhas),
         },
     )
 
 
-def _kanban(periodo):
+def _kanban(periodo, pilar_id=None):
     """Agrupa os lançamentos do período por status (colunas do kanban)."""
     todos = list(
         periodo.lancamentos.select_related(
@@ -67,6 +77,12 @@ def _kanban(periodo):
     )
     kanban = {status: [] for status in ("RASCUNHO", "ENVIADO", "APROVADO", "DEVOLVIDO")}
     for lc in todos:
+        if pilar_id and str(lc.indicador.pilar_id) != str(pilar_id):
+            continue
+        lc.eventos = list(AuditLog.objects.filter(entidade="Lancamento", registro_id=str(lc.pk)).select_related("usuario").order_by("data_hora")[:20])
+        from apps.audit.views import tipo_acao
+        for evento in lc.eventos:
+            evento.tipo = tipo_acao(evento.acao)
         kanban.setdefault(lc.status, []).append(lc)
     return kanban
 
@@ -78,7 +94,7 @@ def aprovacao(request, periodo_pk):
     periodo = get_object_or_404(Periodo, pk=periodo_pk)
 
     if request.method == "POST":
-        lc = get_object_or_404(Lancamento, pk=request.POST.get("lancamento_id"), periodo=periodo, status="ENVIADO")
+        lc = get_object_or_404(Lancamento, pk=request.POST.get("lancamento_id"), periodo=periodo)
         try:
             if "aprovar" in request.POST:
                 aprovar(lc, request.user)
@@ -86,6 +102,9 @@ def aprovacao(request, periodo_pk):
             elif "devolver" in request.POST:
                 devolver(lc, request.user, request.POST.get("comentario_revisao", ""))
                 messages.success(request, f"Lançamento {lc.indicador.codigo} devolvido.")
+            elif "enviar" in request.POST:
+                mover_lancamento(lc, request.user, "ENVIADO")
+                messages.success(request, "Lançamento enviado para validação.")
         except ValidationError as exc:
             messages.error(request, "; ".join(exc.messages))
         return redirect("entries:aprovacao", periodo_pk=periodo.pk)
@@ -93,7 +112,8 @@ def aprovacao(request, periodo_pk):
     enviados = periodo.lancamentos.filter(status="ENVIADO").select_related(
         "indicador", "indicador__pilar", "usuario_criacao", "usuario_aprovacao"
     )
-    kanban = _kanban(periodo)
+    filtro_pilar = request.GET.get("pilar", "")
+    kanban = _kanban(periodo, filtro_pilar)
     return render(
         request,
         "entries/aprovacao.html",
@@ -102,6 +122,10 @@ def aprovacao(request, periodo_pk):
             "enviados": enviados,
             "kanban": kanban,
             "pode_enviar": periodo.permite_edicao,
+            "pilares_operacao": pilares_visiveis(request.user),
+            "periodos": Periodo.objects.all(),
+            "filtro_pilar": filtro_pilar,
+            "colunas": [(s, r, kanban[s]) for s, r in Lancamento.STATUS],
         },
     )
 
@@ -158,3 +182,23 @@ def lancamento_drawer(request, pk):
         "partials/entries/drawer_lancamento.html",
         {"lc": lc, "eventos": eventos},
     )
+
+
+@login_required
+def importar(request, periodo_pk, pilar_pk):
+    periodo = get_object_or_404(Periodo, pk=periodo_pk)
+    pilar = get_object_or_404(Pilar, pk=pilar_pk)
+    if not pode_lancar(request.user) or not usuario_pode_pilar(request.user, pilar):
+        return sem_permissao(request)
+    if request.method == "POST":
+        from .importacao import importar_operacionais
+        arquivo = request.FILES.get("arquivo")
+        try:
+            if arquivo is None:
+                raise ValidationError("Selecione uma planilha.")
+            total = importar_operacionais(arquivo, periodo, pilar, request.user)
+            messages.success(request, f"{total} rascunho(s) importado(s).")
+            return redirect("entries:formulario", periodo_pk=periodo.pk, pilar_pk=pilar.pk)
+        except ValidationError as exc:
+            messages.error(request, "; ".join(exc.messages))
+    return render(request, "entries/importacao.html", {"periodo": periodo, "pilar": pilar})

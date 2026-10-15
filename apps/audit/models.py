@@ -18,6 +18,7 @@ class AuditLog(models.Model):
     valor_anterior = models.TextField("Valor anterior", blank=True)
     valor_novo = models.TextField("Valor novo", blank=True)
     justificativa = models.TextField("Justificativa", blank=True)
+    origem = models.CharField("Origem", max_length=80, default="Portal", db_default="Portal")
     data_hora = models.DateTimeField("Data/hora", auto_now_add=True)
 
     class Meta:

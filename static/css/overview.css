@@ -2,6 +2,25 @@
 .app-shell { min-height: 100vh; }
 .app-workspace { display: flex; flex-direction: column; }
 .app-workspace > main { flex: 1; }
+/* Navegação fixa na tela em todas as áreas do portal. */
+@media screen and (min-width: 1024px) {
+  .app-shell > .sidebar {
+    position: sticky;
+    top: 0;
+    bottom: auto;
+    left: auto;
+    align-self: flex-start;
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+  }
+  .app-shell > .sidebar > div { flex-shrink: 0; }
+  .app-shell > .sidebar > nav {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+  }
+}
 .overview-institutional-footer { border-top: 3px solid #04047e; padding: 20px 24px; background: var(--color-surface-2); text-align: left; }
 .overview-institutional-footer p { margin: 2px 0; font-size: 11px; line-height: 1.55; color: var(--color-text-muted); }
 .overview-institutional-footer .overview-footer-title { margin-bottom: 5px; font-weight: 700; color: var(--color-text); }
