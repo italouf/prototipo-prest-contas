@@ -1,0 +1,10 @@
+{% extends 'features/base.html' %}
+{% block title %}{{ titulo }} · SIG QuIIN{% endblock %}
+{% block feature_content %}
+<div class="feature-heading"><h1>{{ titulo }}</h1></div>
+<p class="feature-description">{{ descricao }}</p>
+<form method="post" enctype="multipart/form-data" class="feature-form feature-panel">{% csrf_token %}
+{{ form.non_field_errors }}
+<div class="feature-fields">{% for field in form %}<div class="{% if field.name == 'assunto' or field.name == 'competencias' %}wide{% endif %}"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{{ field.errors }}{% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}</div>{% endfor %}</div>
+<div class="feature-actions"><a class="feature-button" href="{% url voltar %}">Cancelar</a><button class="feature-button primary" type="submit">Salvar</button></div>
+</form>{% endblock %}

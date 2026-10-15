@@ -1,0 +1,48 @@
+{% extends 'features/base.html' %}{% load core_extras static %}
+{% block title %}{{ associado.nome }} · Associados{% endblock %}
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'css/associate-detail.css' %}">{% endblock %}
+{% block feature_content %}
+<div class="associate-detail">
+<p class="feature-crumb">Início / Gestão da AT / Associados</p>
+<div class="feature-heading"><h1>Associados</h1>{% if pode_gerir_at %}<a href="{% url 'gestao_at:associado_editar' associado.pk %}" data-feature-dialog="modal" class="feature-button">Editar associado</a>{% endif %}</div>
+<p class="feature-description">Carteira da Associação Tecnológica: planos, vigências e uso dos benefícios.</p>
+<nav class="feature-tabs"><a href="{% url 'gestao_at:acompanhamento' %}">Visão geral</a><a class="active" href="{% url 'gestao_at:associado' associado.pk %}" aria-current="page">Visão do associado</a></nav>
+{% if associado.demonstracao %}<div class="associate-demo">Vigência, reunião e uso dos benefícios estão como dados de demonstração até a importação da base da Associação.</div>{% endif %}
+<div class="associate-selector"><div><label for="associado-select">Associado</label><select id="associado-select" data-feature-navigate>{% for a in associados %}<option value="{% url 'gestao_at:associado' a.pk %}" {% if a.pk == associado.pk %}selected{% endif %}>{{ a.nome }} · {{ a.plano }}</option>{% endfor %}</select></div></div>
+<section class="associate-hero" aria-label="Informações do associado">
+  <div><span class="associate-hero-label">Associado</span>{{ associado.nome }} <small>· {{ associado.tipo }}</small><div class="associate-plan-row"><span class="associate-plan-badge" data-plano="{{ associado.plano.nome }}">{{ associado.plano }}</span><small>· R$ {{ associado.plano.valor_anual|numero_ptbr }} ao ano</small></div></div>
+  <div><span class="associate-hero-label">Vigência</span>{{ associado.inicio_vigencia|date:'d/m/Y' }} a {{ associado.fim_vigencia|date:'d/m/Y' }}</div>
+  <div><span class="associate-hero-label">Primeira reunião de alinhamento</span>{{ associado.primeira_reuniao|date:'d/m/Y'|default:'Não realizada' }}</div>
+  <div class="associate-email"><label for="id_email" class="associate-hero-label">E-mail da associada</label>{% if pode_gerir_at %}<form method="post">{% csrf_token %}<input type="hidden" name="acao" value="email">{{ email_form.email }}{{ email_form.email.errors }}<small>Ponto focal QuIIN: Cintia Pereira · at-quiin@fieb.org.br</small><button type="submit">Salvar e-mail</button></form>{% else %}<span>{{ associado.email|default:'a cadastrar' }}</span><small>Ponto focal QuIIN: Cintia Pereira · at-quiin@fieb.org.br</small>{% endif %}</div>
+</section>
+<div class="associate-kpis">
+  <section class="associate-kpi primary">
+    <div class="associate-ring" role="img" aria-label="{{ resumo.percentual|floatformat:0 }}% dos benefícios utilizados">
+      <svg viewBox="0 0 124 124" aria-hidden="true"><circle cx="62" cy="62" r="50" fill="none" stroke="#ECECF3" stroke-width="14"/><circle cx="62" cy="62" r="50" fill="none" stroke="#3D2699" stroke-width="14" stroke-linecap="round" pathLength="100" stroke-dasharray="{{ resumo.percentual|stringformat:'f' }} 100"/></svg>
+      <div class="associate-ring-label"><b>{{ resumo.percentual|floatformat:0 }}%</b><small>utilizado</small></div>
+    </div>
+    <div><div class="associate-kpi-label">Benefícios utilizados</div><div class="associate-kpi-value">{{ resumo.utilizados }} <small>de {{ resumo.incluidos }} benefícios do plano</small></div><div class="associate-kpi-caption">{% if tem_cotas %}% = uso médio das cotas de vagas e horas{% else %}plano sem cotas de vagas ou horas · % = benefícios de acesso utilizados{% endif %}</div></div>
+  </section>
+  <section class="associate-kpi"><div class="associate-kpi-label">Vagas de formação usadas</div><div class="associate-kpi-value">{% if vagas_meta %}{{ vagas_usadas }} <small>de {{ vagas_meta }}</small>{% else %}–{% endif %}</div><div class="associate-kpi-caption">{% if vagas_meta %}pós-graduações e workshops{% else %}não incluído no plano {{ associado.plano }}{% endif %}</div></section>
+  <section class="associate-kpi"><div class="associate-kpi-label">Horas usadas</div><div class="associate-kpi-value">{% if horas_meta %}{{ horas_usadas }}h <small>de {{ horas_meta }}h</small>{% else %}–{% endif %}</div><div class="associate-kpi-caption">{% if horas_meta %}minicurso, mentoria e transferência{% else %}não incluído no plano {{ associado.plano }}{% endif %}</div></section>
+  <section class="associate-kpi"><div class="associate-kpi-label">Solicitações</div><div class="associate-kpi-value">{{ solicitacoes|length }}</div><div class="associate-kpi-caption">{{ solicitacoes_abertas }} em aberto · {{ solicitacoes_respondidas }} respondidas</div><a class="feature-muted" href="{% url 'gestao_at:solicitacoes' %}?q={{ associado.nome|urlencode }}">Acompanhar solicitações</a></section>
+</div>
+<div class="associate-benefit-grid">{% for categoria, itens in resumo.grupos.items %}
+<section class="associate-benefit-category"><h2>{{ categoria }}</h2>{% for i in itens %}
+<div class="associate-benefit-row">
+  <div>{{ i.beneficio.nome }}{% if i.beneficio.unidade %}<span class="associate-benefit-unit">{{ i.beneficio.unidade }}</span>{% endif %}</div>
+  {% if i.beneficio.quantitativo %}
+    {% if i.plano_beneficio.incluido %}<div class="associate-benefit-track"><i style="width:{{ i.percentual|stringformat:'f' }}%"></i></div><div class="associate-benefit-quantity"><b>{{ i.usado }} de {{ i.plano_beneficio.cota }}</b> · saldo {{ i.saldo }}</div>{% else %}<div class="associate-not-included">não incluído no plano</div><div></div>{% endif %}
+  {% else %}
+    <div><b>{% if i.plano_beneficio.incluido %}{{ i.plano_beneficio.condicao }}{% else %}–{% endif %}</b></div>
+    <div class="associate-benefit-quantity">{% if not i.plano_beneficio.incluido %}<span class="associate-not-included">não incluído</span>{% elif i.usado %}<span class="associate-use-badge">Utilizado</span>{% else %}<span class="associate-use-badge unused">Não utilizado</span>{% endif %}</div>
+  {% endif %}
+</div>{% endfor %}</section>{% endfor %}</div>
+<p class="associate-legend">Benefícios utilizados = média do uso das cotas quantificáveis (vagas e horas) sobre o previsto no plano. Benefícios percentuais ou de acesso aparecem como utilizado ou não utilizado.</p>
+{% if pode_gerir_at %}<details class="associate-benefit-editor"><summary>Editar uso dos benefícios</summary>
+<form method="post">{% csrf_token %}<div class="feature-fields">{% for i in resumo.itens %}{% if i.plano_beneficio.incluido %}
+<div><label for="uso-{{ i.beneficio.pk }}">{{ i.beneficio.nome }}</label>{% if i.beneficio.quantitativo %}<input id="uso-{{ i.beneficio.pk }}" name="uso_{{ i.beneficio.pk }}" type="number" min="0" max="{{ i.plano_beneficio.cota }}" value="{{ i.usado }}">{% else %}<select id="uso-{{ i.beneficio.pk }}" name="uso_{{ i.beneficio.pk }}"><option value="0" {% if not i.usado %}selected{% endif %}>Não utilizado</option><option value="1" {% if i.usado %}selected{% endif %}>Utilizado</option></select>{% endif %}</div>
+{% endif %}{% endfor %}</div><div class="feature-actions"><button type="submit" class="feature-button primary">Salvar uso dos benefícios</button></div></form>
+</details>{% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,1022 @@
+{
+  "PIL": {
+    "pdi": {
+      "n": "PDI",
+      "t": "PDI / FCCT",
+      "r": [
+        {
+          "nm": "Artigos publicados",
+          "cd": "PDI-ARTIGOS",
+          "tp": "QTD",
+          "un": "artigos",
+          "v": 2,
+          "st": "Aprovado",
+          "rev": "",
+          "cm": "Valor de demonstração.",
+          "chg": false
+        },
+        {
+          "nm": "Pedidos de propriedade intelectual",
+          "cd": "PDI-PI",
+          "tp": "QTD",
+          "un": "pedidos",
+          "v": 1,
+          "st": "Aprovado",
+          "rev": "",
+          "cm": "Valor de demonstração.",
+          "chg": false
+        },
+        {
+          "nm": "Projetos em andamento",
+          "cd": "PDI-PROJ-AND",
+          "tp": "QTD",
+          "un": "projetos",
+          "v": 8,
+          "st": "Enviado",
+          "rev": "",
+          "cm": "Valor de demonstração.",
+          "chg": false
+        },
+        {
+          "nm": "Projetos concluídos",
+          "cd": "PDI-PROJ-CONC",
+          "tp": "QTD",
+          "un": "projetos",
+          "v": 0,
+          "st": "Rascunho",
+          "rev": "",
+          "cm": "Valor de demonstração.",
+          "chg": false
+        },
+        {
+          "nm": "Projetos iniciados",
+          "cd": "PDI-PROJ-INI",
+          "tp": "QTD",
+          "un": "projetos",
+          "v": 1,
+          "st": "Enviado",
+          "rev": "",
+          "cm": "Valor de demonstração.",
+          "chg": false
+        }
+      ]
+    },
+    "fcrh": {
+      "n": "Formação",
+      "t": "Formação e Capacitação de RH",
+      "r": [
+        {
+          "nm": "Cursos lançados",
+          "cd": "FORM-CURSOS",
+          "tp": "QTD",
+          "un": "cursos",
+          "v": 1,
+          "st": "Enviado",
+          "rev": "",
+          "cm": "Valor de demonstração.",
+          "chg": false
+        },
+        {
+          "nm": "Pessoas formadas",
+          "cd": "FORM-FORMADOS",
+          "tp": "QTD",
+          "un": "pessoas",
+          "v": 40,
+          "st": "Aprovado",
+          "rev": "",
+          "cm": "Valor de demonstração.",
+          "chg": false
+        },
+        {
+          "nm": "Matrículas",
+          "cd": "FORM-MATRICULAS",
+          "tp": "QTD",
+          "un": "matrículas",
+          "v": 55,
+          "st": "Enviado",
+          "rev": "",
+          "cm": "Valor de demonstração.",
+          "chg": false
+        }
+      ]
+    },
+    "acs": {
+      "n": "Startups",
+      "t": "Atração e Criação de Startups",
+      "r": [
+        {
+          "nm": "Startups atraídas",
+          "cd": "STA-ATRAIDAS",
+          "tp": "QTD",
+          "un": "startups",
+          "v": 1,
+          "st": "Enviado",
+          "rev": "",
+          "cm": "Valor de demonstração.",
+          "chg": false
+        },
+        {
+          "nm": "Profissionais capacitados",
+          "cd": "STA-CAPACITADOS",
+          "tp": "QTD",
+          "un": "pessoas",
+          "v": 15,
+          "st": "Enviado",
+          "rev": "",
+          "cm": "Valor de demonstração.",
+          "chg": false
+        },
+        {
+          "nm": "CNPJs criados",
+          "cd": "STA-CNPJ-CRIADOS",
+          "tp": "QTD",
+          "un": "CNPJs",
+          "v": 2,
+          "st": "Enviado",
+          "rev": "",
+          "cm": "Valor de demonstração.",
+          "chg": false
+        }
+      ]
+    },
+    "at": {
+      "n": "AT",
+      "t": "Associação Tecnológica",
+      "r": [
+        {
+          "nm": "Captação AT",
+          "cd": "AT-CAPTACAO",
+          "tp": "MON",
+          "un": "R$",
+          "v": 500000,
+          "st": "Enviado",
+          "rev": "",
+          "cm": "Valor de demonstração.",
+          "chg": false
+        },
+        {
+          "nm": "CNPJs novos",
+          "cd": "AT-CNPJ-NOVOS",
+          "tp": "QTD",
+          "un": "CNPJs",
+          "v": 5,
+          "st": "Enviado",
+          "rev": "",
+          "cm": "Valor de demonstração.",
+          "chg": false
+        },
+        {
+          "nm": "Pipeline ativo",
+          "cd": "AT-PIPELINE",
+          "tp": "QTD",
+          "un": "empresas",
+          "v": 9,
+          "st": "Devolvido",
+          "rev": "Revisão: faltam evidências. Envie o comprovante do pipeline.",
+          "cm": "Valor de demonstração.",
+          "chg": false
+        },
+        {
+          "nm": "Renovações assinadas",
+          "cd": "AT-RENOVACOES",
+          "tp": "QTD",
+          "un": "renovações",
+          "v": 3,
+          "st": "Enviado",
+          "rev": "",
+          "cm": "Valor de demonstração.",
+          "chg": false
+        }
+      ]
+    },
+    "infra": {
+      "n": "Infraestrutura",
+      "t": "Infraestrutura",
+      "r": [
+        {
+          "nm": "Execução de infraestrutura",
+          "cd": "INFRA-EXECUCAO",
+          "tp": "MON",
+          "un": "R$",
+          "v": 250000,
+          "st": "Enviado",
+          "rev": "",
+          "cm": "Valor de demonstração.",
+          "chg": false
+        }
+      ]
+    },
+    "of": {
+      "n": "Outras fontes",
+      "t": "Financeiro e Outras Fontes",
+      "r": [
+        {
+          "nm": "Captação AT",
+          "cd": "FIN-CAPT-AT",
+          "tp": "MON",
+          "un": "R$",
+          "v": 600000,
+          "st": "Enviado",
+          "rev": "",
+          "cm": "Valor de demonstração.",
+          "chg": false
+        },
+        {
+          "nm": "Execução Formação",
+          "cd": "FIN-EXEC-FORM",
+          "tp": "MON",
+          "un": "R$",
+          "v": 250000,
+          "st": "Enviado",
+          "rev": "",
+          "cm": "Valor de demonstração.",
+          "chg": false
+        },
+        {
+          "nm": "Execução Infraestrutura",
+          "cd": "FIN-EXEC-INFRA",
+          "tp": "MON",
+          "un": "R$",
+          "v": 180000,
+          "st": "Enviado",
+          "rev": "",
+          "cm": "Valor de demonstração.",
+          "chg": false
+        },
+        {
+          "nm": "Execução PDI",
+          "cd": "FIN-EXEC-PDI",
+          "tp": "MON",
+          "un": "R$",
+          "v": 400000,
+          "st": "Enviado",
+          "rev": "",
+          "cm": "Valor de demonstração.",
+          "chg": false
+        },
+        {
+          "nm": "Execução Startups",
+          "cd": "FIN-EXEC-STA",
+          "tp": "MON",
+          "un": "R$",
+          "v": 120000,
+          "st": "Enviado",
+          "rev": "",
+          "cm": "Valor de demonstração.",
+          "chg": false
+        },
+        {
+          "nm": "Outras fontes",
+          "cd": "FIN-OUTRAS-FONTES",
+          "tp": "MON",
+          "un": "R$",
+          "v": 800000,
+          "st": "Enviado",
+          "rev": "",
+          "cm": "Valor de demonstração.",
+          "chg": false
+        }
+      ]
+    }
+  },
+  "T": [
+    {
+      "n": "Ana Demonstração",
+      "c": "Analista de Projetos",
+      "p": "AT",
+      "s": [
+        "Gestão de Eventos",
+        "Python"
+      ],
+      "h": 40,
+      "a": 10,
+      "l": "http://lattes.cnpq.br",
+      "f": [
+        [
+          "Graduação",
+          "Economia"
+        ],
+        [
+          "Mestrado",
+          "Administração"
+        ],
+        [
+          "Doutorado",
+          "Economia"
+        ]
+      ]
+    },
+    {
+      "n": "Bruno Exemplo",
+      "c": "Pesquisador Sênior",
+      "p": "PDI",
+      "s": [
+        "Óptica Quântica"
+      ],
+      "h": 40,
+      "a": 0,
+      "l": "",
+      "f": [
+        [
+          "Graduação",
+          "Física"
+        ],
+        [
+          "Doutorado",
+          "Física"
+        ]
+      ]
+    },
+    {
+      "n": "Carla Modelo",
+      "c": "Designer de Eventos",
+      "p": "ACS",
+      "s": [
+        "Gestão de Eventos"
+      ],
+      "h": 40,
+      "a": 0,
+      "l": "",
+      "f": [
+        [
+          "Graduação",
+          "Design"
+        ]
+      ]
+    }
+  ],
+  "LV": {
+    "Bronze": {
+      "v": 60000,
+      "lato": 1,
+      "aperf": 2,
+      "ment": 0,
+      "mini": 12,
+      "work": 1,
+      "tt": 0,
+      "infra": "–",
+      "hpc": "5%",
+      "prio": "4º",
+      "lic": "–",
+      "dlic": "10%",
+      "desafio": "–"
+    },
+    "Prata": {
+      "v": 120000,
+      "lato": 2,
+      "aperf": 4,
+      "ment": 0,
+      "mini": 24,
+      "work": 2,
+      "tt": 0,
+      "infra": "15%",
+      "hpc": "8%",
+      "prio": "3º",
+      "lic": "–",
+      "dlic": "20%",
+      "desafio": "–"
+    },
+    "Ouro": {
+      "v": 240000,
+      "lato": 4,
+      "aperf": 6,
+      "ment": 40,
+      "mini": 48,
+      "work": 4,
+      "tt": 40,
+      "infra": "25%",
+      "hpc": "10%",
+      "prio": "2º",
+      "lic": "–",
+      "dlic": "30%",
+      "desafio": "–"
+    },
+    "Níquel 1": {
+      "v": 3000,
+      "lato": 0,
+      "aperf": 0,
+      "ment": 0,
+      "mini": 0,
+      "work": 0,
+      "tt": 0,
+      "infra": "–",
+      "hpc": "–",
+      "prio": "5º",
+      "lic": "–",
+      "dlic": "–",
+      "desafio": "–"
+    },
+    "Níquel 2": {
+      "v": 600,
+      "lato": 0,
+      "aperf": 0,
+      "ment": 0,
+      "mini": 0,
+      "work": 0,
+      "tt": 0,
+      "infra": "–",
+      "hpc": "–",
+      "prio": "6º",
+      "lic": "–",
+      "dlic": "–",
+      "desafio": "–"
+    },
+    "Diamante": {
+      "v": 600000,
+      "lato": 8,
+      "aperf": 12,
+      "ment": 80,
+      "mini": 96,
+      "work": 8,
+      "tt": 80,
+      "infra": "40%",
+      "hpc": "15%",
+      "prio": "1º",
+      "lic": "Sim",
+      "dlic": "50%",
+      "desafio": "Sim"
+    }
+  },
+  "AS": [
+    {
+      "n": "BV",
+      "tp": "Empresa",
+      "lv": "Prata",
+      "em": "",
+      "vi": "01/03/2026 a 28/02/2027",
+      "reu": "15/03/2026",
+      "u": {
+        "lato": 1,
+        "aperf": 2,
+        "ment": 0,
+        "mini": 10,
+        "work": 1,
+        "tt": 0
+      },
+      "use": {
+        "est": 1,
+        "gt": 1,
+        "hpc": 1
+      },
+      "fim": "28/02/2027"
+    },
+    {
+      "n": "INNEX",
+      "tp": "Startup",
+      "lv": "Níquel 1",
+      "em": "",
+      "vi": "01/11/2025 a 31/10/2026",
+      "reu": "20/11/2025",
+      "u": {
+        "lato": 0,
+        "aperf": 0,
+        "ment": 0,
+        "mini": 0,
+        "work": 0,
+        "tt": 0
+      },
+      "use": {
+        "est": 1,
+        "gt": 1
+      },
+      "fim": "31/10/2026"
+    },
+    {
+      "n": "Embeddo",
+      "tp": "Startup",
+      "lv": "Níquel 1",
+      "em": "",
+      "vi": "01/12/2025 a 30/11/2026",
+      "reu": "15/12/2025",
+      "u": {
+        "lato": 0,
+        "aperf": 0,
+        "ment": 0,
+        "mini": 0,
+        "work": 0,
+        "tt": 0
+      },
+      "use": {
+        "est": 1
+      },
+      "fim": "30/11/2026"
+    },
+    {
+      "n": "Dynex",
+      "tp": "Startup",
+      "lv": "Níquel 1",
+      "em": "",
+      "vi": "15/01/2026 a 14/01/2027",
+      "reu": "30/01/2026",
+      "u": {
+        "lato": 0,
+        "aperf": 0,
+        "ment": 0,
+        "mini": 0,
+        "work": 0,
+        "tt": 0
+      },
+      "use": {
+        "gt": 1
+      },
+      "fim": "14/01/2027"
+    },
+    {
+      "n": "Quantuloop",
+      "tp": "Startup",
+      "lv": "Níquel 1",
+      "em": "",
+      "vi": "01/02/2026 a 31/01/2027",
+      "reu": "20/02/2026",
+      "u": {
+        "lato": 0,
+        "aperf": 0,
+        "ment": 0,
+        "mini": 0,
+        "work": 0,
+        "tt": 0
+      },
+      "use": {
+        "est": 1,
+        "gt": 1
+      },
+      "fim": "31/01/2027"
+    },
+    {
+      "n": "Dobslit",
+      "tp": "Startup",
+      "lv": "Níquel 1",
+      "em": "",
+      "vi": "01/10/2025 a 30/09/2026",
+      "reu": "22/10/2025",
+      "u": {
+        "lato": 0,
+        "aperf": 0,
+        "ment": 0,
+        "mini": 0,
+        "work": 0,
+        "tt": 0
+      },
+      "use": {},
+      "fim": "30/09/2026"
+    },
+    {
+      "n": "QWise",
+      "tp": "Startup",
+      "lv": "Níquel 1",
+      "em": "",
+      "vi": "01/04/2026 a 31/03/2027",
+      "reu": "Não realizada",
+      "u": {
+        "lato": 0,
+        "aperf": 0,
+        "ment": 0,
+        "mini": 0,
+        "work": 0,
+        "tt": 0
+      },
+      "use": {
+        "est": 1
+      },
+      "fim": "31/03/2027"
+    },
+    {
+      "n": "UFAL",
+      "tp": "ICT",
+      "lv": "Níquel 2",
+      "em": "",
+      "vi": "01/03/2026 a 28/02/2027",
+      "reu": "18/03/2026",
+      "u": {
+        "lato": 0,
+        "aperf": 0,
+        "ment": 0,
+        "mini": 0,
+        "work": 0,
+        "tt": 0
+      },
+      "use": {
+        "est": 1,
+        "gt": 1
+      },
+      "fim": "28/02/2027"
+    },
+    {
+      "n": "HC In.lab",
+      "tp": "ICT",
+      "lv": "Níquel 2",
+      "em": "",
+      "vi": "01/11/2025 a 31/10/2026",
+      "reu": "25/11/2025",
+      "u": {
+        "lato": 0,
+        "aperf": 0,
+        "ment": 0,
+        "mini": 0,
+        "work": 0,
+        "tt": 0
+      },
+      "use": {
+        "est": 1
+      },
+      "fim": "31/10/2026"
+    },
+    {
+      "n": "ABCI",
+      "tp": "ICT",
+      "lv": "Níquel 2",
+      "em": "",
+      "vi": "01/06/2026 a 31/05/2027",
+      "reu": "Não realizada",
+      "u": {
+        "lato": 0,
+        "aperf": 0,
+        "ment": 0,
+        "mini": 0,
+        "work": 0,
+        "tt": 0
+      },
+      "use": {
+        "gt": 1
+      },
+      "fim": "31/05/2027"
+    },
+    {
+      "n": "UNISO",
+      "tp": "ICT",
+      "lv": "Níquel 2",
+      "em": "",
+      "vi": "01/12/2025 a 30/11/2026",
+      "reu": "10/12/2025",
+      "u": {
+        "lato": 0,
+        "aperf": 0,
+        "ment": 0,
+        "mini": 0,
+        "work": 0,
+        "tt": 0
+      },
+      "use": {},
+      "fim": "30/11/2026"
+    },
+    {
+      "n": "UEA",
+      "tp": "ICT",
+      "lv": "Níquel 2",
+      "em": "",
+      "vi": "01/05/2026 a 30/04/2027",
+      "reu": "21/05/2026",
+      "u": {
+        "lato": 0,
+        "aperf": 0,
+        "ment": 0,
+        "mini": 0,
+        "work": 0,
+        "tt": 0
+      },
+      "use": {
+        "est": 1
+      },
+      "fim": "30/04/2027"
+    },
+    {
+      "n": "CPQD",
+      "tp": "ICT",
+      "lv": "Níquel 2",
+      "em": "",
+      "vi": "01/08/2026 a 31/07/2027",
+      "reu": "19/08/2026",
+      "u": {
+        "lato": 0,
+        "aperf": 0,
+        "ment": 0,
+        "mini": 0,
+        "work": 0,
+        "tt": 0
+      },
+      "use": {
+        "est": 1,
+        "gt": 1
+      },
+      "fim": "31/07/2027"
+    }
+  ],
+  "QB": [
+    [
+      "lato",
+      "Pós-graduação Lato Sensu 360h",
+      "vagas/ano"
+    ],
+    [
+      "aperf",
+      "Pós-graduação Aperfeiçoamento 180h",
+      "vagas/ano"
+    ],
+    [
+      "mini",
+      "Minicurso",
+      "horas/ano"
+    ],
+    [
+      "work",
+      "Workshop Hands-On Kuatomu",
+      "vagas/ano"
+    ],
+    [
+      "ment",
+      "Horas de mentoria do QuIIN",
+      "horas"
+    ],
+    [
+      "tt",
+      "Transferência de tecnologia",
+      "horas"
+    ]
+  ],
+  "RT": {
+    "PDI": "Resp. técnico PDI",
+    "Formação": "Resp. técnico FCRH",
+    "Infraestrutura": "Resp. técnico Infraestrutura",
+    "Plataformas e PI": "Resp. técnico PDI",
+    "Mentoria": "Resp. técnico PDI",
+    "Estudos": "Resp. técnico Estudos",
+    "Startups": "Resp. técnico ACS"
+  },
+  "SO": [
+    {
+      "d": "02/10/2026",
+      "a": "BV",
+      "p": "Formação",
+      "b": "Pós-graduação Lato Sensu 360h",
+      "s": "Indicação de colaborador para a próxima turma",
+      "st": "Em andamento",
+      "r": "",
+      "id": 1,
+      "lv": "Prata",
+      "rt": "Resp. técnico FCRH",
+      "h": [
+        {
+          "d": "02/10/2026",
+          "t": "Recebida por Cintia Pereira (ponto focal da Associação)"
+        },
+        {
+          "d": "02/10/2026",
+          "t": "Encaminhada a Resp. técnico FCRH"
+        },
+        {
+          "d": "02/10/2026",
+          "t": "Em análise pelo responsável técnico"
+        }
+      ]
+    },
+    {
+      "d": "25/09/2026",
+      "a": "CPQD",
+      "p": "Estudos",
+      "b": "Estudos de mercado e boletins técnicos",
+      "s": "Boletim técnico sobre redes QKD",
+      "st": "Respondida",
+      "r": "30/09/2026",
+      "id": 2,
+      "lv": "Níquel 2",
+      "rt": "Resp. técnico Estudos",
+      "h": [
+        {
+          "d": "25/09/2026",
+          "t": "Recebida por Cintia Pereira (ponto focal da Associação)"
+        },
+        {
+          "d": "25/09/2026",
+          "t": "Encaminhada a Resp. técnico Estudos"
+        },
+        {
+          "d": "25/09/2026",
+          "t": "Em análise pelo responsável técnico"
+        },
+        {
+          "d": "30/09/2026",
+          "t": "Resposta enviada ao associado"
+        }
+      ]
+    },
+    {
+      "d": "18/09/2026",
+      "a": "INNEX",
+      "p": "Estudos",
+      "b": "Estudos de mercado e boletins técnicos",
+      "s": "Acesso ao estudo de mercado de tecnologias quânticas",
+      "st": "Concluída",
+      "r": "22/09/2026",
+      "id": 3,
+      "lv": "Níquel 1",
+      "rt": "Resp. técnico Estudos",
+      "h": [
+        {
+          "d": "18/09/2026",
+          "t": "Recebida por Cintia Pereira (ponto focal da Associação)"
+        },
+        {
+          "d": "18/09/2026",
+          "t": "Encaminhada a Resp. técnico Estudos"
+        },
+        {
+          "d": "18/09/2026",
+          "t": "Em análise pelo responsável técnico"
+        },
+        {
+          "d": "22/09/2026",
+          "t": "Resposta enviada ao associado"
+        },
+        {
+          "d": "22/09/2026",
+          "t": "Solicitação concluída"
+        }
+      ]
+    },
+    {
+      "d": "08/10/2026",
+      "a": "UFAL",
+      "p": "Estudos",
+      "b": "Grupo de trabalho",
+      "s": "Participação no grupo de trabalho de comunicação quântica",
+      "st": "Encaminhada",
+      "r": "",
+      "id": 4,
+      "lv": "Níquel 2",
+      "rt": "Resp. técnico Estudos",
+      "h": [
+        {
+          "d": "08/10/2026",
+          "t": "Recebida por Cintia Pereira (ponto focal da Associação)"
+        },
+        {
+          "d": "08/10/2026",
+          "t": "Encaminhada a Resp. técnico Estudos"
+        }
+      ]
+    },
+    {
+      "d": "12/10/2026",
+      "a": "BV",
+      "p": "Formação",
+      "b": "Minicurso",
+      "s": "Inscrição de 3 colaboradores no minicurso de computação quântica",
+      "st": "Recebida",
+      "r": "",
+      "id": 5,
+      "lv": "Prata",
+      "rt": "Resp. técnico FCRH",
+      "h": [
+        {
+          "d": "12/10/2026",
+          "t": "Recebida por Cintia Pereira (ponto focal da Associação)"
+        }
+      ]
+    },
+    {
+      "d": "15/09/2026",
+      "a": "Quantuloop",
+      "p": "Plataformas e PI",
+      "b": "Ordem de prioridade no licenciamento",
+      "s": "Consulta sobre prioridade no licenciamento de tecnologia",
+      "st": "Em andamento",
+      "r": "",
+      "id": 6,
+      "lv": "Níquel 1",
+      "rt": "Resp. técnico PDI",
+      "h": [
+        {
+          "d": "15/09/2026",
+          "t": "Recebida por Cintia Pereira (ponto focal da Associação)"
+        },
+        {
+          "d": "15/09/2026",
+          "t": "Encaminhada a Resp. técnico PDI"
+        },
+        {
+          "d": "15/09/2026",
+          "t": "Em análise pelo responsável técnico"
+        }
+      ]
+    },
+    {
+      "d": "30/09/2026",
+      "a": "Embeddo",
+      "p": "Estudos",
+      "b": "Grupo de trabalho",
+      "s": "Inclusão no grupo de trabalho de hardware quântico",
+      "st": "Encaminhada",
+      "r": "",
+      "id": 7,
+      "lv": "Níquel 1",
+      "rt": "Resp. técnico Estudos",
+      "h": [
+        {
+          "d": "30/09/2026",
+          "t": "Recebida por Cintia Pereira (ponto focal da Associação)"
+        },
+        {
+          "d": "30/09/2026",
+          "t": "Encaminhada a Resp. técnico Estudos"
+        }
+      ]
+    },
+    {
+      "d": "05/10/2026",
+      "a": "UEA",
+      "p": "Estudos",
+      "b": "Estudos de mercado e boletins técnicos",
+      "s": "Acesso ao boletim técnico do 3º trimestre",
+      "st": "Respondida",
+      "r": "07/10/2026",
+      "id": 8,
+      "lv": "Níquel 2",
+      "rt": "Resp. técnico Estudos",
+      "h": [
+        {
+          "d": "05/10/2026",
+          "t": "Recebida por Cintia Pereira (ponto focal da Associação)"
+        },
+        {
+          "d": "05/10/2026",
+          "t": "Encaminhada a Resp. técnico Estudos"
+        },
+        {
+          "d": "05/10/2026",
+          "t": "Em análise pelo responsável técnico"
+        },
+        {
+          "d": "07/10/2026",
+          "t": "Resposta enviada ao associado"
+        }
+      ]
+    }
+  ],
+  "VIG": {
+    "BV": [
+      "01/03/2026",
+      "28/02/2027",
+      "15/03/2026"
+    ],
+    "INNEX": [
+      "01/11/2025",
+      "31/10/2026",
+      "20/11/2025"
+    ],
+    "Embeddo": [
+      "01/12/2025",
+      "30/11/2026",
+      "15/12/2025"
+    ],
+    "Dynex": [
+      "15/01/2026",
+      "14/01/2027",
+      "30/01/2026"
+    ],
+    "Quantuloop": [
+      "01/02/2026",
+      "31/01/2027",
+      "20/02/2026"
+    ],
+    "Dobslit": [
+      "01/10/2025",
+      "30/09/2026",
+      "22/10/2025"
+    ],
+    "QWise": [
+      "01/04/2026",
+      "31/03/2027",
+      "Não realizada"
+    ],
+    "UFAL": [
+      "01/03/2026",
+      "28/02/2027",
+      "18/03/2026"
+    ],
+    "HC In.lab": [
+      "01/11/2025",
+      "31/10/2026",
+      "25/11/2025"
+    ],
+    "ABCI": [
+      "01/06/2026",
+      "31/05/2027",
+      "Não realizada"
+    ],
+    "UNISO": [
+      "01/12/2025",
+      "30/11/2026",
+      "10/12/2025"
+    ],
+    "UEA": [
+      "01/05/2026",
+      "30/04/2027",
+      "21/05/2026"
+    ],
+    "CPQD": [
+      "01/08/2026",
+      "31/07/2027",
+      "19/08/2026"
+    ]
+  }
+}
