@@ -14,9 +14,8 @@
       <span class="overview-context-chip">Base Financeira</span><span class="overview-context-chip">valores em R$ milhões</span>
     {% else %}
       <span class="overview-context-chip">Executado acumulado da base</span>
-      <span class="overview-context-chip">Projeção ano 3 (12 meses) e ano 4 (6 meses)</span><span class="overview-context-chip">Base Física</span>
+      <span class="overview-context-chip">Base Física</span>
     {% endif %}
-    <span class="overview-context-source">Fonte {{ fonte_dashboard }}</span>
   </div>
   {% if erro_periodo %}<div class="overview-notice" role="alert">{{ erro_periodo }}</div>{% elif sem_dados_intervalo %}<div class="overview-notice" role="status">Sem dados para o intervalo selecionado. A base contém snapshots do ciclo completo e dados anuais; os meses escolhidos não têm lançamentos nessa granularidade.</div>{% endif %}
   {% if not quantidade_pilares %}<div class="overview-notice overview-empty" role="status">Selecione ao menos um pilar para visualizar os resultados.</div>{% else %}

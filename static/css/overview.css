@@ -235,6 +235,7 @@ body:has(.overview-dashboard) #main { max-width: none; flex: none; padding: 24px
 .overview-page-title { margin: 0; font-size: 28px; line-height: 1.25; }
 .overview-page-actions, .overview-editor-actions { display: flex; align-items: center; gap: 10px; }
 .overview-action-button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 13px; border: 1px solid var(--color-border); border-radius: 8px; background: var(--color-surface-2); color: var(--color-text); font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.overview-header-actions .overview-clear-filters { height: 32px; padding: 6px 10px; font-size: 11px; }
 .overview-action-primary { background: #04047e; border-color: #04047e; color: #fff; }
 .overview-header-row { display: grid; grid-template-columns: minmax(0, 1fr) 366px; align-items: end; gap: 18px; min-height: 90px; padding: 8px 24px 10px; }
 .overview-header-utilities { display: flex; flex-direction: column; gap: 8px; }

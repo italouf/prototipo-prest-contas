@@ -17,7 +17,7 @@ def dinheiro(valor, compacto=False):
     if valor is None:
         return "—"
     escala = Decimal(1000000) if compacto and abs(valor) >= 1000000 else Decimal(1000) if compacto and abs(valor) >= 1000 else Decimal(1)
-    sufixo = " mi" if escala == 1000000 else " mil" if escala == 1000 else ""
+    sufixo = " milhões" if escala == 1000000 else " mil" if escala == 1000 else ""
     return "R$ " + _numero_brl((valor / escala).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP), 2) + sufixo
 
 
