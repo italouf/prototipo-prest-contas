@@ -6,7 +6,7 @@ from django.http import QueryDict
 
 from apps.planning.physical import resumo_fisico
 from apps.planning.services import faixa, pct_inteiro
-from .templatetags.core_extras import _numero_brl, numero_curto
+from .templatetags.core_extras import _numero_brl, numero_curto, numero_ptbr
 
 
 ZERO = Decimal(0)
@@ -18,7 +18,7 @@ def dinheiro(valor, compacto=False):
         return "—"
     escala = Decimal(1000000) if compacto and abs(valor) >= 1000000 else Decimal(1000) if compacto and abs(valor) >= 1000 else Decimal(1)
     sufixo = " milhões" if escala == 1000000 else " mil" if escala == 1000 else ""
-    return "R$ " + _numero_brl((valor / escala).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP), 2) + sufixo
+    return "R$ " + numero_ptbr((valor / escala).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)) + sufixo
 
 
 def separar_unidade(valor):
@@ -141,7 +141,7 @@ def apresentar_pilar(contexto, periodo):
             fontes = pp.get("registros_captacao", [])
             meta = pp.get("total_captacao", {}).get("recurso_ou_meta")
             pct_meta = taxa(pp.get("previsto"), meta)
-            cards.append({"titulo": "Captado total", "valor": dinheiro(pp.get("previsto"), True), "referencia": "meta de captação de " + dinheiro(meta, True), "rotulo_barra": taxa_texto(pct_meta) + " da meta" if pct_meta is not None else "—", "mostrar_barra": True, **progresso(pct_meta)})
+            cards.append({"titulo": "Captado total", "valor": dinheiro(pp.get("previsto"), True), "referencia": "meta de captação de " + dinheiro(meta, True), "rotulo_barra": numero_ptbr(pct_meta.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)) + "% da meta" if pct_meta is not None else "—", "mostrar_barra": True, **progresso(pct_meta)})
             escala = max((r[c] or ZERO for r in fontes for c in ("recurso_ou_meta", "captado")), default=ZERO)
             for r in fontes:
                 r.update(codigo=r["pilar__codigo"], nome="Associação Tecnológica" if r["pilar__codigo"] == "AT" else "Outras fontes")
@@ -164,7 +164,6 @@ def apresentar_pilar(contexto, periodo):
             cards.append({"titulo": pp["rotulo_previsto"], "valor": dinheiro(pp.get("previsto"), True), "referencia": "recurso total do pilar no PPI"})
         saldo_pct = taxa(pp.get("saldo"), pp.get("previsto"))
         cards.append({"titulo": "Saldo" if pp.get("visao_captacao") else "Dif. rel. ao PPI" if codigo == "PDI" else "Diferença PPI", "valor": dinheiro(pp.get("saldo"), True), "referencia": "de " + dinheiro(pp.get("previsto"), True) + " · saldo a executar", "mostrar_barra": True, "cinza": True, "rotulo_barra": numero_curto(pct_inteiro(pp.get("saldo"), pp.get("previsto"))) + "%" if saldo_pct is not None else "—", **progresso(saldo_pct, "neutra")})
-        cards.append({"titulo": "Por fonte · realizado" if pp.get("visao_captacao") else "Carteira de projetos", "fontes": pp.get("registros_captacao") if pp.get("visao_captacao") else None, "carteira": pp.get("grupos_projetos") if not pp.get("visao_captacao") else None})
     else:
         _anual(pp)
         grupos = pp.get("tabela_gerencial_fisica", {}).get("grupos", [])
@@ -197,7 +196,6 @@ def apresentar_pilar(contexto, periodo):
             zerado = pp.get("saldo") == 0 and pp.get("previsto") is not None and pp["previsto"] > 0 and pp.get("executado") is not None
             pct_saldo = 100 if zerado else pct_inteiro(pp.get("saldo"), pp.get("previsto"))
             cards.append({"titulo": "Saldo a executar", "valor": numero_curto(pp.get("saldo")), "unidade": "metas", "referencia": "meta superada · nada a realizar" if zerado else "todo o saldo está em projetos em inovação aberta" if codigo == "STARTUPS" else "restante da meta", "mostrar_barra": True, "cinza": not zerado, "rotulo_barra": numero_curto(pct_saldo) + "%" if pct_saldo is not None else "—", **progresso(pct_saldo, "ok" if zerado else "neutra")})
-        cards.append({"titulo": "Executado por ano" if codigo == "FORMACAO" else "Indicadores" if pp.get("visao_captacao") else "Indicadores do pilar", "anos": [l for l in pp.get("tabela", []) if not l["total"]] if codigo == "FORMACAO" else None, "counts": pp.get("status_counts") if codigo != "FORMACAO" else None})
     for i, card in enumerate(cards, 1):
         card["chave"] = str(i)
         valor, unidade = separar_unidade(card.get("valor", ""))

@@ -1,7 +1,7 @@
 """Contexto de apresentação e seleção de pilares do Dashboard Geral."""
 from django.http import QueryDict
 from decimal import Decimal, ROUND_DOWN, ROUND_HALF_UP
-from .templatetags.core_extras import numero_curto, _numero_brl
+from .templatetags.core_extras import numero_ptbr
 
 from apps.planning.services import ANOS, PILARES_PPI, ROTULOS_PAINEL, faixa
 
@@ -39,15 +39,14 @@ def contexto_visao_geral(contexto, selecionados=None):
             divisor = Decimal("1000000") if valor is not None and abs(valor) >= 1000000 else Decimal("1000") if valor is not None and abs(valor) >= 1000 else Decimal(1)
             if not card.get("valores_em_reais"):
                 divisor = Decimal(1)
-            card["valor_numero"] = _numero_brl((valor / divisor).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP), 2) if valor is not None else "—"
+            card["valor_numero"] = numero_ptbr((valor / divisor).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)) if valor is not None else "—"
             card["valor_unidade"] = "milhões" if divisor == 1000000 or not card.get("valores_em_reais") else "mil" if divisor == 1000 else ""
             prev = card["previsto"]
             div_prev = Decimal("1000000") if card.get("valores_em_reais") and prev is not None and abs(prev) >= 1000000 else Decimal("1000") if card.get("valores_em_reais") and prev is not None and abs(prev) >= 1000 else Decimal(1)
             unidade_prev = " milhões" if div_prev == 1000000 or not card.get("valores_em_reais") else " mil" if div_prev == 1000 else ""
             if prev is not None:
                 previsto_escalado = (prev / div_prev).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-                decimais = 0 if card["chave"] == "ppi" and previsto_escalado == previsto_escalado.to_integral_value() else 2
-                card["previsto_fmt"] = "R$ " + _numero_brl(previsto_escalado, decimais) + unidade_prev
+                card["previsto_fmt"] = "R$ " + numero_ptbr(previsto_escalado) + unidade_prev
             else:
                 card["previsto_fmt"] = "—"
     for grupo in painel["tabela"]["grupos"]:

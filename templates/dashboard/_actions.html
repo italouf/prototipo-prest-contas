@@ -1,5 +1,5 @@
 <details class="overview-more-actions" onkeydown="if(event.key === 'Escape') { this.open = false; this.querySelector('summary').focus(); }">
-  <summary class="overview-icon-button" aria-label="Mais ações" title="Mais ações">···</summary>
+  <summary class="overview-icon-button" aria-label="Mais ações" title="Mais ações">+</summary>
   <div>
     {% if pode_importar_financeiro %}<a href="{% url 'accountability:importar' %}">Importar dados</a>{% endif %}
     {% if pode_editar_painel or pode_editar_pilar %}<button type="button" data-testid="btn-editar-dados" data-editor-toggle onclick="this.closest('details').open = false; quiinAlternarEditor()"><span data-editor-rotulo>Editar dados</span></button>{% endif %}
