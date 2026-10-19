@@ -13,6 +13,67 @@ async function openActions(page: Page) {
   return page.locator('.overview-more-actions');
 }
 
+test('subtotal de AT e Outras fontes aparece antes do consolidado e respeita filtros', async ({ page }) => {
+  await login(page);
+  const programa = page.getByTestId('programa-accordion');
+  await programa.locator('summary').first().click();
+  const fontes = programa.getByRole('table', { name: 'AT e Outras fontes', exact: true });
+  const subtotal = page.getByTestId('subtotal-fontes');
+  await expect(subtotal).toContainText('Subtotal AT e Outras fontes');
+  const subtotalBox = await subtotal.boundingBox();
+  const totalBox = await fontes.locator('tfoot').boundingBox();
+  expect(subtotalBox!.y + subtotalBox!.height).toBeLessThanOrEqual(totalBox!.y + 1);
+  await page.goto('/?base=fin&filtrar_pilares=1&pilares=AT');
+  await page.getByTestId('programa-accordion').locator('summary').first().click();
+  const at = page.locator('.overview-fund-fontes tbody.overview-fund-at tr').last();
+  const atValues = await at.locator('td').allTextContents();
+  const subtotalValues = await page.getByTestId('subtotal-fontes').locator('td').allTextContents();
+  expect(subtotalValues.map(value => value.trim())).toEqual(atValues.map(value => value.trim()));
+  await expect(page.locator('.overview-fund-fontes tbody.overview-fund-outras')).toHaveCount(0);
+});
+
+test('PDI fixa cabeçalho, mostra só percentuais e permite ocultar grupos sem perder projetos na impressão', async ({ page }, testInfo) => {
+  await login(page);
+  const href = await page.locator('.sidebar a[data-nav-link][href^="/pilar/"]').filter({ hasText: /PDI|PD&I/ }).first().getAttribute('href');
+  await page.goto(`${href}?base=fin`);
+  const projetos = page.getByTestId('projetos-accordion');
+  await projetos.locator('summary').first().click();
+  const table = projetos.locator('table');
+  const scroller = projetos.locator('.pillar-project-scroll');
+  await expect(table.locator('.overview-progress-track')).toHaveCount(0);
+  const totalBefore = await table.locator('tfoot td, tfoot th').allTextContents();
+  await scroller.evaluate(element => { element.scrollTop = 220; element.scrollLeft = 150; });
+  await expect.poll(async () => {
+    const header = await table.locator('thead').boundingBox();
+    const region = await scroller.boundingBox();
+    return Math.abs(header!.y - region!.y);
+  }).toBeLessThan(2);
+  await scroller.screenshot({ path: testInfo.outputPath('pdi-cabecalho-fixo.png') });
+  await scroller.evaluate(element => { element.scrollTop = 0; element.scrollLeft = 0; });
+  const buttons = projetos.locator('[data-project-group-toggle]');
+  await expect(buttons).toHaveCount(3);
+  for (const button of await buttons.all()) {
+    const id = await button.getAttribute('aria-controls');
+    await button.click();
+    await expect(button).toHaveAttribute('aria-expanded', 'false');
+    await expect(page.locator(`#${id}`)).toBeHidden();
+  }
+  expect(await table.locator('tfoot td, tfoot th').allTextContents()).toEqual(totalBefore);
+  await scroller.screenshot({ path: testInfo.outputPath('pdi-grupos-ocultos.png') });
+  await page.emulateMedia({ media: 'print' });
+  await page.evaluate(() => window.dispatchEvent(new Event('beforeprint')));
+  for (const group of await table.locator('[data-project-rows]').all()) await expect(group).toBeVisible();
+  for (const button of await buttons.all()) await expect(button).toBeHidden();
+  await page.emulateMedia({ media: 'screen' });
+  await page.evaluate(() => window.dispatchEvent(new Event('afterprint')));
+  for (const group of await table.locator('[data-project-rows]').all()) await expect(group).toBeHidden();
+  for (const button of await buttons.all()) {
+    await button.click();
+    await expect(button).toHaveAttribute('aria-expanded', 'true');
+  }
+  expect(await table.locator('tfoot td, tfoot th').allTextContents()).toEqual(totalBefore);
+});
+
 test('topbar organiza ações à esquerda e usuário abaixo dos logos', async ({ page }) => {
   await login(page);
   const header = page.getByTestId('app-header');

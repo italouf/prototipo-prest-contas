@@ -21,12 +21,25 @@ window.quiinSelecionarPilares = function (alvo, selecionar) {
 };
 
 document.addEventListener('click', function (event) {
+  var button = event.target.closest('[data-project-group-toggle]');
+  if (!button) return;
+  var rows = document.getElementById(button.getAttribute('data-project-group-toggle'));
+  if (!rows) return;
+  rows.hidden = !rows.hidden;
+  var label = rows.hidden ? 'Expandir' : 'Ocultar';
+  button.setAttribute('aria-expanded', rows.hidden ? 'false' : 'true');
+  button.setAttribute('aria-label', label + ' projetos: ' + rows.getAttribute('data-project-group-name'));
+  button.querySelector('[data-project-group-label]').textContent = label;
+});
+
+document.addEventListener('click', function (event) {
   document.querySelectorAll('.overview-pillars[open], .overview-more-actions[open]').forEach(function (menu) {
     if (!menu.contains(event.target)) menu.open = false;
   });
 });
 
 var quiinEstadoImpressao = [];
+var quiinGruposImpressao = [];
 window.addEventListener('beforeprint', function () {
   if (quiinEstadoImpressao.length) return;
   quiinEstadoImpressao = Array.from(document.querySelectorAll('.overview-accordion')).map(function (painel) {
@@ -34,10 +47,17 @@ window.addEventListener('beforeprint', function () {
     painel.open = true;
     return estado;
   });
+  quiinGruposImpressao = Array.from(document.querySelectorAll('[data-project-rows]')).map(function (grupo) {
+    var estado = { grupo: grupo, oculto: grupo.hidden };
+    grupo.hidden = false;
+    return estado;
+  });
 });
 window.addEventListener('afterprint', function () {
   quiinEstadoImpressao.forEach(function (estado) { estado.painel.open = estado.aberto; });
+  quiinGruposImpressao.forEach(function (estado) { estado.grupo.hidden = estado.oculto; });
   quiinEstadoImpressao = [];
+  quiinGruposImpressao = [];
 });
 
 /* A confirmação mantém o botão original para preservar ações como restaurar e baixar. */

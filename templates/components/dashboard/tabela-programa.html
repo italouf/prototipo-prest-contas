@@ -23,6 +23,7 @@
           {% for linha in grupo.linhas %}{% include 'dashboard/_programa_linha.html' %}{% endfor %}
         </tbody>
         {% empty %}<tbody><tr><td colspan="8" class="overview-empty">Nenhuma fonte selecionada.</td></tr></tbody>{% endfor %}
+        <tbody class="overview-program-subtotal" data-testid="subtotal-fontes">{% include 'dashboard/_programa_linha.html' with linha=tabela.subtotal_fontes %}</tbody>
         <tfoot class="overview-program-total">{% include 'dashboard/_programa_linha.html' with linha=tabela.total %}</tfoot>
       </table>
     </div>

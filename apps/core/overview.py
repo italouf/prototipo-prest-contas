@@ -3,7 +3,7 @@ from django.http import QueryDict
 from decimal import Decimal, ROUND_DOWN, ROUND_HALF_UP
 from .templatetags.core_extras import numero_curto, _numero_brl
 
-from apps.planning.services import ANOS, PILARES_PPI, ROTULOS_PAINEL
+from apps.planning.services import ANOS, PILARES_PPI, ROTULOS_PAINEL, faixa
 
 CODIGOS = (*PILARES_PPI, "AT", "OUTRASFONTES")
 
@@ -12,6 +12,20 @@ def resolver_pilares(params):
     if "filtrar_pilares" not in params:
         return None
     return [codigo for codigo in CODIGOS if codigo in params.getlist("pilares")]
+
+
+def subtotal_fontes(linhas):
+    totais = {}
+    for campo in ("recurso", "realizado", "projetado", "combinado"):
+        valores = [linha[campo] for linha in linhas if linha[campo] is not None]
+        totais[campo] = sum(valores, Decimal(0)) if valores else None
+    recurso, realizado = totais["recurso"], totais["realizado"]
+    pct = realizado / recurso * 100 if realizado is not None and recurso is not None and recurso > 0 else None
+    return {
+        **totais, "rotulo": "Subtotal AT e Outras fontes", "detalhe": "AT + outras fontes", "total": True,
+        "diferenca": recurso - realizado if recurso is not None and realizado is not None else None,
+        "pct": pct, "faixa": faixa(pct), "barra": min(max(pct or 0, 0), 100),
+    }
 
 
 def contexto_visao_geral(contexto, selecionados=None):
@@ -51,6 +65,9 @@ def contexto_visao_geral(contexto, selecionados=None):
                       for linha in tabela["linhas"] if linha["rotulo"] == rotulo]
             if linhas:
                 tabela["grupos"].append({"codigo": codigo, "titulo": "Associação Tecnológica (AT)" if codigo == "at" else "Outras fontes", "linhas": linhas})
+        tabela["subtotal_fontes"] = subtotal_fontes([
+            linha for grupo in tabela["grupos"][1:] for linha in grupo["linhas"]
+        ])
         total = tabela["total"]
         total.update(rotulo="Consolidado", detalhe="PPI + AT + outras fontes")
         total["pct_exibicao"] = total["pct"].quantize(Decimal("0.01"), rounding=ROUND_DOWN) if total["pct"] is not None else None

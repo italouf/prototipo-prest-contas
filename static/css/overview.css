@@ -311,6 +311,9 @@ body:has(.overview-dashboard) #main { max-width: none; flex: none; padding: 24px
 .pillar-project-andamento { background: #e5f2fc; color: #236da3; }
 .pillar-project-preparacao { background: #eeebfb; color: #5535a9; }
 .pillar-project-table { min-width: 1680px; width: 1680px; table-layout: fixed; }
+.pillar-project-table-pdi { min-width: 1595px; width: 1595px; }
+.pillar-project-scroll { max-height: min(72vh, 760px); overflow: auto; overscroll-behavior: contain; }
+.pillar-project-scroll thead { position: sticky; top: 0; z-index: 2; background: var(--color-surface-2); box-shadow: 0 1px 0 var(--color-border); }
 .pillar-project-table td, .pillar-project-table th[scope="row"] { padding: 12px 10px; font-size: 11px; }
 .pillar-project-table td { white-space: nowrap; }
 .pillar-project-table thead th { white-space: normal; }
@@ -321,6 +324,8 @@ body:has(.overview-dashboard) #main { max-width: none; flex: none; padding: 24px
 .pillar-project-table thead th:nth-child(3) { text-align: left; }
 .pillar-project-group th { padding: 8px 10px; background: #f2f1f9; color: #04047e; font-size: 10px; font-weight: 700; text-align: left; }
 .pillar-project-group th > span { text-transform: uppercase; }
+.pillar-project-group-toggle { margin-left: 12px; padding: 3px 8px; border: 1px solid var(--color-border); border-radius: 5px; background: var(--color-surface-2); color: var(--color-text); font-size: 10px; font-weight: 500; cursor: pointer; }
+.pillar-project-group-toggle:focus-visible { outline: 2px solid var(--color-focus, #04047e); outline-offset: 2px; }
 .pillar-project-group small { float: right; position: sticky; right: 12px; margin-left: 20px; color: var(--color-text-muted); font-size: 10px; }
 .pillar-project-progress { min-width: 165px; }
 .pillar-project-progress .overview-progress-track { height: 7px; }
@@ -428,6 +433,7 @@ body:has(.overview-dashboard) #main { max-width: none; flex: none; padding: 24px
 .overview-fund-outras .overview-program-source-heading { background: #e5effb; color: #2365b8; }
 .overview-fund-outras { border-left: 3px solid #2365b8; }
 .overview-program-total { border-top: 2px solid #04047e; }
+.overview-program-subtotal { border-top: 1px solid var(--color-border); }
 .overview-program-total .overview-total-row { color: #04047e; background: #edebf8; }
 .overview-program-tables .overview-total-row { font-weight: 700; }
 .overview-physical-annual-table { min-width: 2100px; }
@@ -539,6 +545,10 @@ body:has(.overview-dashboard) [data-testid="app-footer"] .overview-footer-title 
   .overview-accordion { overflow: visible; break-inside: auto; }
   .overview-accordion-body { overflow: visible; padding: 10px; }
   .overview-table-scroll { overflow: visible !important; }
+  .pillar-project-scroll { max-height: none; }
+  .pillar-project-scroll thead { position: static; }
+  .pillar-project-group-toggle { display: none !important; }
+  .pillar-project-table tfoot { display: table-row-group; }
   .overview-dashboard table { min-width: 0 !important; width: 100%; table-layout: auto; font-size: 8px; }
   .overview-dashboard table th, .overview-dashboard table td { min-width: 0 !important; max-width: none; padding: 5px 4px; font-size: 8px; white-space: normal; overflow-wrap: anywhere; }
   .overview-dashboard .overview-physical-annual-table { table-layout: fixed; }
