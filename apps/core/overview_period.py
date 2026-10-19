@@ -9,8 +9,8 @@ MESES = ("", "jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out
 
 
 class PeriodoAnaliseForm(forms.Form):
-    mes_inicial = forms.DateField(required=False, input_formats=["%Y-%m"], error_messages={"invalid": "Mês inicial inválido."})
-    mes_final = forms.DateField(required=False, input_formats=["%Y-%m"], error_messages={"invalid": "Mês final inválido."})
+    mes_inicial = forms.DateField(required=False, input_formats=["%Y-%m", "%m/%Y"], error_messages={"invalid": "Mês inicial inválido. Use MM/AAAA."})
+    mes_final = forms.DateField(required=False, input_formats=["%Y-%m", "%m/%Y"], error_messages={"invalid": "Mês final inválido. Use MM/AAAA."})
 
     def clean(self):
         dados = super().clean()
@@ -28,6 +28,8 @@ def resolver_periodo(params, ano_param="todos"):
         valores = {"mes_inicial": f"{ano_param}-01", "mes_final": f"{ano_param}-12"}
     form = PeriodoAnaliseForm(valores)
     valido = form.is_valid()
+    if valido:
+        valores = {nome: form.cleaned_data[nome].strftime("%Y-%m") if form.cleaned_data[nome] else "" for nome in valores}
     inicio = form.cleaned_data.get("mes_inicial") or CICLO_INICIO
     fim = form.cleaned_data.get("mes_final") or CICLO_FIM
     ciclo = valido and inicio == CICLO_INICIO and fim == CICLO_FIM

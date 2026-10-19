@@ -532,12 +532,14 @@ class ContextoComAcompanhamentoTestes(BasePanelTestes):
 
 
 class PainelViewTestes(BasePanelTestes):
-    def test_dashboard_oferece_seletor_de_acompanhamento(self):
+    def test_dashboard_preserva_acompanhamento_sem_exibir_seletor(self):
         self.client.force_login(self.user)
         resposta = self.client.get("/")
         assert resposta.status_code == 200
         assert resposta.context["acompanhamento"] == self.acomp
-        assert 'data-testid="acompanhamento-select"' in resposta.content.decode()
+        conteudo = resposta.content.decode()
+        assert 'acompanhamento-select' not in conteudo
+        assert f'name="acompanhamento" value="{self.acomp.pk}"' in conteudo
 
     def test_dashboard_aplica_o_acompanhamento_escolhido(self):
         self.client.force_login(self.user)
@@ -545,9 +547,9 @@ class PainelViewTestes(BasePanelTestes):
         assert resposta.status_code == 200
         assert resposta.context["acompanhamento"] == self.acomp
         conteudo = resposta.content.decode()
-        assert f'value="{self.acomp.pk}" selected' in conteudo
+        assert f'name="acompanhamento" value="{self.acomp.pk}"' in conteudo
         # os links de base e de exportação propagam a seleção (deep-link)
-        assert f"&acompanhamento={self.acomp.pk}" in conteudo
+        assert f"&amp;acompanhamento={self.acomp.pk}" in conteudo
 
     def test_dashboard_rejeita_acompanhamento_desconhecido(self):
         self.client.force_login(self.user)
@@ -555,6 +557,18 @@ class PainelViewTestes(BasePanelTestes):
             with self.subTest(pk=pk):
                 resposta = self.client.get("/", {"acompanhamento": pk})
                 assert resposta.status_code == 404
+
+    def test_confirmacao_do_salvamento_renderiza_aviso_dentro_do_conteudo(self):
+        self.client.force_login(self.user)
+        resposta = self.client.post("/plano-anual/aplicar/", {
+            "acompanhamento": str(self.acomp.pk), "base": "fin", "ano": "todos",
+            "edicao_dashboard": "1", "filtrar_pilares": "1", "pilares": ["PDI"],
+        }, follow=True)
+        self.assertEqual(resposta.status_code, 200)
+        html = resposta.content.decode()
+        self.assertIn("Valores do acompanhamento atualizados", html)
+        self.assertLess(html.index('<main id="main"'), html.index('id="toasts"'))
+        self.assertNotIn('messages pointer-events-none fixed', html)
 
     def test_ano_sem_executado_renderiza_traco_nunca_zero_porcento(self):
         # Review Focus #4 no render: 2026 (físico) só tem projeção.

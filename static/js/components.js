@@ -28,6 +28,7 @@ document.addEventListener('click', function (event) {
 
 var quiinEstadoImpressao = [];
 window.addEventListener('beforeprint', function () {
+  if (quiinEstadoImpressao.length) return;
   quiinEstadoImpressao = Array.from(document.querySelectorAll('.overview-accordion')).map(function (painel) {
     var estado = { painel: painel, aberto: painel.open };
     painel.open = true;
@@ -39,12 +40,49 @@ window.addEventListener('afterprint', function () {
   quiinEstadoImpressao = [];
 });
 
+/* A confirmação mantém o botão original para preservar ações como restaurar e baixar. */
+var quiinEdicaoPendente = null;
+var quiinEdicoesConfirmadas = new WeakSet();
+document.addEventListener('submit', function (event) {
+  var form = event.target;
+  if (!form.matches('[data-confirm-edit]')) return;
+  if (quiinEdicoesConfirmadas.has(form)) {
+    quiinEdicoesConfirmadas.delete(form);
+    return;
+  }
+  event.preventDefault();
+  var dialog = document.getElementById('confirmar-edicao');
+  if (!dialog || dialog.open) return;
+  var restaurar = event.submitter && event.submitter.value === 'restaurar';
+  dialog.querySelector('#confirmar-edicao-titulo').textContent = restaurar ? 'Restaurar valores importados?' : 'Confirmar alterações';
+  dialog.querySelector('#confirmar-edicao-descricao').textContent = restaurar
+    ? 'Deseja remover os ajustes manuais e restaurar os valores importados neste escopo?'
+    : 'Deseja salvar as alterações? Os dados do dashboard serão atualizados.';
+  dialog.querySelector('[data-save-edit]').textContent = restaurar ? 'Confirmar restauração' : 'Confirmar e salvar';
+  quiinEdicaoPendente = { form: form, submitter: event.submitter };
+  dialog.showModal();
+});
+document.addEventListener('click', function (event) {
+  var cancel = event.target.closest('[data-cancel-edit]');
+  var save = event.target.closest('[data-save-edit]');
+  if (!cancel && !save) return;
+  var dialog = event.target.closest('dialog');
+  var pending = quiinEdicaoPendente;
+  quiinEdicaoPendente = null;
+  dialog.close();
+  if (save && pending && pending.form.isConnected) {
+    quiinEdicoesConfirmadas.add(pending.form);
+    pending.form.requestSubmit(pending.submitter || undefined);
+    quiinEdicoesConfirmadas.delete(pending.form);
+  }
+});
+
 /* Toasts client-side (usados por HX-Trigger e ações de drag). */
 window.quiinToast = function (texto, tipo) {
   var container = document.getElementById("toasts");
   if (!container || !texto) return;
   var div = document.createElement("div");
-  div.className = "alert alert-" + (tipo || "info") + " pointer-events-auto shadow-lg";
+  div.className = "alert alert-" + (tipo || "info");
   div.setAttribute("role", "status");
   div.textContent = texto;
   container.appendChild(div);

@@ -1,11 +1,8 @@
 {% load core_extras %}
 <div id="dashboard-panel" data-testid="dashboard-panel" class="overview-dashboard" data-base="{{ base_param }}">
+  {% include 'dashboard/_print_header.html' with title='Dashboard Geral' period=painel.rotulo_periodo %}
   <div class="overview-page-heading">
     <h1 class="overview-page-title">Visão geral</h1>
-    {% if not standalone %}<div class="overview-page-actions">
-      {% if pode_importar_financeiro %}<a href="{% url 'accountability:importar' %}" class="overview-action-button"><c-ui.icon name="upload" size="14" />Importar dados</a>{% endif %}
-      {% if pode_editar_painel %}<button type="button" class="overview-action-button overview-action-primary" data-testid="btn-editar-dados" data-editor-toggle onclick="quiinAlternarEditor()"><c-ui.icon name="pencil" size="14" /><span data-editor-rotulo>Editar dados</span></button>{% endif %}
-    </div>{% endif %}
   </div>
   <div class="overview-context" data-testid="context-chips">
     <span>Período em análise <strong>{{ painel.rotulo_periodo }}</strong></span>

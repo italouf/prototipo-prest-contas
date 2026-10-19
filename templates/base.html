@@ -35,7 +35,6 @@
      class="min-h-screen">
   {% if user.is_authenticated %}
   <div id="progresso" class="htmx-indicator fixed inset-x-0 top-0 z-50 h-0.5 bg-quiin-sky"></div>
-  <div id="toasts" class="messages pointer-events-none fixed right-4 top-4 z-[80] w-80 space-y-2" role="status" aria-live="polite"></div>
   <div id="skeleton-global" class="htmx-indicator fixed inset-x-0 top-0 bottom-0 z-30 bg-surface/95 p-6" aria-hidden="true">
     <div class="mx-auto grid w-full max-w-[1440px] gap-4 sm:grid-cols-3">
       <div class="skeleton h-24"></div>
@@ -54,20 +53,19 @@
             class="{% if user.is_authenticated %}mx-auto w-full max-w-[1440px] px-4 py-6 lg:px-8{% endif %}">
       {% if user.is_authenticated %}
       {% block breadcrumbs %}{% endblock %}
-      {% if messages %}
-        <div class="messages pointer-events-none fixed right-4 top-4 z-[70] w-80 space-y-2" role="status" aria-live="polite">
+        <div id="toasts" class="messages portal-messages" role="status" aria-live="polite">
           {% for message in messages %}
-            <div x-data="{ visivel: true }" x-show="visivel" x-init="setTimeout(() => visivel = false, 6000)" x-transition.opacity
-                 class="alert alert-{{ message.tags|default:'info' }} pointer-events-auto shadow-lg">
+            <div x-data x-init="setTimeout(() => $el.remove(), 6000)"
+                 class="alert alert-{{ message.tags|default:'info' }}">
               {{ message }}
             </div>
           {% endfor %}
         </div>
       {% endif %}
-      {% endif %}
       {% block content %}{% endblock %}
       </main>
   {% if user.is_authenticated %}
+      {% include 'dashboard/_confirm_edit.html' %}
       <c-layout.app_footer />
     </div>
   </div>

@@ -1,0 +1,5 @@
+<div class="print-only overview-print-header" data-testid="print-cabecalho">
+  {% if not standalone %}{% include 'components/layout/partner_logos.html' %}{% endif %}
+  <h1>{{ title }} · SIG QuIIN</h1>
+  <p>Período: <strong>{{ period }}</strong> · Base: <strong>{% if base_param == 'fin' %}Financeira{% else %}Física{% endif %}</strong>{% if acompanhamento %} · Referência dos dados: {{ acompanhamento.periodo_referencia }}{% endif %}</p>
+</div>

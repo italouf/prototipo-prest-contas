@@ -6,7 +6,7 @@ from unittest.mock import patch
 from django.conf import settings
 from django.contrib.auth.tokens import default_token_generator
 from django.core import mail
-from django.test import Client, TestCase, override_settings
+from django.test import Client, SimpleTestCase, TestCase, override_settings
 from django.urls import resolve, reverse
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
@@ -19,6 +19,20 @@ TEST_STORAGES = {
     **settings.STORAGES,
     "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
 }
+
+
+class UsuarioTopbarTestes(SimpleTestCase):
+    def test_topbar_oculta_perfil_sem_alterar_o_nome_cadastrado(self):
+        for perfil in ("Master", "Admin", "PontoFocal", "Liderança", "Auditor", "coordenação"):
+            with self.subTest(perfil=perfil):
+                usuario = User(username="erica", nome=f"Érica Pereira ({perfil})")
+                self.assertEqual(usuario.nome_topbar, "Érica Pereira")
+                self.assertEqual(usuario.nome_exibicao, f"Érica Pereira ({perfil})")
+
+    def test_topbar_preserva_nome_sem_perfil_e_usa_username_se_necessario(self):
+        for nome, esperado in (("Érica Pereira", "Érica Pereira"), ("João (Júnior)", "João (Júnior)"), ("", "erica")):
+            with self.subTest(nome=nome):
+                self.assertEqual(User(username="erica", nome=nome).nome_topbar, esperado)
 
 @override_settings(STORAGES=TEST_STORAGES)
 class LoginTestes(TestCase):

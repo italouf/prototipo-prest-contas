@@ -22,21 +22,8 @@
       <p class="truncate text-xs text-text-muted">Sistema de gerenciamento e monitoramento das metas do Centro de Competência EMBRAPII CIMATEC em Tecnologias Quânticas</p>
     </div>
 
-    <form method="get" action="{% url 'core:busca' %}"
-          hx-get="{% url 'core:busca' %}" hx-target="#busca-resultados" hx-trigger="input changed delay:300ms, submit"
-          class="relative hidden w-full max-w-sm md:block"
-          x-data="{ focado: false }" @focusin="focado = true" @focusout="setTimeout(() => focado = false, 200)">
-      <label for="busca-global" class="sr-only">Busca global</label>
-      <input id="busca-global" type="search" name="q" data-testid="busca-global" placeholder="Buscar indicador, empresa, talento…"
-             class="w-full rounded-md border border-border bg-surface px-3 py-2 pl-9 text-sm text-text placeholder:text-text-muted/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus/60">
-      <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-muted"><c-ui.icon name="search" size="16" /></span>
-      <div id="busca-resultados" x-show="focado" x-cloak
-           class="absolute left-0 right-0 top-full z-40 mt-1 max-h-80 overflow-y-auto rounded-lg border border-border bg-surface-2 shadow-lg"></div>
-    </form>
-
     <div class="flex items-center gap-2">
-      <c-ui.badge papel="{{ papel }}" class="hidden sm:inline-flex" data-testid="papel-badge">{{ papel }}</c-ui.badge>
-      <span class="hidden text-sm font-medium xl:inline">{{ user.nome_exibicao }}</span>
+      <span class="text-sm font-medium">{{ user.nome_topbar }}</span>
       {% if painel or painel_pilar or painel_mensal or painel_semestral %}
       <button type="button" data-testid="barra-toggle" aria-controls="dashboard-controls" aria-expanded="true"
               aria-label="Ocultar filtros e ações" title="Ocultar filtros e ações" onclick="quiinAlternarBarra()"

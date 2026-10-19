@@ -44,6 +44,5 @@
   <div class="flex flex-wrap items-center justify-end gap-2" role="toolbar" aria-label="Ações do semestre">
     <c-ui.button variant="ghost" size="toolbar" href="{% url 'core:semestral_csv' %}?ano={{ ano }}&semestre={{ semestre }}">Baixar dados (CSV)</c-ui.button>
     <c-ui.button variant="ghost" size="toolbar" onclick="window.print()">Imprimir</c-ui.button>
-    <c-ui.button variant="ghost" size="toolbar" href="{% url 'core:semestral' %}">Restaurar padrão</c-ui.button>
   </div>
 </div>

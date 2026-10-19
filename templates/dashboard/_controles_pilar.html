@@ -52,6 +52,5 @@
     {% endif %}
     <c-ui.button variant="ghost" size="toolbar" href="{% url 'planning:csv' %}?ano={{ ano_param }}&base={{ base_param }}&pilar={{ pilar.pk }}{% if acompanhamento %}&acompanhamento={{ acompanhamento.pk }}{% endif %}">Baixar dados (CSV)</c-ui.button>
     <c-ui.button variant="ghost" size="toolbar" onclick="window.print()">Imprimir</c-ui.button>
-    <c-ui.button size="toolbar" variant="ghost" href="{% url 'core:pilar' pilar.pk %}">Restaurar padrão</c-ui.button>
   </div>
 </div>
