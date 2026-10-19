@@ -2,6 +2,7 @@
 .app-shell { min-height: 100vh; }
 .app-workspace { display: flex; flex-direction: column; }
 .app-workspace > main { flex: 1; }
+.sidebar a[data-nav-link] > svg { display: none; }
 /* Navegação fixa na tela em todas as áreas do portal. */
 @media screen and (min-width: 1024px) {
   .app-shell > .sidebar {
@@ -299,6 +300,7 @@ body:has(.overview-dashboard) #main { max-width: none; flex: none; padding: 24px
 .pillar-kpi-list p { display: flex; align-items: center; gap: 10px; font-size: 12px; }
 .pillar-kpi-list p > strong { font-size: 20px; font-weight: 700; min-width: 26px; }
 .pillar-kpi-list small { font-size: 11px; color: var(--color-text-muted); }
+.pillar-kpi-list > p > strong > small { font-weight: 400; }
 .pillar-kpi-list [class*="pillar-source-text"] { flex-wrap: wrap; gap: 5px; }
 .pillar-kpi-list [class*="pillar-source-text"] > strong { font-size: 15px; }
 .pillar-neutral-progress .overview-progress-track > span, .pillar-meta-track > span { background: #aaa9c3; }
@@ -454,8 +456,7 @@ body:has(.overview-dashboard) [data-testid="app-footer"] .overview-footer-title 
   body:has(.overview-dashboard) .sidebar [data-testid="sidebar-collapse"] { top: 85px; }
   body:has(.overview-dashboard) .nav-clara { font-size: 12px; padding: 7px 10px; gap: 9px; }
   body:has(.overview-dashboard) .nav-secao-clara, body:has(.overview-dashboard) [data-nav-grupo] { font-size: 9px; }
-  body:has(.overview-dashboard) .sidebar a[data-nav-link] > svg { width: 14px; height: 14px; border: 1px solid #b6b5c8; border-radius: 3px; stroke: transparent; }
-  body:has(.overview-dashboard) .sidebar a.nav-ativo > svg { border-color: #fff; }
+  [data-recolhida="true"] .sidebar a[data-nav-link] > svg { display: inline-block; }
   body:has(.overview-dashboard) [data-recolhida="true"] .sidebar { width: 66px; }
   body:has(.overview-dashboard) [data-recolhida="true"] .sidebar-sig-logo { width: 36px; }
 }

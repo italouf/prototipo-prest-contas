@@ -21,6 +21,14 @@ def dinheiro(valor, compacto=False):
     return "R$ " + _numero_brl((valor / escala).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP), 2) + sufixo
 
 
+def separar_unidade(valor):
+    for unidade in ("milhões", "mil"):
+        sufixo = " " + unidade
+        if valor.endswith(sufixo):
+            return valor[:-len(sufixo)], unidade
+    return valor, ""
+
+
 def taxa(realizado, meta):
     return realizado / meta * 100 if realizado is not None and meta is not None and meta > 0 else None
 
@@ -145,7 +153,7 @@ def apresentar_pilar(contexto, periodo):
                 r["faixa_exec"] = faixa(r["pct_exec"])
                 r["progresso_meta"] = {**progresso(r["pct_meta"]), "pct_exibicao": (r["pct_meta"].quantize(Decimal("0.01"), rounding=ROUND_HALF_UP) if r["pct_meta"] is not None else None)}
                 r["progresso_exec"] = {**progresso(r["pct_exec"]), "pct_exibicao": (r["pct_exec"].quantize(Decimal("0.01"), rounding=ROUND_HALF_UP) if r["pct_exec"] is not None else None)}
-                r["valor_compacto"] = dinheiro(r["realizado"], True)
+                r["valor_compacto"], r["valor_unidade"] = separar_unidade(dinheiro(r["realizado"], True))
                 r["barras"] = [{"titulo": titulo, "valor": r[c], "barra": (r[c] or ZERO) / escala * 100 if escala else ZERO, "faixa": status, "percentual": rotulo} for c, titulo, status, rotulo in (
                     ("recurso_ou_meta", "Meta", "neutra", ""), ("captado", "Captado", r["faixa_meta"], r["meta_rotulo"]), ("realizado", "Realizado", r["faixa_exec"], r["exec_rotulo"]))]
             pp["pct_meta_rotulo"] = taxa_texto(pct_meta)
@@ -192,9 +200,9 @@ def apresentar_pilar(contexto, periodo):
         cards.append({"titulo": "Executado por ano" if codigo == "FORMACAO" else "Indicadores" if pp.get("visao_captacao") else "Indicadores do pilar", "anos": [l for l in pp.get("tabela", []) if not l["total"]] if codigo == "FORMACAO" else None, "counts": pp.get("status_counts") if codigo != "FORMACAO" else None})
     for i, card in enumerate(cards, 1):
         card["chave"] = str(i)
-        if card.get("valor", "").endswith(" mil"):
-            card["valor"] = card["valor"][:-4]
-            card["unidade"] = "mil"
+        valor, unidade = separar_unidade(card.get("valor", ""))
+        if unidade:
+            card.update(valor=valor, unidade=unidade)
     pp["cards_overview"] = cards
     if financeiro and not pp.get("visao_captacao"):
         pp["progresso"]["pct_exibicao"] = taxa(pp.get("executado"), pp.get("previsto")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP) if taxa(pp.get("executado"), pp.get("previsto")) is not None else None
