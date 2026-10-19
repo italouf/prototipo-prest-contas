@@ -20,12 +20,12 @@
     <div class="login-fields">
       <div class="login-field">
         <label for="id_username">Usuário</label>
-        <input name="username" id="id_username" type="text" value="{{ form.username.value|default_if_none:'' }}" placeholder="user" autocomplete="username" maxlength="150" required {% if form.errors %}aria-invalid="true"{% endif %}>
+        <input name="username" id="id_username" type="text" value="{{ form.username.value|default_if_none:'' }}" autocomplete="username" maxlength="150" required {% if form.errors %}aria-invalid="true"{% endif %}>
       </div>
       <div class="login-field">
         <label for="id_password">Senha</label>
         <div class="login-password">
-          <input name="password" id="id_password" type="password" placeholder="********" autocomplete="current-password" required {% if form.errors %}aria-invalid="true"{% endif %}>
+          <input name="password" id="id_password" type="password" autocomplete="current-password" required {% if form.errors %}aria-invalid="true"{% endif %}>
           {% include 'registration/_password_toggle.html' with input_id='id_password' %}
         </div>
       </div>
