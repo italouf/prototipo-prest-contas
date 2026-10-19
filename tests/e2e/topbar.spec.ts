@@ -39,7 +39,7 @@ test('MM/AAAA atualiza filtros via HTMX e preserva a versão dos dados', async (
   await page.getByLabel('Mês/ano inicial', { exact: true }).press('Tab');
   await expect(page).toHaveURL(/mes_inicial=02%2F2025/);
   await expect(page.getByLabel('Mês/ano inicial', { exact: true })).toHaveValue('02/2025');
-  await expect(page.getByTestId('context-chips')).toContainText('fev/2025');
+  await expect(page.getByTestId('context-chips')).toHaveCount(0);
   await expect(page.getByTestId('print-cabecalho')).toContainText('fev/2025');
   const actions = await openActions(page);
   const download = actions.getByRole('link', { name: 'Baixar dados (CSV)' });

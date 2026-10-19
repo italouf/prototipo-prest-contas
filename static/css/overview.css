@@ -289,6 +289,8 @@ body:has(.overview-dashboard) #main { max-width: none; flex: none; padding: 24px
 .pillar-code { display: inline-block; vertical-align: middle; padding: 3px 8px; border-radius: 4px; background: #e8e7f7; color: #04047e; font-size: 10px; letter-spacing: 0; }
 .pillar-page-description { margin-bottom: 10px; color: var(--color-text-muted); font-size: 12px; line-height: 1.35; }
 .overview-accordion-title [role="dialog"] button { width: 28px; height: 28px; font-size: 14px; }
+.overview-dashboard [role="dialog"] .overview-modal-close { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 32px; height: 32px; margin: 0; padding: 0; border: 0; border-radius: 0; background: transparent; color: var(--color-text-muted); cursor: pointer; }
+.overview-dashboard [role="dialog"] .overview-modal-close:focus-visible { outline: 2px solid var(--color-focus, #04047e); outline-offset: 2px; }
 .pillar-overview .overview-card, .pillar-overview.overview-dashboard[data-base="fis"] .overview-card { min-height: 164px; }
 .pillar-overview .overview-card-value { font-size: 28px; }
 .pillar-overview .overview-card-total .overview-card-value { font-size: 30px; }
@@ -402,9 +404,6 @@ body:has(.overview-dashboard) #main { max-width: none; flex: none; padding: 24px
 .overview-accordion-heading > span { font-size: 12px; color: var(--color-text-muted); }
 .overview-accordion-summary { display: inline-flex; align-items: center; justify-content: flex-end; gap: 9px; font-size: 11px; color: var(--color-text-muted); }
 .overview-accordion-summary > strong { color: var(--color-text); }
-.overview-expand-label { color: #155d94; font-weight: 700; }
-.overview-expand-label::after { content: 'Expandir'; }
-.overview-accordion[open] .overview-expand-label::after { content: 'Recolher'; }
 .overview-accordion[open] > summary { border-bottom: 1px solid var(--color-border); }
 .overview-accordion-body { overflow: hidden; border-radius: 0 0 12px 12px; }
 .overview-accordion-body .overview-legend { padding: 14px; font-size: 10px; }
@@ -415,16 +414,19 @@ body:has(.overview-dashboard) #main { max-width: none; flex: none; padding: 24px
 .overview-progress { gap: 12px; }
 .overview-progress strong { font-size: 12px; min-width: 53px; }
 .overview-progress-track { height: 11px; }
+.overview-program-sections { display: grid; gap: 20px; padding: 16px; }
 .overview-program-tables table { table-layout: fixed; min-width: 1080px; }
 .overview-program-tables caption { padding: 8px 14px; text-align: left; text-transform: uppercase; font-size: 11px; font-weight: 700; letter-spacing: .7px; }
 .overview-program-tables .overview-financial-table th[scope="row"] { white-space: normal; }
 .overview-program-tables .overview-financial-table th[scope="row"], .overview-program-tables .overview-financial-table td:nth-child(2) { width: auto; }
-.overview-fund-at caption { background: #efebfa; color: #5535a9; border-left: 3px solid #5535a9; }
-.overview-fund-at tbody { border-left: 3px solid #5535a9; }
-.overview-fund-outras caption { background: #e5effb; color: #2365b8; border-left: 3px solid #2365b8; }
-.overview-fund-outras tbody { border-left: 3px solid #2365b8; }
-.overview-consolidated-table { border-top: 2px solid #04047e; margin-top: 12px; }
-.overview-consolidated-table .overview-total-row { color: #04047e; background: #edebf8; }
+.overview-fund-ppi caption, .overview-fund-fontes caption { background: var(--color-surface); color: var(--color-text); border-bottom: 1px solid var(--color-border); }
+.overview-program-source-heading th { padding: 8px 14px; text-align: left; font-size: 10px; font-weight: 700; letter-spacing: .7px; text-transform: uppercase; }
+.overview-fund-at .overview-program-source-heading { background: #efebfa; color: #5535a9; }
+.overview-fund-at { border-left: 3px solid #5535a9; }
+.overview-fund-outras .overview-program-source-heading { background: #e5effb; color: #2365b8; }
+.overview-fund-outras { border-left: 3px solid #2365b8; }
+.overview-program-total { border-top: 2px solid #04047e; }
+.overview-program-total .overview-total-row { color: #04047e; background: #edebf8; }
 .overview-program-tables .overview-total-row { font-weight: 700; }
 .overview-physical-annual-table { min-width: 2100px; }
 .overview-physical-annual-table th[scope="row"] { min-width: 280px; max-width: 360px; }
@@ -541,9 +543,12 @@ body:has(.overview-dashboard) [data-testid="app-footer"] .overview-footer-title 
   .overview-dashboard .overview-physical-annual-table { table-layout: fixed; }
   .overview-dashboard .overview-physical-annual-table th[rowspan] { width: 20%; }
   .overview-dashboard thead { display: table-header-group; }
+  .overview-program-total { display: table-row-group; }
+  .overview-program-sections { gap: 14px; padding: 10px 0; }
+  .overview-program-sections .overview-table-card { overflow: visible; }
   .overview-dashboard tr { break-inside: avoid; }
   .overview-dashboard .overview-progress, .overview-dashboard .pillar-project-progress { min-width: 0; }
-  .overview-page-actions, .overview-editor, .overview-expand-label { display: none !important; }
+  .overview-page-actions, .overview-editor { display: none !important; }
   .overview-accordion > summary { break-after: avoid; }
   .overview-cards { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .overview-card-value, .overview-card-total .overview-card-value { font-size: 15px; }

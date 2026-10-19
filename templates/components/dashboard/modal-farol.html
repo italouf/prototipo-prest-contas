@@ -28,8 +28,8 @@
          class="relative max-h-[86vh] w-full max-w-2xl overflow-y-auto rounded-xl border border-border bg-surface-2 p-6 shadow-2xl">
       <div class="flex items-start justify-between gap-3">
         <h3 id="{{ prefixo_id }}{% if modo == 'recursos-ppi' %}recursos-ppi-info-titulo{% else %}farol-titulo{% endif %}" class="font-display text-lg font-semibold">{% if modo == 'recursos-ppi' %}Composição dos Recursos PPI{% else %}Farol de execução: metodologia e leitura{% endif %}</h3>
-        <button type="button" data-fechar @click="fechar()" aria-label="Fechar metodologia do farol"
-                class="rounded-md border border-border p-1.5 text-text-muted hover:text-text">
+        <button type="button" data-fechar @click="fechar()" aria-label="{% if modo == 'recursos-ppi' %}Fechar composição dos Recursos PPI{% else %}Fechar metodologia do farol{% endif %}"
+                class="overview-modal-close">
           <c-ui.icon name="x" size="16" />
         </button>
       </div>

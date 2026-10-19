@@ -8,7 +8,7 @@
   </div>
   {% endif %}
   <div class="overview-card-content">
-    <div class="overview-card-title"><h3>{% if base == 'fin' and card.chave == 'ppi' %}Recursos PPI{% else %}{{ card.titulo }}{% if base == 'fin' and card.chave != 'total' %} · realizado{% endif %}{% endif %}</h3>{% if not standalone %}{% if card.chave == 'total' %}<c-dashboard.modal-farol prefixo_id="resumo-" />{% elif card.chave == 'ppi' and base == 'fin' %}<c-dashboard.modal-farol modo="recursos-ppi" prefixo_id="ppi-" />{% endif %}{% endif %}</div>
+    <div class="overview-card-title"><h3>{% if base == 'fin' and card.chave == 'ppi' %}Recurso PPI Realizado{% else %}{{ card.titulo }}{% if base == 'fin' and card.chave != 'total' %} · realizado{% endif %}{% endif %}</h3>{% if not standalone %}{% if card.chave == 'total' %}<c-dashboard.modal-farol prefixo_id="resumo-" />{% elif card.chave == 'ppi' and base == 'fin' %}<c-dashboard.modal-farol modo="recursos-ppi" prefixo_id="ppi-" />{% endif %}{% endif %}</div>
     {% if base == 'fin' %}
       <p class="overview-card-value">{% if card.executado is not None %}R$ {{ card.valor_numero }}{% if card.valor_unidade %} <small>{{ card.valor_unidade }}</small>{% endif %}{% else %}—{% endif %}</p>
       <p class="overview-card-reference">de {{ card.previsto_fmt }} {{ card.denominador }}</p>

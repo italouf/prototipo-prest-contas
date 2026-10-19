@@ -30,7 +30,12 @@ def contexto_visao_geral(contexto, selecionados=None):
             prev = card["previsto"]
             div_prev = Decimal("1000000") if card.get("valores_em_reais") and prev is not None and abs(prev) >= 1000000 else Decimal("1000") if card.get("valores_em_reais") and prev is not None and abs(prev) >= 1000 else Decimal(1)
             unidade_prev = " milhões" if div_prev == 1000000 or not card.get("valores_em_reais") else " mil" if div_prev == 1000 else ""
-            card["previsto_fmt"] = "R$ " + _numero_brl((prev / div_prev).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP), 2) + unidade_prev if prev is not None else "—"
+            if prev is not None:
+                previsto_escalado = (prev / div_prev).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+                decimais = 0 if card["chave"] == "ppi" and previsto_escalado == previsto_escalado.to_integral_value() else 2
+                card["previsto_fmt"] = "R$ " + _numero_brl(previsto_escalado, decimais) + unidade_prev
+            else:
+                card["previsto_fmt"] = "—"
     for grupo in painel["tabela"]["grupos"]:
         for linha in grupo["linhas"]:
             linha["barra"] = min(max(linha.get("pct") or 0, 0), 100)
