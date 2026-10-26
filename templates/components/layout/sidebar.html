@@ -34,7 +34,7 @@
         {% for pilar in pilares_grupo %}
         <li>
           <a href="{% url 'core:pilar' pilar.pk %}" data-nav-link class="nav-clara {% if request.resolver_match.url_name == 'pilar' and request.resolver_match.kwargs.pk == pilar.pk %}nav-ativo{% endif %}" {% if request.resolver_match.url_name == 'pilar' and request.resolver_match.kwargs.pk == pilar.pk %}aria-current="page"{% endif %}>
-            <c-ui.icon name="building" size="18" /><span class="nav-rotulo">{{ pilar.codigo|rotulo_dashboard_pilar }}</span>
+            <c-ui.icon name="building" size="18" /><span class="nav-rotulo">{% if pilar.codigo == 'FORMACAO' %}FCRH{% else %}{{ pilar.codigo|rotulo_dashboard_pilar }}{% endif %}</span>
           </a>
         </li>
         {% endfor %}

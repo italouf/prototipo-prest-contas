@@ -2,7 +2,7 @@
   <label for="{{ input_id }}">{{ label }}</label>
   <div class="overview-month-input">
     <input type="text" id="{{ input_id }}" name="{{ input_name }}" value="{% if value %}{{ date_value|date:'m/Y' }}{% endif %}"
-           placeholder="Ciclo completo" inputmode="numeric" maxlength="7" pattern="(0[1-9]|1[0-2])/[0-9]{4}" title="Informe o mês e o ano no formato MM/AAAA, por exemplo 02/2025" aria-label="{{ label }}" onchange="this.form.requestSubmit()">
+           placeholder="2024-YTD" inputmode="numeric" maxlength="7" pattern="(0[1-9]|1[0-2])/[0-9]{4}" title="2024-YTD corresponde ao ciclo completo (jan/2024 a jun/2027). Para filtrar um período, informe o mês e o ano no formato MM/AAAA, por exemplo 02/2025." aria-label="{{ label }}. Sem preenchimento, considera 2024-YTD: ciclo completo de jan/2024 a jun/2027." onchange="this.form.requestSubmit()">
     {% if value %}<button type="button" title="Usar ciclo completo" aria-label="Limpar {{ label|lower }} e usar ciclo completo" onclick="document.getElementById('{{ input_id }}').value=''; this.form.requestSubmit()">×</button>{% endif %}
   </div>
 </div>

@@ -131,6 +131,7 @@ body:has(.overview-dashboard) .nav-secao-clara { padding: 10px 7px 5px; font-siz
 .overview-table td:last-child, .overview-table thead th:last-child { text-align: left; }
 .overview-total-row { background: color-mix(in srgb, var(--color-surface) 90%, var(--color-surface-2)); font-weight: 700; }
 .overview-progress { display: flex; align-items: center; gap: 10px; min-width: 180px; }
+.overview-progress-text-only { justify-content: flex-end; min-width: 0; }
 .overview-progress strong { min-width: 48px; font-size: 10px; text-align: right; }
 .overview-progress-track { display: block; flex: 1; min-width: 20px; height: 9px; border-radius: 3px; background: var(--overview-track); }
 .overview-progress-track > span { display: block; height: 100%; background: var(--overview-status-color); border-radius: inherit; }
