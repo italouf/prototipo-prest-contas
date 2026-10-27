@@ -16,7 +16,7 @@ from .services import RESPONSAVEIS, atualizar_usos, pode_gerir_associados, pode_
 def acompanhamento(request):
     if not pode_ver_associados(request.user):
         return sem_permissao(request)
-    associados = list(Associado.objects.select_related("plano").prefetch_related("usos", "solicitacoes"))
+    associados = list(Associado.objects.select_related("plano").prefetch_related("usos", "solicitacoes", "contatos"))
     for a in associados:
         a.resumo = resumo_beneficios(a)
         a.abertas = sum(s.respondida_em is None for s in a.solicitacoes.all())
@@ -40,7 +40,7 @@ def acompanhamento(request):
 def associado(request, pk):
     if not pode_ver_associados(request.user):
         return sem_permissao(request)
-    a = get_object_or_404(Associado.objects.select_related("plano").prefetch_related("usos"), pk=pk)
+    a = get_object_or_404(Associado.objects.select_related("plano").prefetch_related("usos", "contatos"), pk=pk)
     email_form = AssociadoEmailForm(initial={"email": a.email})
     if request.method == "POST":
         if not pode_gerir_associados(request.user):

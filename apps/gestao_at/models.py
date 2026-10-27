@@ -65,6 +65,15 @@ class Associado(models.Model):
                 return f"Vence em até {limite} dias"
         return "Vigente"
 
+class ContatoAssociado(models.Model):
+    associado = models.ForeignKey(Associado, on_delete=models.CASCADE, related_name="contatos")
+    nome = models.CharField(max_length=150, blank=True)
+    email = models.EmailField()
+
+    class Meta:
+        ordering = ["pk"]
+        constraints = [models.UniqueConstraint(fields=["associado", "email"], name="at_contato_email_unico")]
+
 class UsoBeneficio(models.Model):
     associado = models.ForeignKey(Associado, on_delete=models.CASCADE, related_name="usos")
     beneficio = models.ForeignKey(Beneficio, on_delete=models.PROTECT)

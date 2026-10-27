@@ -1,6 +1,6 @@
 from django.contrib import admin
 from apps.core.permissions import eh_gestor
-from .models import Associado, Beneficio, HistoricoSolicitacao, Plano, PlanoBeneficio, Solicitacao, UsoBeneficio
+from .models import Associado, Beneficio, ContatoAssociado, HistoricoSolicitacao, Plano, PlanoBeneficio, Solicitacao, UsoBeneficio
 
 class PermissaoATMixin:
     def has_module_permission(self, request):
@@ -23,11 +23,16 @@ class PlanoAdmin(PermissaoATMixin, admin.ModelAdmin):
     list_display = ["nome", "valor_anual"]
     inlines = [PlanoBeneficioInline]
 
+class ContatoAssociadoInline(PermissaoATMixin, admin.TabularInline):
+    model = ContatoAssociado
+    extra = 0
+
 @admin.register(Associado)
 class AssociadoAdmin(PermissaoATMixin, admin.ModelAdmin):
     list_display = ["nome", "tipo", "plano", "fim_vigencia", "email"]
     list_filter = ["tipo", "plano"]
-    search_fields = ["nome", "email"]
+    search_fields = ["nome", "email", "contatos__email", "contatos__nome"]
+    inlines = [ContatoAssociadoInline]
 
 class HistoricoInline(admin.TabularInline):
     model = HistoricoSolicitacao
