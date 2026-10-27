@@ -58,7 +58,12 @@ class Associado(models.Model):
     @property
     def situacao_vigencia(self):
         d = self.dias_vigencia
-        return "Vencido" if d < 0 else "Vence em até 90 dias" if d <= 90 else "Vigente"
+        if d < 0:
+            return "Vencido"
+        for limite in (10, 30, 60, 90):
+            if d <= limite:
+                return f"Vence em até {limite} dias"
+        return "Vigente"
 
 class UsoBeneficio(models.Model):
     associado = models.ForeignKey(Associado, on_delete=models.CASCADE, related_name="usos")
