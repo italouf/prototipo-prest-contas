@@ -27,6 +27,7 @@
 .overview-institutional-footer .overview-footer-title { margin-bottom: 5px; font-weight: 700; color: var(--color-text); }
 .operation-badge { margin-left: auto; border-radius: 999px; background: #2ebf7d; color: #fff; padding: 1px 7px; font-size: 10px; font-weight: 700; }
 .sidebar-sig-logo { position: relative; display: block; width: 156px; height: 48px; overflow: hidden; flex-shrink: 0; }
+.sidebar-sig-icon { display: none; }
 .sidebar-sig-logo img { position: absolute; width: 210px; height: 131px; max-width: none; left: -28px; top: -30px; }
 body:has(.overview-dashboard) { background: #f3f3f8; }
 .dark body:has(.overview-dashboard) { background: var(--color-surface); }
@@ -467,6 +468,13 @@ body:has(.overview-dashboard) [data-testid="app-footer"] .overview-footer-title 
   [data-recolhida="true"] .sidebar a[data-nav-link] > svg { display: inline-block; }
   body:has(.overview-dashboard) [data-recolhida="true"] .sidebar { width: 66px; }
   body:has(.overview-dashboard) [data-recolhida="true"] .sidebar-sig-logo { width: 36px; }
+}
+@media (min-width: 1024px) {
+  body [data-recolhida="true"] .sidebar > .sidebar-heading { flex-direction: column; align-items: center; gap: 4px; padding: 12px 4px 8px; }
+  [data-recolhida="true"] .sidebar .sidebar-home { flex: none; }
+  [data-recolhida="true"] .sidebar-sig-logo { display: none; }
+  [data-recolhida="true"] .sidebar-sig-icon { display: block; width: 40px; height: 40px; flex: none; }
+  body [data-recolhida="true"] .sidebar [data-testid="sidebar-collapse"] { position: static; margin: 0; padding: 4px; }
 }
 @media (max-width: 1440px) {
   .overview-header-row { grid-template-columns: minmax(0, 1fr) 310px; padding: 8px 18px 10px; gap: 10px; }

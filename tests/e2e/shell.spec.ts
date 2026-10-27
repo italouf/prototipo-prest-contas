@@ -3,9 +3,48 @@ import { expect, test, type Page } from '@playwright/test';
 async function login(page: Page, username = 'erica', password = 'erica123') {
   await page.goto('/accounts/login/');
   await page.getByLabel('Usuário').fill(username);
-  await page.getByLabel('Senha').fill(password);
+  await page.getByLabel('Senha', { exact: true }).fill(password);
   await page.getByRole('button', { name: /entrar/i }).click();
 }
+
+test('marca da sidebar permanece completa ao recolher e em diferentes telas', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await login(page);
+  const sidebar = page.getByTestId('sidebar');
+  const logo = sidebar.locator('.sidebar-sig-logo');
+  const simbolo = sidebar.locator('.sidebar-sig-icon');
+  const botao = page.getByTestId('sidebar-collapse');
+  await expect(logo).toBeVisible();
+  await expect(simbolo).toBeHidden();
+  await botao.click();
+  await expect(botao).toHaveAttribute('aria-label', 'Expandir menu');
+
+  for (const largura of [1024, 1280, 1600]) {
+    await page.setViewportSize({ width: largura, height: 800 });
+    for (const caminho of ['/', '/talentos/organograma/']) {
+      await page.goto(caminho);
+      await expect(simbolo).toBeVisible();
+      await expect(logo).toBeHidden();
+      const retangulos = await Promise.all([sidebar.boundingBox(), simbolo.boundingBox(), botao.boundingBox()]);
+      const [barra, imagem, controle] = retangulos;
+      expect(barra).not.toBeNull();
+      expect(imagem).not.toBeNull();
+      expect(controle).not.toBeNull();
+      expect(imagem!.width).toBeGreaterThanOrEqual(36);
+      expect(imagem!.x).toBeGreaterThanOrEqual(barra!.x);
+      expect(imagem!.x + imagem!.width).toBeLessThanOrEqual(barra!.x + barra!.width);
+      expect(imagem!.y + imagem!.height).toBeLessThanOrEqual(controle!.y);
+      await expect(simbolo).toHaveAttribute('viewBox', '160 175 310 310');
+    }
+  }
+  await botao.click();
+  await expect(botao).toHaveAttribute('aria-label', 'Recolher menu');
+  await expect(logo).toBeVisible();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByTestId('sidebar-toggle').click();
+  await expect(logo).toBeVisible();
+  await expect(simbolo).toBeHidden();
+});
 
 test('navega entre 5 paginas pela sidebar com boost', async ({ page }) => {
   await login(page);
