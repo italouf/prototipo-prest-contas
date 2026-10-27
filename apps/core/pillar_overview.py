@@ -141,7 +141,6 @@ def apresentar_pilar(contexto, periodo):
             fontes = pp.get("registros_captacao", [])
             meta = pp.get("total_captacao", {}).get("recurso_ou_meta")
             pct_meta = taxa(pp.get("previsto"), meta)
-            cards.append({"titulo": "Captado total", "valor": dinheiro(pp.get("previsto"), True), "referencia": "meta de captação de " + dinheiro(meta, True), "rotulo_barra": numero_ptbr(pct_meta.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)) + "% da meta" if pct_meta is not None else "—", "mostrar_barra": True, **progresso(pct_meta)})
             escala = max((r[c] or ZERO for r in fontes for c in ("recurso_ou_meta", "captado")), default=ZERO)
             for r in fontes:
                 r.update(codigo=r["pilar__codigo"], nome="Associação Tecnológica" if r["pilar__codigo"] == "AT" else "Outras fontes")
@@ -156,14 +155,26 @@ def apresentar_pilar(contexto, periodo):
                 r["valor_compacto"], r["valor_unidade"] = separar_unidade(dinheiro(r["realizado"], True))
                 r["barras"] = [{"titulo": titulo, "valor": r[c], "barra": (r[c] or ZERO) / escala * 100 if escala else ZERO, "faixa": status, "percentual": rotulo} for c, titulo, status, rotulo in (
                     ("recurso_ou_meta", "Meta", "neutra", ""), ("captado", "Captado", r["faixa_meta"], r["meta_rotulo"]), ("realizado", "Realizado", r["faixa_exec"], r["exec_rotulo"]))]
+            fontes_por_codigo = {fonte["codigo"]: fonte for fonte in fontes}
+            for codigo_fonte, rotulo_fonte in (("AT", "AT"), ("OUTRASFONTES", "Outras Fontes")):
+                fonte = fontes_por_codigo.get(codigo_fonte, {})
+                captado_fonte = fonte.get("captado")
+                realizado_fonte = fonte.get("realizado")
+                meta_fonte = fonte.get("recurso_ou_meta")
+                pct_captado = taxa(captado_fonte, meta_fonte)
+                saldo_fonte = abs(captado_fonte - realizado_fonte) if captado_fonte is not None and realizado_fonte is not None else None
+                pct_saldo_fonte = taxa(saldo_fonte, captado_fonte)
+                cards.append({"titulo": f"Captado Total {rotulo_fonte}", "valor": dinheiro(captado_fonte, True), "referencia": "meta de captação de " + dinheiro(meta_fonte, True), "rotulo_barra": numero_ptbr(pct_captado.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)) + "% da meta" if pct_captado is not None else "—", "mostrar_barra": True, **progresso(pct_captado)})
+                cards.append({"titulo": f"Saldo {rotulo_fonte}", "valor": dinheiro(saldo_fonte, True), "referencia": "de " + dinheiro(captado_fonte, True) + " · saldo a executar", "mostrar_barra": True, "cinza": True, "rotulo_barra": numero_curto(pct_inteiro(saldo_fonte, captado_fonte)) + "%" if pct_saldo_fonte is not None else "—", **progresso(pct_saldo_fonte, "neutra")})
             pp["pct_meta_rotulo"] = taxa_texto(pct_meta)
             pp["faixa_meta"] = faixa(pct_meta)
             pp["progresso_meta"] = {**progresso(pct_meta), "pct_exibicao": pct_meta.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP) if pct_meta is not None else None}
             pp["progresso_exec"] = {**progresso(taxa(pp.get("executado"), pp.get("previsto"))), "pct_exibicao": taxa(pp.get("executado"), pp.get("previsto")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP) if taxa(pp.get("executado"), pp.get("previsto")) is not None else None}
         else:
             cards.append({"titulo": pp["rotulo_previsto"], "valor": dinheiro(pp.get("previsto"), True), "referencia": "recurso total do pilar no PPI"})
-        saldo_pct = taxa(pp.get("saldo"), pp.get("previsto"))
-        cards.append({"titulo": "Saldo" if pp.get("visao_captacao") else "Dif. rel. ao PPI" if codigo == "PDI" else "Diferença PPI", "valor": dinheiro(pp.get("saldo"), True), "referencia": "de " + dinheiro(pp.get("previsto"), True) + " · saldo a executar", "mostrar_barra": True, "cinza": True, "rotulo_barra": numero_curto(pct_inteiro(pp.get("saldo"), pp.get("previsto"))) + "%" if saldo_pct is not None else "—", **progresso(saldo_pct, "neutra")})
+        if not pp.get("visao_captacao"):
+            saldo_pct = taxa(pp.get("saldo"), pp.get("previsto"))
+            cards.append({"titulo": "Dif. rel. ao PPI" if codigo == "PDI" else "Diferença PPI", "valor": dinheiro(pp.get("saldo"), True), "referencia": "de " + dinheiro(pp.get("previsto"), True) + " · saldo a executar", "mostrar_barra": True, "cinza": True, "rotulo_barra": numero_curto(pct_inteiro(pp.get("saldo"), pp.get("previsto"))) + "%" if saldo_pct is not None else "—", **progresso(saldo_pct, "neutra")})
     else:
         _anual(pp)
         grupos = pp.get("tabela_gerencial_fisica", {}).get("grupos", [])

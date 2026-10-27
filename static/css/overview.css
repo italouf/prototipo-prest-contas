@@ -493,6 +493,7 @@ body:has(.overview-dashboard) [data-testid="app-footer"] .overview-footer-title 
 }
 @media (min-width: 1261px) {
   .pillar-overview .overview-cards { grid-template-columns: 1.3fr 1fr 1fr; }
+  .pillar-overview .capture-financial-cards { grid-template-columns: 1.3fr repeat(4, minmax(0, 1fr)); }
 }
 @media (max-width: 1023px) {
   .overview-header-row { grid-template-columns: 32px minmax(0, 1fr); padding: 10px 16px; }
