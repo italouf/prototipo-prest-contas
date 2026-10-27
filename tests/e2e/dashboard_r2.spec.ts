@@ -143,4 +143,37 @@ test.describe('Apresentação mensal importada', () => {
     const resultado = await new AxeBuilder({ page }).include('.presentation-page').withTags(['wcag2a', 'wcag2aa']).analyze();
     expect(resultado.violations.filter(v => ['critical', 'serious'].includes(v.impact || ''))).toEqual([]);
   });
+
+  test('M07 hierarquia e estado do grupo Gestao da AT', async ({ page }, testInfo) => {
+    await page.goto('/prestacao/mensal/?periodo=2098-11-01');
+    const sidebar = page.getByTestId('sidebar');
+    const button = sidebar.locator('[data-nav-grupo="grp-gestao"]');
+    const group = sidebar.locator('#grp-gestao');
+    const associados = group.getByRole('link', { name: 'Associados', exact: true });
+    const solicitacoes = group.getByRole('link', { name: 'Solicitações', exact: true });
+    const acompanhamento = group.getByRole('link', { name: 'Acompanhamento', exact: true });
+    const talentos = group.getByRole('link', { name: 'Talentos', exact: true });
+    await expect(group).toBeVisible();
+    await expect(associados).toBeVisible();
+    await expect(solicitacoes).toBeVisible();
+    await expect(acompanhamento).toBeVisible();
+    await expect(group.getByRole('link', { name: 'Funil de prospecção', exact: true })).toBeVisible();
+    const talentosHref = await talentos.getAttribute('href');
+    const firstX = await associados.locator('.nav-rotulo').evaluate(el => el.getBoundingClientRect().x);
+    const childX = await solicitacoes.locator('.nav-rotulo').evaluate(el => el.getBoundingClientRect().x);
+    const talentosX = await talentos.locator('.nav-rotulo').evaluate(el => el.getBoundingClientRect().x);
+    expect(childX).toBeGreaterThan(firstX);
+    expect(talentosX).toBeCloseTo(firstX, 0);
+    await talentos.scrollIntoViewIfNeeded();
+    await sidebar.screenshot({ path: testInfo.outputPath('sidebar-hierarchy.png') });
+    await button.click();
+    await expect(group).toBeHidden();
+    await expect(button).toHaveAttribute('aria-expanded', 'false');
+    await page.reload();
+    await expect(page.locator('#grp-gestao')).toBeHidden();
+    await page.goto(talentosHref!);
+    await expect(page.locator('#grp-gestao')).toBeVisible();
+    await expect(sidebar.getByRole('link', { name: 'Talentos', exact: true })).toHaveAttribute('aria-current', 'page');
+  });
+
 });
