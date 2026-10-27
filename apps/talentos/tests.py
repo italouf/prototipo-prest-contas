@@ -92,6 +92,7 @@ class OrganogramaFiltrosTestes(TalentosBaseTestes):
         contexto = self._contexto({"pilar": "CT", "competencia": str(self.comp_eventos.id)})
         self.assertEqual(self._nomes(contexto), ["Carla Eclética"])
 
+
     def test_pilar_inexistente_retorna_lista_vazia(self):
         contexto = self._contexto({"pilar": "XX"})
         self.assertEqual(list(contexto["colaboradores"]), [])
@@ -113,6 +114,58 @@ class OrganogramaFiltrosTestes(TalentosBaseTestes):
             {c.nome for c in contexto["competencias"]},
             {"Gestão de Eventos", "Análise de Dados"},
         )
+
+
+class NovoFiltroInstrucaoTestes(TalentosBaseTestes):
+    def setUp(self):
+        from apps.talentos.models import Colaborador, Competencia
+
+        Colaborador.objects.all().delete()
+        self.pilar_at, _ = Pilar.objects.get_or_create(codigo="AT", defaults={"nome": "Associação Tecnológica"})
+        self.pilar_ct = Pilar.objects.create(codigo="TST", nome="Pilar de teste")
+        self.comp_eventos, _ = Competencia.objects.get_or_create(nome="Gestão de Eventos")
+        self.comp_dados, _ = Competencia.objects.get_or_create(nome="Análise de Dados")
+        self.emprestavel = Colaborador.objects.create(nome="Ana Emprestável", cargo="Analista", pilar_principal=self.pilar_at)
+        self.emprestavel.competencias.add(self.comp_eventos)
+        self.outro = Colaborador.objects.create(nome="Bruno Fixo", cargo="Analista", pilar_principal=self.pilar_at)
+        self.outro.competencias.add(self.comp_dados)
+        self.usuario = User.objects.create_user(username="consulta_filtro_instrucao")
+
+    def test_filtro_de_nivel_considera_todas_as_formacoes(self):
+        self.emprestavel.formacoes = [["Graduação", "Letras"], ["Mestrado", "Educação"]]
+        self.emprestavel.save(update_fields=["formacoes"])
+        self.outro.formacoes = [["Especialização", "Dados"], ["Pós-doutorado", "Computação"]]
+        self.outro.save(update_fields=["formacoes"])
+        for nivel, nomes in {
+            "Graduação": ["Ana Emprestável"],
+            "Especialização": ["Bruno Fixo"],
+            "Mestrado": ["Ana Emprestável"],
+            "Doutorado": ["Bruno Fixo"],
+        }.items():
+            with self.subTest(nivel=nivel):
+                contexto = self._contexto({"nivel": nivel})
+                self.assertEqual(self._nomes(contexto), nomes)
+                self.assertEqual(contexto["nivel_selecionado"], nivel)
+        self.assertEqual(self._nomes(self._contexto({"nivel": "inexistente"})), [])
+
+    def test_filtro_nivel_combinado_com_pilar_competencia_e_busca(self):
+        self.emprestavel.formacoes = [["Mestrado", "Educação"]]
+        self.emprestavel.save(update_fields=["formacoes"])
+        filtros = {"nivel": "Mestrado", "pilar": "AT", "competencia": str(self.comp_eventos.pk), "q": "educação"}
+        self.assertEqual(self._nomes(self._contexto(filtros)), ["Ana Emprestável"])
+        filtros["pilar"] = "TST"
+        self.assertEqual(self._nomes(self._contexto(filtros)), [])
+
+    def test_filtro_e_link_de_talentos_na_pagina(self):
+        self.client.force_login(self.usuario)
+        resposta = self.client.get(reverse("talentos:organograma"), {"nivel": "Mestrado"})
+        self.assertContains(resposta, 'name="nivel"')
+        self.assertContains(resposta, 'value="Mestrado" selected')
+        sidebar = resposta.content.decode().split('data-testid="sidebar"', 1)[1].split("</aside>", 1)[0]
+        self.assertEqual(sidebar.count('>Talentos</span>'), 1)
+        self.assertNotIn('<p class="nav-secao-clara">Talentos</p>', sidebar)
+        self.assertIn('href="%s"' % reverse("talentos:organograma"), sidebar)
+
 
 
 class OrganogramaVigenciaTestes(TalentosBaseTestes):

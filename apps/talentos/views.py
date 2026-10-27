@@ -31,6 +31,8 @@ class OrganogramaView(LoginRequiredMixin, View):
     def get(self, request):
         pilar_selecionado = request.GET.get("pilar", "") or ""
         competencia_selecionada = request.GET.get("competencia", "") or ""
+        nivel_selecionado = request.GET.get("nivel", "") or ""
+        niveis = ("Graduação", "Especialização", "Mestrado", "Doutorado")
         hoje = timezone.localdate()
         vigentes = Alocacao.objects.filter(
             Q(data_fim__isnull=True) | Q(data_fim__gte=hoje), data_inicio__lte=hoje
@@ -54,6 +56,9 @@ class OrganogramaView(LoginRequiredMixin, View):
             if competencia_id is not None and Competencia.objects.filter(pk=competencia_id).exists():
                 qs = qs.filter(competencias__pk=competencia_id)
         colaboradores = list(qs)
+        if nivel_selecionado:
+            niveis_buscados = ("Doutorado", "Pós-doutorado") if nivel_selecionado == "Doutorado" else (nivel_selecionado,)
+            colaboradores = [c for c in colaboradores if nivel_selecionado in niveis and any(f[0] in niveis_buscados for f in c.formacoes)]
         if busca:
             termo = busca.casefold()
             colaboradores = [c for c in colaboradores if termo in c.nome.casefold() or termo in c.cargo.casefold() or any(termo in v.nome.casefold() for v in c.competencias.all()) or any(termo in f[1].casefold() for f in c.formacoes)]
@@ -72,6 +77,7 @@ class OrganogramaView(LoginRequiredMixin, View):
             "competencias": Competencia.objects.all(),
             "pilar_selecionado": pilar_selecionado,
             "competencia_selecionada": competencia_selecionada,
+            "niveis": niveis, "nivel_selecionado": nivel_selecionado,
             "pode_editar_talentos": pode_lancar(request.user),
             "q": busca, "total_colaboradores": len(todos), "doutores": doutores, "mestres": mestres,
             "horas_alocadas": alocadas, "horas_livres": sum(c.horas_semanais for c in todos) - alocadas,
