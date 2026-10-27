@@ -1,134 +1,146 @@
-﻿import AxeBuilder from '@axe-core/playwright';
+import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
+import { execFileSync } from 'node:child_process';
+import * as path from 'node:path';
 
-/**
- * E2E da prestação mensal no padrão Geral/Pilares (L20).
- * Pré-requisito: `seed_demo` (períodos 2026-05 fechado, 2026-06 aberto).
- * Casos: specs/prestacao-mensal.md (M01–M09).
- */
+/** Fixtures importados próprios, removidos ao final. Prefira executar em cópia do banco. */
+const python = path.resolve('.venv/Scripts/python.exe');
+const cleanup = `
+from apps.reports.models import ApresentacaoMensal
+from apps.accountability.models import CentroCompetencia
+from apps.accounts.models import User
+ApresentacaoMensal.objects.filter(acompanhamento__centro__codigo='mensal-e2e').delete()
+CentroCompetencia.objects.filter(codigo='mensal-e2e').delete()
+User.objects.filter(username='mensal_e2e').delete()
+`;
+const setup = `
+from datetime import date
+from apps.accountability.models import CentroCompetencia,Acompanhamento,ResumoFinanceiro,KpiAcompanhamento
+from apps.reports.models import ApresentacaoMensal
+from apps.accounts.models import User
+from apps.core.permissions import adicionar_grupo
+from apps.pillars.models import Pilar
+u=adicionar_grupo(User.objects.create_user(username='mensal_e2e',password='mensal-e2e-123'),'Master')
+c=CentroCompetencia.objects.create(codigo='mensal-e2e',nome='Centro de Competência QuIIN em Tecnologias Quânticas')
+a=Acompanhamento.objects.create(centro=c,periodo_referencia='3T/2026')
+for codigo in ['PDI','FORMACAO','STARTUPS','INFRA','AT','OUTRASFONTES']:
+ p,_=Pilar.objects.get_or_create(codigo=codigo,defaults={'nome':codigo})
+ ResumoFinanceiro.objects.create(acompanhamento=a,origem='TAB. 9' if codigo in ['AT','OUTRASFONTES'] else 'TAB. 1',pilar=p,recurso_ou_meta=1000000,captado=600000 if codigo in ['AT','OUTRASFONTES'] else None,realizado=250000)
+for n,(codigo,nome,meta,executado) in enumerate([
+ ('PDI','Projetos de pesquisa e desenvolvimento',18,15),('PDI','Pedidos de propriedade intelectual',9,4),('PDI','Publicações em periódicos',21,9),
+ ('FORMACAO','Profissionais formados e capacitados',800,2107),('STARTUPS','Empresas de base tecnológica participantes',50,70),('STARTUPS','Projetos em inovação aberta',26,2),
+ ('AT','Empresas participantes como associadas',129,14),('AT','Participação de recursos das empresas associadas',1,0.4),('OUTRASFONTES','Recursos de outras fontes',1,0.6),('INFRA','Implantação da infraestrutura',1,0.56)],1):
+ KpiAcompanhamento.objects.create(acompanhamento=a,codigo=f'E2E-{n:02}',sequencia=n,nome=nome,pilar=Pilar.objects.get(codigo=codigo),meta_total=meta,acumulado=executado,unidade='Número absoluto')
+for mes in [11,12]:
+ ApresentacaoMensal.objects.create(competencia=date(2098,mes,1),acompanhamento=a,titulo='Reunião de acompanhamento mensal',criado_por=u)
+`;
 
-async function login(page: Page, username = 'erica', password = 'erica123') {
+async function login(page: Page) {
   await page.goto('/accounts/login/');
-  await page.getByLabel('Usuário').fill(username);
-  await page.getByLabel('Senha').fill(password);
+  await page.getByLabel('Usuário').fill('mensal_e2e');
+  await page.getByLabel('Senha', { exact: true }).fill('mensal-e2e-123');
   await page.getByRole('button', { name: /entrar/i }).click();
+  await expect(page).not.toHaveURL(/accounts\/login/);
 }
 
-test('M01 mensal exibe KPIs, financeiro, SVG, heatmap, avisos e farol', async ({ page }) => {
-  await login(page);
-  await page.goto('/prestacao/mensal/');
-  await expect(page.getByRole('heading', { name: /dashboard executivo/i })).toBeVisible();
-  await expect(page.locator('[data-kpi-card]')).toHaveCount(6);
-  await expect(page.getByTestId('kpi-pdi')).toBeVisible();
-  await expect(page.getByTestId('kpi-at')).toBeVisible();
-  await expect(page.getByTestId('heatmap')).toBeVisible();
-  await expect(page.getByTestId('avisos')).toBeVisible();
-  await expect(page.getByText('Evolução financeira mensal')).toBeVisible();
-  await expect(page.getByText('Captação × execução por pilar')).toBeVisible();
-  await expect(page.getByTestId('chart-fonte-mensal')).toBeVisible();
-  await expect(page.getByTestId('chart-fonte-pilares')).toBeVisible();
-  await expect(page.getByTestId('chart-fonte-mensal').locator('g[data-categoria="Jun 2026"]')).toHaveCount(1);
-  await expect(page.getByTestId('status-distribuicao')).toBeVisible();
-  await expect(page.getByText(/R\$ .* mi|R\$ \d+ mil/).first()).toBeVisible();
-});
-
-test('M02 filtro de periodo atualiza widgets via HTMX sem reload', async ({ page }) => {
-  await login(page);
-  await page.goto('/prestacao/mensal/');
-  await page.evaluate(() => {
-    (window as unknown as { __marcador: number }).__marcador = 42;
+test.describe('Apresentação mensal importada', () => {
+  test.skip(!process.env.QUIIN_PRESENTATION_E2E, 'Use --config=playwright.presentation.config.ts para executar em banco isolado.');
+  test.describe.configure({ mode: 'serial' });
+  test.beforeAll(() => {
+    execFileSync(python, ['manage.py', 'shell', '-c', cleanup + setup], { timeout: 60_000 });
   });
-  await page.getByTestId('period-selector-dashboard').selectOption({ label: '2026-05 — Fechado' });
-  await expect(page.getByText(/Lançamentos — 2026-05/)).toBeVisible();
-  await expect(page).toHaveURL(/periodo=2026-05-01/);
-  const marcador = await page.evaluate(
-    () => (window as unknown as { __marcador: number }).__marcador,
-  );
-  expect(marcador).toBe(42);
-});
-
-test('M03 KPI card abre drawer com detalhe do pilar', async ({ page }) => {
-  await login(page);
-  await page.goto('/prestacao/mensal/');
-  await page.getByTestId('kpi-pdi').click();
-  const drawer = page.getByTestId('drawer');
-  await expect(drawer).toBeVisible();
-  await expect(page.getByTestId('drawer-pilar')).toBeVisible();
-  await expect(page.getByTestId('drawer-pilar')).toContainText('PDI-PROJ-INI');
-  await page.getByTestId('drawer-fechar').click();
-  await expect(drawer).not.toBeVisible();
-});
-
-test('M04 destaques filtram por pilar', async ({ page }) => {
-  await login(page);
-  await page.goto('/prestacao/mensal/');
-  const filtros = page.getByTestId('destaques-filtros');
-  await Promise.all([
-    page.waitForResponse((r) => r.url().includes('destaque_pilar=4')),
-    filtros.getByRole('button', { name: 'AT', exact: true }).click(),
-  ]);
-  await expect(page.getByTestId('feed-destaques')).toContainText('renovações');
-  await expect(page.getByTestId('feed-destaques')).toContainText('Arena QuIIN');
-  await Promise.all([
-    page.waitForResponse((r) => r.url().includes('destaque_pilar=1')),
-    filtros.getByRole('button', { name: 'PDI', exact: true }).click(),
-  ]);
-  await expect(page.getByTestId('feed-destaques')).toContainText('Arena QuIIN');
-  await expect(page.getByTestId('feed-destaques')).not.toContainText('renovações');
-});
-
-test('M05 dashboard responde em menos de 1000ms no servidor', async ({ page }) => {
-  await login(page);
-  await page.goto('/prestacao/mensal/');
-  const tempos = await page.evaluate(() => {
-    const nav = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
-    return { servidor: nav.responseEnd - nav.requestStart };
+  test.afterAll(() => {
+    execFileSync(python, ['manage.py', 'shell', '-c', cleanup], { timeout: 30_000 });
   });
-  expect(tempos.servidor).toBeLessThan(1000);
-});
+  test.beforeEach(async ({ page }) => login(page));
 
-test('M06 header tem periodo, chips e toggle da barra', async ({ page }) => {
-  await login(page);
-  await page.goto('/prestacao/mensal/');
-  const controles = page.getByTestId('dashboard-controls');
-  await expect(controles).toBeVisible();
-  await expect(controles.getByTestId('period-selector-dashboard')).toBeVisible();
-  await expect(page.getByTestId('context-chips')).toContainText('Período:');
-  const alternador = page.getByTestId('barra-toggle');
-  await alternador.click();
-  await expect(controles).toBeHidden();
-  await alternador.click();
-  await expect(controles).toBeVisible();
-  await page.getByTestId('period-selector-dashboard').selectOption({ label: '2026-05 — Fechado' });
-  await expect(page).toHaveURL(/periodo=2026-05-01/);
-  await expect(page.getByTestId('context-chips')).toContainText('2026-05');
-});
+  test('M01 nove slides, controles e navegação pelo teclado', async ({ page }, testInfo) => {
+    await page.goto('/prestacao/mensal/?periodo=2098-11-01');
+    const deck = page.getByTestId('presentation-deck');
+    await expect(deck).toHaveAttribute('data-ready', 'true');
+    await expect(deck.locator('.slides > section')).toHaveCount(9);
+    await expect(page.locator('[data-presentation-counter]')).toHaveText('1 / 9');
+    await page.screenshot({ path: testInfo.outputPath('mensal-capa.png'), fullPage: true });
+    await deck.focus();
+    await page.keyboard.press('ArrowRight');
+    await expect(page.locator('[data-presentation-counter]')).toHaveText('2 / 9');
+    await page.getByRole('button', { name: 'Próximo slide', exact: true }).click();
+    await expect(page.locator('[data-presentation-counter]')).toHaveText('3 / 9');
+    await expect(deck.locator('section.present')).toContainText('Projetos de pesquisa');
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.screenshot({ path: testInfo.outputPath('mensal-pdi.png'), fullPage: true });
+  });
 
-test('M07 toolbar: aprovar pendentes, relatório e imprimir', async ({ page }) => {
-  await login(page);
-  await page.goto('/prestacao/mensal/');
-  const toolbar = page.getByRole('toolbar', { name: /ações do mês/i });
-  await expect(toolbar.getByRole('link', { name: /aprovar \d+ pendente/i }))
-    .toHaveAttribute('href', /\/aprovacao\/\d+\//);
-  await expect(toolbar.getByRole('link', { name: /relatório mensal/i }))
-    .toHaveAttribute('href', /\/relatorio\/mensal\/\d+\//);
-  await expect(toolbar.getByRole('button', { name: /imprimir/i })).toBeVisible();
-});
+  test('M02 navegação HTMX, troca de mês e retorno não duplicam eventos', async ({ page }) => {
+    await page.locator('[data-testid="sidebar"]').getByRole('link', { name: 'Mensal', exact: true }).click();
+    await expect(page.getByTestId('presentation-deck')).toHaveAttribute('data-ready', 'true');
+    await page.evaluate(() => { (window as any).__mensalMarker = 42; });
+    await page.getByTestId('presentation-month').selectOption('2098-11-01');
+    await page.getByRole('button', { name: 'Exibir', exact: true }).click();
+    await expect(page).toHaveURL(/periodo=2098-11-01/);
+    await expect(page.getByTestId('presentation-deck')).toHaveAttribute('data-ready', 'true');
+    expect(await page.evaluate(() => (window as any).__mensalMarker)).toBe(42);
+    await page.locator('[data-testid="sidebar"]').getByRole('link', { name: 'Visão geral', exact: true }).click();
+    await expect(page.getByTestId('presentation-deck')).toHaveCount(0);
+    await page.locator('[data-testid="sidebar"]').getByRole('link', { name: 'Mensal', exact: true }).click();
+    await expect(page.getByTestId('presentation-deck')).toHaveAttribute('data-ready', 'true');
+    await page.getByRole('button', { name: 'Próximo slide', exact: true }).click();
+    await expect(page.locator('[data-presentation-counter]')).toHaveText('2 / 9');
+  });
 
-test('M08 impressão mostra cabeçalho do mês e esconde controles', async ({ page }) => {
-  await login(page);
-  await page.goto('/prestacao/mensal/');
-  await page.emulateMedia({ media: 'print' });
-  await expect(page.getByTestId('print-cabecalho')).toBeVisible();
-  await expect(page.getByTestId('print-cabecalho')).toContainText('Dashboard Executivo');
-  await expect(page.getByTestId('dashboard-controls')).toBeHidden();
-});
+  test('M03 editor salva destaque com imagem no banco e gera continuação', async ({ page }) => {
+    await page.goto('/prestacao/mensal/editar/?periodo=2098-12-01');
+    await page.getByRole('link', { name: 'Adicionar conteúdo', exact: true }).click();
+    await page.getByLabel(/^Título/).fill('Marco de pesquisa do mês');
+    await page.getByLabel(/^Texto/).fill('Integração das tecnologias quânticas e clássicas. '.repeat(25));
+    await page.getByLabel(/^Imagem opcional/).setInputFiles({
+      name: 'marco.png', mimeType: 'image/png',
+      buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64'),
+    });
+    await page.getByLabel(/^Descrição da imagem/).fill('Ilustração do marco de pesquisa');
+    await page.getByRole('button', { name: 'Salvar conteúdo', exact: true }).click();
+    await expect(page.getByText('Marco de pesquisa do mês', { exact: true })).toBeVisible();
+    await page.getByRole('link', { name: 'Ver apresentação', exact: true }).click();
+    const deck = page.getByTestId('presentation-deck');
+    await expect(deck).toHaveAttribute('data-ready', 'true');
+    expect(await deck.locator('[data-slide-kind="editorial"]').count()).toBeGreaterThan(1);
+    const image = deck.locator('img').first();
+    await expect(image).toHaveAttribute('src', /prestacao\/mensal\/imagens\/\d+\//);
+    expect(await image.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0)).toBe(true);
+  });
 
-test('M09 axe-core limpo no mensal', async ({ page }) => {
-  await login(page);
-  await page.goto('/prestacao/mensal/');
-  await page.addStyleTag({ content: '*,*::before,*::after{animation:none!important;transition:none!important}' });
-  const resultado = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
-  const graves = resultado.violations.filter((v) => ['critical', 'serious'].includes(v.impact ?? ''));
-  expect(graves, graves.map((v) => `${v.id}: ${v.help}`).join('\n')).toEqual([]);
+  test('M04 PDF contém uma página por slide, sem shell e sem cortes', async ({ page }, testInfo) => {
+    await page.goto('/prestacao/mensal/?periodo=2098-12-01&print-pdf=1');
+    const deck = page.getByTestId('presentation-deck');
+    await expect(deck).toHaveAttribute('data-ready', 'true');
+    await expect(page.getByTestId('sidebar')).toHaveCount(0);
+    const total = await deck.locator('section.quiin-slide').count();
+    const pdf = await page.pdf({ path: testInfo.outputPath('mensal.pdf'), printBackground: true, preferCSSPageSize: true });
+    expect(pdf.subarray(0, 4).toString()).toBe('%PDF');
+    expect((pdf.toString('latin1').match(/\/Type\s*\/Page\b/g) || []).length).toBe(total);
+    const overflow = await deck.locator('.deck-body').evaluateAll(elements => elements.filter(el => el.scrollHeight > el.clientHeight + 4).length);
+    expect(overflow).toBe(0);
+  });
+
+  test('M05 tela cheia, responsividade e ausência de erros JS', async ({ page }, testInfo) => {
+    const errors: string[] = [];
+    page.on('pageerror', error => errors.push(error.message));
+    await page.goto('/prestacao/mensal/?periodo=2098-11-01');
+    await expect(page.getByTestId('presentation-deck')).toHaveAttribute('data-ready', 'true');
+    await page.getByRole('button', { name: /Tela cheia/ }).click();
+    await expect.poll(() => page.evaluate(() => !!document.fullscreenElement)).toBe(true);
+    await page.getByRole('button', { name: /Sair da tela cheia/ }).click();
+    await expect.poll(() => page.evaluate(() => !!document.fullscreenElement)).toBe(false);
+    await page.setViewportSize({ width: 390, height: 844 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    await page.screenshot({ path: testInfo.outputPath('mensal-mobile.png'), fullPage: true });
+    expect(errors).toEqual([]);
+  });
+
+  test('M06 axe sem violações graves na apresentação', async ({ page }) => {
+    await page.goto('/prestacao/mensal/?periodo=2098-11-01');
+    await expect(page.getByTestId('presentation-deck')).toHaveAttribute('data-ready', 'true');
+    const resultado = await new AxeBuilder({ page }).include('.presentation-page').withTags(['wcag2a', 'wcag2aa']).analyze();
+    expect(resultado.violations.filter(v => ['critical', 'serious'].includes(v.impact || ''))).toEqual([]);
+  });
 });

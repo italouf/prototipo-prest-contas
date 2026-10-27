@@ -234,7 +234,8 @@ def pilar_drawer(request, pk):
 
 @login_required
 def mensal(request):
-    return render(request, "features/construcao.html", {"titulo": "Prestação mensal", "grupo": "Prestação de contas"})
+    from apps.reports.presentation_views import apresentacao_mensal
+    return apresentacao_mensal(request)
 
 @login_required
 def semestral(request):

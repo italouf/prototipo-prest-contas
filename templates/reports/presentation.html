@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Apresentação mensal · QuIIN{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'vendor/reveal-6.0.2/reveal.css' %}">
+<link rel="stylesheet" href="{% static 'css/presentation.css' %}">
+<script src="{% static 'js/presentation.js' %}" defer></script>
+{% endblock %}
+{% block content %}
+<div class="presentation-page" data-testid="apresentacao-mensal">
+  <p class="presentation-crumb">Prestação de contas <span>/</span> Mensal</p>
+  <div class="presentation-heading">
+    <div><p class="presentation-eyebrow">ACOMPANHAMENTO DO CENTRO DE COMPETÊNCIA</p><h1>Apresentação mensal</h1></div>
+    {% if pode_editar_apresentacao %}<a class="presentation-button" href="{% url 'core:mensal_editar' %}{% if competencia_apresentacao %}?periodo={{ competencia_apresentacao|date:'Y-m-d' }}{% endif %}">{% if apresentacao %}Editar apresentação{% else %}Configurar apresentação{% endif %}</a>{% endif %}
+  </div>
+  <div class="presentation-context">
+    <form method="get" action="{% url 'core:mensal' %}" hx-get="{% url 'core:mensal' %}" hx-target="#main" hx-select="#main" hx-select-oob="#app-header" hx-push-url="true">
+      <label for="presentation-month">Mês da apresentação</label>
+      <div class="presentation-month-control"><select id="presentation-month" name="periodo" data-testid="presentation-month">
+        {% if competencia_apresentacao and not apresentacao %}<option value="{{ competencia_apresentacao|date:'Y-m-d' }}" selected>{{ competencia_apresentacao|date:'m/Y' }} · não configurado</option>{% endif %}
+        {% for item in apresentacoes %}<option value="{{ item.competencia|date:'Y-m-d' }}" {% if item.pk == apresentacao.pk %}selected{% endif %}>{{ item.competencia|date:'m/Y' }}</option>{% empty %}{% if not competencia_apresentacao %}<option value="">Nenhuma apresentação cadastrada</option>{% endif %}{% endfor %}
+      </select><button class="presentation-button" type="submit">Exibir</button></div>
+    </form>
+    {% if apresentacao %}<div class="presentation-source"><span class="presentation-source-dot" aria-hidden="true"></span><div><span>Referência dos dados</span><strong>{{ apresentacao.acompanhamento.periodo_referencia }}</strong><small>Consolidado do acompanhamento · valores atuais</small></div></div>{% endif %}
+  </div>
+  {% if apresentacao %}
+    <div class="presentation-stage" data-presentation-stage>
+      <div class="presentation-stage-bar"><span><span class="presentation-live-dot" aria-hidden="true"></span> QuIIN <span class="presentation-stage-divider">/</span> {{ apresentacao.competencia|date:'m/Y' }}</span><div><a class="presentation-button" href="{% url 'core:mensal' %}?periodo={{ apresentacao.competencia|date:'Y-m-d' }}&amp;print-pdf=1" target="_blank" rel="noopener" hx-boost="false">Salvar em PDF <span aria-hidden="true">↗</span></a><button class="presentation-button" type="button" data-presentation-fullscreen disabled>Tela cheia <span aria-hidden="true">⛶</span></button></div></div>
+      {% include 'reports/_presentation_deck.html' %}
+      <div class="presentation-navigation"><span class="presentation-keyboard-hint">Use as setas do teclado ou os botões para navegar.</span><div><button type="button" class="presentation-button" data-presentation-prev disabled aria-label="Slide anterior">←</button><span data-presentation-counter aria-live="polite" aria-atomic="true">1 / {{ quantidade_slides }}</span><button type="button" class="presentation-button" data-presentation-next disabled aria-label="Próximo slide">→</button></div></div>
+    </div>
+    <p class="presentation-footnote">O mês organiza esta apresentação. Os números correspondem ao acompanhamento <strong>{{ apresentacao.acompanhamento.periodo_referencia }}</strong>.</p>
+  {% else %}
+    <div class="presentation-empty" role="status"><span class="presentation-empty-symbol" aria-hidden="true">▤</span><h2>{% if competencia_apresentacao %}Apresentação de {{ competencia_apresentacao|date:'m/Y' }} ainda não configurada{% else %}Seu acompanhamento mensal começa aqui{% endif %}</h2><p>{% if pode_editar_apresentacao %}Escolha o mês e vincule um acompanhamento importado para montar a apresentação. Depois, acrescente os destaques e próximos passos.{% else %}Um usuário Admin ou Master precisa configurar a apresentação deste mês.{% endif %}</p>{% if pode_editar_apresentacao %}<a class="presentation-button primary" href="{% url 'core:mensal_editar' %}{% if competencia_apresentacao %}?periodo={{ competencia_apresentacao|date:'Y-m-d' }}{% endif %}">Configurar apresentação</a>{% endif %}</div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -2,7 +2,7 @@
 from datetime import date
 from decimal import Decimal as D
 
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from apps.accounts.models import User
@@ -127,13 +127,23 @@ class PainelMensalTestes(TestCase):
         self.assertEqual(len(ctx["geo_pilares"]["grupos"]), 1)
 
 
+@override_settings(STORAGES={
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+})
 class MensalContratoUrlTestes(TestCase):
     def setUp(self):
+        from apps.accountability.models import Acompanhamento, CentroCompetencia
+        from apps.reports.models import ApresentacaoMensal
+
         garantir_grupos()
         self.master = adicionar_grupo(
             User.objects.create_user(username="pm_url", password="x"), "Master")
         self.junho = Periodo.objects.create(
             competencia=date(2026, 6, 1), status="ABERTO", aberto_por=self.master)
+        centro = CentroCompetencia.objects.create(codigo="mensal-contrato", nome="QuIIN")
+        acompanhamento = Acompanhamento.objects.create(centro=centro, periodo_referencia="2T/2026")
+        ApresentacaoMensal.objects.create(competencia=self.junho.competencia, acompanhamento=acompanhamento)
 
     def test_periodo_invalido_redireciona_para_canonico(self):
         self.client.force_login(self.master)
@@ -142,16 +152,15 @@ class MensalContratoUrlTestes(TestCase):
             resposta, "/prestacao/mensal/?periodo=2026-06-01",
             fetch_redirect_response=False)
 
-    def test_hx_request_devolve_fragmento_com_oob_espelhado(self):
+    def test_hx_request_devolve_main_para_swap_da_apresentacao(self):
         self.client.force_login(self.master)
         resposta = self.client.get(
             reverse("core:mensal"), {"periodo": "2026-06-01"},
             headers={"HX-Request": "true"})
         self.assertEqual(resposta.status_code, 200)
-        self.assertContains(resposta, 'id="painel-mensal"')
-        self.assertContains(resposta, "hx-swap-oob")
-        self.assertContains(resposta, 'data-testid="dashboard-controls"')
-        self.assertNotContains(resposta, 'data-testid="app-header"')
+        self.assertContains(resposta, 'id="main"')
+        self.assertContains(resposta, 'data-testid="presentation-deck"')
+        self.assertContains(resposta, 'data-testid="app-header"')
 
     def test_navegacao_com_boost_recebe_pagina_completa(self):
         self.client.force_login(self.master)
@@ -160,7 +169,7 @@ class MensalContratoUrlTestes(TestCase):
             headers={"HX-Request": "true", "HX-Boosted": "true"})
         self.assertEqual(resposta.status_code, 200)
         self.assertContains(resposta, 'data-testid="app-header"')
-        self.assertContains(resposta, 'id="painel-mensal"')
+        self.assertContains(resposta, 'data-testid="presentation-deck"')
         self.assertNotContains(resposta, "hx-swap-oob")
 
 

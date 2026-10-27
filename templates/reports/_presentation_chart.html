@@ -1,0 +1,11 @@
+{% load core_extras l10n %}
+<div class="deck-chart"><div class="deck-chart-legend"><span><i></i> Recurso PPI</span><span><i></i> Realizado</span><span>R$ milhões</span></div>
+<svg viewBox="0 0 {{ geo.largura }} {{ geo.altura }}" role="img" aria-label="Comparação de recurso PPI e realizado por ação, em milhões de reais">
+  <line x1="{{ geo.base_x1|unlocalize }}" x2="{{ geo.base_x2|unlocalize }}" y1="{{ geo.base_y|unlocalize }}" y2="{{ geo.base_y|unlocalize }}" stroke="#cdd4e2"/>
+  {% for grupo in geo.grupos %}
+  {% if grupo.a.disponivel %}<rect x="{{ grupo.a.x|unlocalize }}" y="{{ grupo.a.y|unlocalize }}" width="{{ grupo.a.w|unlocalize }}" height="{{ grupo.a.h|unlocalize }}" rx="4" fill="#1b1641"/>{% endif %}
+  {% if grupo.b.disponivel %}<rect x="{{ grupo.b.x|unlocalize }}" y="{{ grupo.b.y|unlocalize }}" width="{{ grupo.b.w|unlocalize }}" height="{{ grupo.b.h|unlocalize }}" rx="4" fill="#2ebf7d"/>{% endif %}
+  <text x="{{ grupo.a.cx|unlocalize }}" y="{{ grupo.a.ry|unlocalize }}" text-anchor="middle">{{ grupo.a.valor|numero_curto }}</text><text x="{{ grupo.b.cx|unlocalize }}" y="{{ grupo.b.ry|unlocalize }}" text-anchor="middle">{{ grupo.b.valor|numero_curto }}</text>
+  <text x="{{ grupo.cx_eixo|unlocalize }}" y="{{ geo.eixo_y1|unlocalize }}" text-anchor="middle">{{ grupo.eixo.0 }}</text>
+  {% endfor %}
+</svg></div>

@@ -1,0 +1,8 @@
+{% load core_extras l10n %}
+<article class="deck-kpi-card deck-faixa-{{ indicador.faixa }}">
+  <p class="deck-kpi-code">{{ indicador.codigo }}</p><h3>{{ indicador.rotulo }}</h3>
+  <div class="deck-kpi-value">{% if indicador.valores_percentuais %}{{ indicador.executado|percentual_fracao }}{% else %}{{ indicador.executado|numero_curto }}{% endif %}</div>
+  <p class="deck-kpi-target">Meta <strong>{% if indicador.valores_percentuais %}{{ indicador.previsto|percentual_fracao }}{% else %}{{ indicador.previsto|numero_curto }}{% endif %}</strong></p>
+  <div class="deck-kpi-progress" aria-hidden="true"><span style="width:{{ indicador.barra|default:0|unlocalize }}%"></span></div>
+  <p class="deck-kpi-status"><strong>{{ indicador.pct|pct }}</strong> de cumprimento{% if indicador.executado is None %} · sem dado{% endif %}</p>
+</article>

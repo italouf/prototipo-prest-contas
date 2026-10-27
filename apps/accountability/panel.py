@@ -1256,6 +1256,17 @@ def _painel_fisico(ano, acomp, pilares_selecionados=None):
 
 # ----------------------------------------------------------------- interface
 
+def resumo_financeiro_ciclo(acomp, pilares_selecionados=None):
+    """Consolidado importado, incluindo fontes sem TAB. 1.
+
+    Compartilha os cálculos e overrides da visão geral sem exigir PPI para
+    apresentar os dados disponíveis de AT e outras fontes.
+    """
+    if acomp is None:
+        raise ValueError("acompanhamento obrigatório")
+    return _visao_financeiro_geral(acomp, pilares_selecionados)
+
+
 def painel_acompanhamento(ano, base, acomp, pilares_selecionados=None, anos=None):
     """DTO do painel anual (ano|None, base) a partir dos snapshots importados.
 

@@ -1,5 +1,7 @@
 # Spec — Prestação mensal no padrão Geral/Pilares (L20)
 
+> Histórico do dashboard L20. A rota mensal agora segue [Apresentação executiva mensal](apresentacao-mensal.md). Os serviços de cálculo legados permanecem; os contratos de interface abaixo foram substituídos.
+
 Suite: `tests/e2e/dashboard_r2.spec.ts` (reescrita) + `apps/core/tests_prestacao.py` (novo).
 Pré-condição: `seed_demo` (períodos 2026-05 fechado, 2026-06 aberto, 2026-07 planejado;
 financeiro jan–jun/2026; lançamentos aprovados em maio, pendências em junho).
