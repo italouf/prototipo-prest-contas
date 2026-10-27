@@ -4,10 +4,10 @@
     {% for slide in slides %}
     <section class="quiin-slide quiin-slide-{{ slide.tipo }}" data-slide-kind="{{ slide.tipo }}" data-slide-key="{{ slide.chave }}" aria-label="{{ slide.numero }}. {{ slide.titulo }}">
       {% if slide.tipo == 'capa' %}
-      <div class="deck-cover-art" aria-hidden="true"><i></i><i></i><i></i><i></i><b>Q</b></div>
-      <div class="deck-cover-content"><span class="deck-wordmark">QuIIN<span>®</span></span><p class="deck-eyebrow">CENTRO DE COMPETÊNCIA</p><p class="deck-center-name">{{ apresentacao.acompanhamento.centro.nome }}</p><h2>{{ slide.titulo }}</h2><div class="deck-cover-month">{{ apresentacao.competencia|date:'F' }} <strong>{{ apresentacao.competencia|date:'Y' }}</strong></div><div class="deck-cover-reference">Referência dos dados <strong>{{ apresentacao.acompanhamento.periodo_referencia }}</strong></div></div>
+      <div class="deck-cover-art" aria-hidden="true"><i></i><i></i><i></i><i></i><span class="deck-cover-seal"><span class="deck-seal-mark"><img src="{% static 'img/presentation/selo-positivo.png' %}" width="843" height="596" alt=""></span></span></div>
+      <div class="deck-cover-content">{% include 'reports/_presentation_logo.html' with capa=True %}<p class="deck-eyebrow">CENTRO DE COMPETÊNCIA</p><p class="deck-center-name">{{ apresentacao.acompanhamento.centro.nome }}</p><h2>{{ slide.titulo }}</h2><div class="deck-cover-month">{{ apresentacao.competencia|date:'F' }} <strong>{{ apresentacao.competencia|date:'Y' }}</strong></div><div class="deck-cover-reference">Referência dos dados <strong>{{ apresentacao.acompanhamento.periodo_referencia }}</strong></div></div>
       {% else %}
-      <header class="deck-header"><div><p class="deck-eyebrow">{% if slide.sigla %}{{ slide.sigla }}{% else %}ACOMPANHAMENTO MENSAL{% endif %}</p><h2>{{ slide.titulo }}</h2></div><span class="deck-wordmark">QuIIN<span>®</span></span></header>
+      <header class="deck-header"><div><p class="deck-eyebrow">{% if slide.sigla %}{{ slide.sigla }}{% else %}ACOMPANHAMENTO MENSAL{% endif %}</p><h2>{{ slide.titulo }}</h2></div>{% include 'reports/_presentation_logo.html' with capa=False %}</header>
       <div class="deck-body">
         {% if slide.tipo == 'resumo' %}
           <div class="deck-summary-grid">{% for card in slide.resumo %}<article class="deck-summary-card"><span>{{ card.rotulo }}</span><strong title="{{ card.valor|brl }}">{{ card.valor|escala_precisa_ptbr }}</strong><small>Consolidado do acompanhamento</small></article>{% endfor %}</div>

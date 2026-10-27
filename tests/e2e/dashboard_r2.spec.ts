@@ -104,7 +104,7 @@ test.describe('Apresentação mensal importada', () => {
     const deck = page.getByTestId('presentation-deck');
     await expect(deck).toHaveAttribute('data-ready', 'true');
     expect(await deck.locator('[data-slide-kind="editorial"]').count()).toBeGreaterThan(1);
-    const image = deck.locator('img').first();
+    const image = deck.locator('.deck-editorial img').first();
     await expect(image).toHaveAttribute('src', /prestacao\/mensal\/imagens\/\d+\//);
     expect(await image.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0)).toBe(true);
   });

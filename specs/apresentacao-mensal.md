@@ -22,6 +22,7 @@ Substitui o dashboard mensal L20 na rota `core:mensal`. O PowerPoint de referên
 ## Apresentação
 
 - Reveal.js 6.0.2 local, licença MIT; tema QuIIN em CSS próprio, Montserrat e JetBrains Mono locais, canvas 1280×720.
+- Identidade oficial: `LOGO POSITIVA.png` na capa (280 px) e nos cabeçalhos (180 px); `Logo Selo Positivo.png` branco (140 px) no círculo escuro da capa. Cópias locais em `static/img/presentation/`, com margens transparentes compensadas por CSS e proporções preservadas. Os arquivos originais de `assets/logos/` permanecem intactos.
 - Nove slides-base: capa; resumo; PDI; FCRH; ACS; AT; PPI/Infraestrutura; AT e outras fontes; pendências/próximos 30 dias.
 - Usuários com escopo restrito veem somente blocos e totais autorizados. Destaques gerais aparecem no resumo e detalhados em slides adicionais; destaques de pilar seguem o respectivo bloco.
 - Indicadores e textos extensos geram continuações, sem truncar o conteúdo. Itens são ordenados por ordem e ID.
