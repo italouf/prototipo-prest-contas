@@ -12,6 +12,14 @@
 .associate-hero-label{display:block;color:#8e86ff;font-size:11px;letter-spacing:1px;text-transform:uppercase;font-weight:700;margin-bottom:4px}
 .associate-hero small{color:#c4c2e6;font-size:12px}
 .associate-plan-row{margin-top:6px;display:flex;align-items:center;flex-wrap:wrap;gap:5px}
+.associate-identity{display:flex;align-items:center;gap:12px}
+.associate-logo{width:64px;height:64px;object-fit:contain;background:#fff;border-radius:8px;padding:5px;flex:none}
+.associate-logo-editor{margin-top:8px;font-size:12px}
+.associate-logo-editor summary,.associate-logo-editor button{color:#c4c2e6;cursor:pointer;text-decoration:underline}
+.associate-logo-editor form{margin-top:6px}
+.associate-logo-editor label,.associate-logo-editor small{display:block}
+.feature-page .associate-logo-editor input{display:block;width:100%;max-width:280px;margin:5px 0;font-size:11px;color:#fff}
+.associate-logo-editor .errorlist{color:#ffd3b2;font-size:12px}
 .associate-plan-badge{display:inline-block;white-space:nowrap;font-size:10.5px;font-weight:800;border-radius:5px;padding:2px 8px;letter-spacing:.4px;text-transform:uppercase}
 .associate-plan-badge[data-plano="Bronze"]{background:#f6e7da;color:#8a4b1e}
 .associate-plan-badge[data-plano="Prata"]{background:#ecedf2;color:#555a70}
@@ -25,7 +33,7 @@
 .associate-email div{overflow-wrap:anywhere}
 .associate-email button{color:#c4c2e6;font-size:11px;text-decoration:underline;margin-top:5px;cursor:pointer}
 .associate-email .errorlist{color:#ffd3b2;font-size:12px}
-.associate-kpis{display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr;gap:14px;margin-top:14px}
+.associate-kpis{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:14px;margin-top:14px}
 .associate-kpi{background:#fff;border:1px solid var(--ad-line);border-radius:12px;padding:18px 20px;min-width:0}
 .associate-kpi.primary{display:flex;align-items:center;gap:22px;padding:20px 22px;border-top:4px solid #0c0084}
 .associate-kpi-label{font-size:11px;letter-spacing:.8px;text-transform:uppercase;color:var(--ad-muted);font-weight:700;line-height:1.1}

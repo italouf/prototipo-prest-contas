@@ -4,11 +4,12 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import Q
+from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from apps.audit.services import registrar_auditoria
 from apps.core.permissions import pode_lancar, sem_permissao
 from apps.pillars.models import Pilar
-from .forms import AssociadoEmailForm, AssociadoForm, SolicitacaoForm
+from .forms import AssociadoEmailForm, AssociadoForm, AssociadoLogoForm, SolicitacaoForm
 from .models import Associado, HistoricoSolicitacao, Plano, Solicitacao
 from .services import RESPONSAVEIS, atualizar_usos, pode_gerir_associados, pode_ver_associados, registrar_andamento, resumo_beneficios, solicitacoes_visiveis
 
@@ -16,7 +17,7 @@ from .services import RESPONSAVEIS, atualizar_usos, pode_gerir_associados, pode_
 def acompanhamento(request):
     if not pode_ver_associados(request.user):
         return sem_permissao(request)
-    associados = list(Associado.objects.select_related("plano").prefetch_related("usos", "solicitacoes", "contatos"))
+    associados = list(Associado.objects.defer("logo").select_related("plano").prefetch_related("usos", "solicitacoes", "contatos"))
     for a in associados:
         a.resumo = resumo_beneficios(a)
         a.abertas = sum(s.respondida_em is None for s in a.solicitacoes.all())
@@ -40,8 +41,9 @@ def acompanhamento(request):
 def associado(request, pk):
     if not pode_ver_associados(request.user):
         return sem_permissao(request)
-    a = get_object_or_404(Associado.objects.select_related("plano").prefetch_related("usos", "contatos"), pk=pk)
+    a = get_object_or_404(Associado.objects.defer("logo").select_related("plano").prefetch_related("usos", "contatos"), pk=pk)
     email_form = AssociadoEmailForm(initial={"email": a.email})
+    logo_form = AssociadoLogoForm()
     if request.method == "POST":
         if not pode_gerir_associados(request.user):
             return sem_permissao(request)
@@ -57,6 +59,29 @@ def associado(request, pk):
                         registrar_auditoria(request.user, "EDITAR_ASSOCIADO", "AssociadoAT", pk, "email", anterior, registro.email)
                 messages.success(request, "E-mail da associada atualizado.")
                 return redirect("gestao_at:associado", pk=pk)
+        elif request.POST.get("acao") == "logo":
+            logo_form = AssociadoLogoForm(request.POST, request.FILES)
+            if logo_form.is_valid():
+                imagem = logo_form.cleaned_data["logo"]
+                with transaction.atomic():
+                    registro = Associado.objects.select_for_update().only("id", "logo_tipo").get(pk=pk)
+                    anterior = "cadastrada" if registro.logo_tipo else "ausente"
+                    registro.logo = imagem.read()
+                    registro.logo_tipo = imagem.tipo_logo
+                    registro.save(update_fields=["logo", "logo_tipo"])
+                    registrar_auditoria(request.user, "EDITAR_ASSOCIADO", "AssociadoAT", pk, "logo", anterior, "cadastrada")
+                messages.success(request, "Logo da associada atualizada.")
+                return redirect("gestao_at:associado", pk=pk)
+        elif request.POST.get("acao") == "remover_logo":
+            with transaction.atomic():
+                registro = Associado.objects.select_for_update().only("id", "logo_tipo").get(pk=pk)
+                if registro.logo_tipo:
+                    registro.logo = None
+                    registro.logo_tipo = ""
+                    registro.save(update_fields=["logo", "logo_tipo"])
+                    registrar_auditoria(request.user, "EDITAR_ASSOCIADO", "AssociadoAT", pk, "logo", "cadastrada", "removida")
+            messages.success(request, "Logo da associada removida.")
+            return redirect("gestao_at:associado", pk=pk)
         else:
             try:
                 atualizar_usos(a, request.user, request.POST)
@@ -66,15 +91,25 @@ def associado(request, pk):
                 messages.error(request, "; ".join(exc.messages))
     resumo = resumo_beneficios(a)
     vagas = [i for i in resumo["itens"] if i["beneficio"].codigo in ("lato", "aperf", "work")]
-    horas = [i for i in resumo["itens"] if i["beneficio"].codigo in ("mini", "ment", "tt")]
     solicitacoes = list(a.solicitacoes.all())
-    return render(request, "gestao_at/associado.html", {"associado": a, "associados": Associado.objects.all(),
+    return render(request, "gestao_at/associado.html", {"associado": a, "associados": Associado.objects.defer("logo"),
         "resumo": resumo, "vagas_usadas": sum(i["usado"] for i in vagas), "vagas_meta": sum(i["plano_beneficio"].cota for i in vagas),
-        "horas_usadas": sum(i["usado"] for i in horas), "horas_meta": sum(i["plano_beneficio"].cota for i in horas),
         "solicitacoes": solicitacoes, "solicitacoes_abertas": sum(s.respondida_em is None for s in solicitacoes),
         "solicitacoes_respondidas": sum(s.respondida_em is not None for s in solicitacoes),
         "tem_cotas": any(i["beneficio"].quantitativo and i["plano_beneficio"].cota for i in resumo["itens"]),
-        "email_form": email_form, "pode_gerir_at": pode_gerir_associados(request.user)})
+        "email_form": email_form, "logo_form": logo_form, "pode_gerir_at": pode_gerir_associados(request.user)})
+
+@login_required
+def associado_logo(request, pk):
+    if not pode_ver_associados(request.user):
+        return sem_permissao(request)
+    associado = get_object_or_404(Associado.objects.only("logo", "logo_tipo"), pk=pk)
+    if not associado.logo or not associado.logo_tipo:
+        raise Http404
+    resposta = HttpResponse(bytes(associado.logo), content_type=associado.logo_tipo)
+    resposta["Cache-Control"] = "private, no-store"
+    resposta["X-Content-Type-Options"] = "nosniff"
+    return resposta
 
 @login_required
 def associado_form(request, pk=None):

@@ -40,6 +40,8 @@ class Associado(models.Model):
     tipo = models.CharField(max_length=10, choices=TIPOS)
     plano = models.ForeignKey(Plano, on_delete=models.PROTECT, related_name="associados")
     email = models.EmailField(blank=True)
+    logo = models.BinaryField(null=True, blank=True, editable=False)
+    logo_tipo = models.CharField(max_length=20, blank=True, editable=False)
     inicio_vigencia = models.DateField()
     fim_vigencia = models.DateField()
     primeira_reuniao = models.DateField(null=True, blank=True)
