@@ -38,9 +38,9 @@ class ResumoFinanceiroAdmin(admin.ModelAdmin):
 class ProjetoFinanceiroAdmin(admin.ModelAdmin):
     list_display = (
         "acompanhamento", "origem", "pilar", "codigo_projeto_embrapii",
-        "nome", "orcado", "realizado",
+        "nome", "status", "etapa", "data_kickoff", "fim_previsto_real", "orcado", "realizado", "farol",
     )
-    list_filter = ("origem",)
+    list_filter = ("origem", "etapa", "status")
 
 
 @admin.register(KpiAcompanhamento)

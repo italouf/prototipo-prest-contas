@@ -1,2 +1,11 @@
 {% load core_extras l10n %}
-<tr {% if linha.total %}class="overview-total-row pillar-total-row"{% endif %}><td>{{ linha.codigo_projeto_embrapii|default:'—' }}</td><th scope="row">{{ linha.nome }}</th><td>{% if linha.total %}—{% else %}<span class="pillar-project-status pillar-project-{{ linha.status_grupo }}">{{ linha.status }}</span>{% endif %}</td>{% if painel.codigo != 'STARTUPS' %}<td>{{ linha.inicio|date:'d/m/Y'|default:'—' }}</td>{% endif %}<td>{{ linha.fim|date:'d/m/Y'|default:'—' }}</td><td>{{ linha.orcado|moeda_ptbr|cut:'R$ ' }}</td><td class="overview-executed">{{ linha.realizado|moeda_ptbr|cut:'R$ ' }}</td><td>{% if painel.codigo == 'PDI' %}<strong>{{ linha.pct_rotulo }}</strong>{% else %}<div class="overview-progress pillar-project-progress"><div class="overview-progress-track"><span style="width: {{ linha.barra|unlocalize }}%"></span></div><strong>{{ linha.pct_rotulo }}</strong></div>{% endif %}</td><td>{{ linha.projetado_2026|moeda_ptbr|cut:'R$ ' }}</td><td>{{ linha.projetado_2027|moeda_ptbr|cut:'R$ ' }}</td><td>{{ linha.realizado_mais_projetado|moeda_ptbr|cut:'R$ ' }}</td><td>{{ linha.diferenca|moeda_ptbr|cut:'R$ ' }}</td></tr>
+<tr {% if linha.total %}class="overview-total-row pillar-total-row"{% endif %}>
+  <td>{{ linha.codigo_projeto_embrapii|default:'—' }}</td><th scope="row">{{ linha.nome }}</th>
+  <td>{% if linha.total %}—{% else %}<span class="pillar-project-status pillar-project-{{ linha.status_grupo }}">{{ linha.status }}</span>{% endif %}</td>
+  <td>{{ linha.inicio|date:'d/m/Y'|default:'—' }}</td><td>{{ linha.fim|date:'d/m/Y'|default:'—' }}</td>
+  <td>{{ linha.data_kickoff|date:'d/m/Y'|default:'—' }}</td><td>{{ linha.fim_previsto_real|date:'d/m/Y'|default:'—' }}</td>
+  <td>{{ linha.orcado|moeda_ptbr|cut:'R$ ' }}</td><td class="overview-executed">{{ linha.realizado|moeda_ptbr|cut:'R$ ' }}</td>
+  <td><strong>{{ linha.pct_rotulo }}</strong></td><td><c-dashboard.overview-badge faixa="{{ linha.faixa }}" /></td>
+  <td>{{ linha.projetado_2026|moeda_ptbr|cut:'R$ ' }}</td><td>{{ linha.projetado_2027|moeda_ptbr|cut:'R$ ' }}</td>
+  <td>{{ linha.realizado_mais_projetado|moeda_ptbr|cut:'R$ ' }}</td><td>{{ linha.diferenca|moeda_ptbr|cut:'R$ ' }}</td>
+</tr>

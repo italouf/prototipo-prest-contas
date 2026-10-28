@@ -1,32 +1,26 @@
 {% load core_extras l10n %}
 <c-vars painel="" />
-<div class="overview-table-scroll{% if painel.codigo == 'PDI' %} pillar-project-scroll{% endif %}" {% if painel.codigo == 'PDI' %}tabindex="0" role="region" aria-label="Projetos PDI, tabela com rolagem"{% endif %}>
-  <table class="overview-table pillar-project-table{% if painel.codigo == 'PDI' %} pillar-project-table-pdi{% endif %}">
-    <colgroup>
-      <col style="width:70px"><col style="width:220px"><col style="width:150px">
-      {% if painel.codigo != 'STARTUPS' %}<col style="width:85px">{% endif %}
-      <col style="width:95px"><col style="width:140px"><col style="width:140px">
-      <col style="width:{% if painel.codigo == 'PDI' %}95{% else %}180{% endif %}px">
-      <col style="width:150px"><col style="width:150px"><col style="width:150px"><col style="width:150px">
-    </colgroup>
+<div class="overview-table-scroll pillar-project-scroll" tabindex="0" role="region" aria-label="Projetos {{ painel.nome_curto }}, tabela com rolagem">
+  <table class="overview-table pillar-project-table pillar-project-table-revised" data-testid="{{ painel.tabela_projetos_financeiros.nome }}">
+    <colgroup><col style="width:85px"><col style="width:220px"><col style="width:210px"><col style="width:140px"><col style="width:140px"><col style="width:120px"><col style="width:130px"><col style="width:145px"><col style="width:145px"><col style="width:95px"><col style="width:145px"><col style="width:150px"><col style="width:150px"><col style="width:160px"><col style="width:150px"></colgroup>
     <thead><tr>
       <th scope="col">Cód. EMBRAPII</th><th scope="col">Projeto</th><th scope="col">Status</th>
-      {% if painel.codigo != 'STARTUPS' %}<th scope="col">Início</th>{% endif %}
-      <th scope="col">Final do projeto</th><th scope="col">Orçado {% if painel.codigo == 'PDI' %}síntese{% elif painel.codigo == 'FORMACAO' %}original{% endif %} (R$)</th>
-      <th scope="col">Realizado total (R$)</th><th scope="col">% executado</th>
+      <th scope="col">Assinatura da síntese</th><th scope="col">Final previsto na síntese</th><th scope="col">Data do kick-off</th><th scope="col">Final previsto real</th>
+      <th scope="col">Orçado {% if painel.codigo == 'PDI' %}síntese{% elif painel.codigo == 'FORMACAO' %}original{% endif %} (R$)</th>
+      <th scope="col">Realizado total (R$)</th><th scope="col">% executado</th><th scope="col">Farol</th>
       <th scope="col">Projetado 2026 (R$)</th><th scope="col">Projetado 2027 (R$)</th><th scope="col">Realizado + projetado (R$)</th><th scope="col">Diferença orçado (R$)</th>
     </tr></thead>
     {% for grupo in painel.grupos_projetos %}
-    <tbody><tr class="pillar-project-group"><th scope="rowgroup" colspan="{% if painel.codigo == 'STARTUPS' %}11{% else %}12{% endif %}">
+    <tbody><tr class="pillar-project-group"><th scope="rowgroup" colspan="15">
       <span>{{ grupo.titulo }} · {{ grupo.quantidade }} projeto{{ grupo.quantidade|pluralize }}</span>
-      {% if painel.codigo == 'PDI' and not standalone %}<button type="button" class="pillar-project-group-toggle" data-project-group-toggle="projetos-{{ painel.codigo }}-{{ grupo.codigo }}" aria-controls="projetos-{{ painel.codigo }}-{{ grupo.codigo }}" aria-expanded="true" aria-label="Ocultar projetos: {{ grupo.titulo }}"><span data-project-group-label>Ocultar</span></button>{% endif %}
+      {% if not standalone %}<button type="button" class="pillar-project-group-toggle" data-project-group-toggle="projetos-{{ painel.codigo }}-{{ grupo.codigo }}" aria-controls="projetos-{{ painel.codigo }}-{{ grupo.codigo }}" aria-expanded="true" aria-label="Ocultar projetos: {{ grupo.titulo }}"><span data-project-group-label>Ocultar</span></button>{% endif %}
       <small>orçado R$ {{ grupo.orcado|moeda_ptbr|cut:'R$ ' }} · realizado R$ {{ grupo.realizado|moeda_ptbr|cut:'R$ ' }}</small>
     </th></tr></tbody>
     <tbody id="projetos-{{ painel.codigo }}-{{ grupo.codigo }}" data-project-rows data-project-group-name="{{ grupo.titulo }}">
       {% for linha in grupo.linhas %}{% include 'dashboard/_pilar_projeto_linha.html' %}{% endfor %}
     </tbody>
-    {% empty %}<tbody><tr><td colspan="{% if painel.codigo == 'STARTUPS' %}11{% else %}12{% endif %}">Nenhum projeto disponível para o intervalo selecionado.</td></tr></tbody>{% endfor %}
+    {% empty %}<tbody><tr><td colspan="15">Nenhum projeto disponível para o intervalo selecionado.</td></tr></tbody>{% endfor %}
     {% if painel.grupos_projetos %}<tfoot>{% include 'dashboard/_pilar_projeto_linha.html' with linha=painel.total_projetos %}</tfoot>{% endif %}
   </table>
 </div>
-<p class="pillar-table-note">% Executado = realizado total ÷ valor orçado. Demais colunas da tabela original seguem em rolagem horizontal.</p>
+<p class="pillar-table-note">% Executado e farol = realizado total ÷ valor orçado. Datas não informadas aparecem como —. Todas as colunas permanecem disponíveis em rolagem horizontal.</p>

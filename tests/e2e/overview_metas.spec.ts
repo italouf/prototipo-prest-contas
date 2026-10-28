@@ -191,3 +191,54 @@ for (const nome of ['PDI', 'FCRH', 'ACS', 'AT e Outras Fontes']) {
     await page.screenshot({ path: info.outputPath('pilar-mobile.png'), fullPage: true });
   });
 }
+
+for (const [nome, tabela, titulo, grupos, quantidade] of [
+  ['PDI', 'PDI', 'Recurso PPI AFCCT total', 3, 18],
+  ['FCRH', 'FCRH', 'Recurso PPI FCRH total', 2, 8],
+  ['ACS', 'ACS', 'Recurso PPI ACS total', 3, 7],
+] as const) {
+  test('financeiro revisado: cards, datas, etapas e gráfico de ' + nome, async ({ page }, info) => {
+    await page.locator('#grp-pilares').getByRole('link', { name: nome, exact: true }).click();
+    await expect(page.locator('.pillar-financial-summary .overview-card-title > h3')).toHaveText([
+      titulo, 'Recurso PPI realizado', 'Diferença rel. PPI',
+    ]);
+    await page.getByTestId('projetos-accordion').locator('summary').first().click();
+    const projetos = page.getByTestId('tbl_Projetos' + tabela);
+    await expect(projetos.locator('thead th')).toHaveCount(15);
+    await expect(projetos.locator('thead')).toContainText('Assinatura da síntese');
+    await expect(projetos.locator('thead')).toContainText('Final previsto na síntese');
+    await expect(projetos.locator('thead')).toContainText('Data do kick-off');
+    await expect(projetos.locator('thead')).toContainText('Final previsto real');
+    await expect(projetos.locator('thead')).toContainText('Farol');
+    await expect(projetos.locator('tbody[data-project-rows] tr')).toHaveCount(quantidade);
+    await expect(projetos.locator('tbody[data-project-rows] tr > :nth-child(11) .overview-status')).toHaveCount(quantidade);
+    if (nome !== 'FCRH') await expect(projetos).toContainText('Futuros projetos');
+    await expect(projetos).not.toContainText('Em preparação');
+    const ocultar = projetos.locator('[data-project-group-toggle]').first();
+    const grupoId = await ocultar.getAttribute('aria-controls');
+    await ocultar.click();
+    await expect(page.locator('#' + grupoId)).toBeHidden();
+    await ocultar.click();
+    await expect(page.locator('#' + grupoId)).toBeVisible();
+
+    await page.getByTestId('financeiro-accordion').locator('summary').first().click();
+    const grafico = page.getByTestId('grafico-financeiro-pilar');
+    await expect(grafico).toBeVisible();
+    await expect(grafico.locator('.pillar-chart-stage')).toHaveCount(grupos);
+    await expect(grafico).toContainText('Orçado dos projetos');
+    await expect(grafico).toContainText('Projetado 2027');
+    await expect(page.locator('.pillar-financial-table')).toHaveCount(0);
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.screenshot({ path: info.outputPath('financeiro-desktop.png'), fullPage: true });
+    await page.setViewportSize({ width: 390, height: 844 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    await page.screenshot({ path: info.outputPath('financeiro-mobile.png'), fullPage: true });
+    if (nome === 'PDI') {
+      await page.setViewportSize({ width: 1123, height: 794 });
+      await page.emulateMedia({ media: 'print' });
+      expect(await projetos.evaluate(el => el.scrollWidth <= el.clientWidth + 2)).toBe(true);
+      const pdf = await page.pdf({ path: info.outputPath('financeiro.pdf'), landscape: true, preferCSSPageSize: true, printBackground: true });
+      expect(pdf.subarray(0, 4).toString()).toBe('%PDF');
+    }
+  });
+}

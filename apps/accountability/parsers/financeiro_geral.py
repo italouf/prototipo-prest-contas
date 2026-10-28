@@ -19,6 +19,7 @@ from .comum import (
     abrir_workbook, normalizar, novo_payload,
     para_decimal, para_dinheiro, texto_limpo,
 )
+from ..project_status import etapa_do_status, farol_financeiro
 
 
 @dataclass(frozen=True)
@@ -48,8 +49,12 @@ _PROJETOS = {
     "nome": _campo("PROJETO", tipo="texto"),
     "status": _campo("STATUS", tipo="texto"),
     "sequencia": _campo("ITEM", tipo="inteiro", opcional=True),
-    "inicio": _campo("INICIO", "INICIO DO PROJETO", tipo="data"),
-    "fim": _campo("FINAL", "FINAL DO PROJETO", "DATA FINAL DO PROJETO", tipo="data"),
+    "inicio": _campo("ASSINATURA DA SÍNTESE", "INICIO", "INICIO DO PROJETO", tipo="data"),
+    "fim": _campo("FINAL PREVISTO NA SÍNTESE", "FINAL", "FINAL DO PROJETO", "DATA FINAL DO PROJETO", tipo="data"),
+    "data_kickoff": _campo("DATA DO KICK-OFF", "DATA DO KICKOFF", tipo="data", opcional=True),
+    "fim_previsto_real": _campo("FINAL PREVISTO REAL", tipo="data", opcional=True),
+    "etapa": _campo("ETAPA DO PROJETO", tipo="texto", opcional=True),
+    "farol": _campo("FAROL", tipo="texto", opcional=True),
     "orcado": _campo("ORÇADO SÍNTESE", "ORÇADO ORIGINAL", "VALOR ORÇADO"),
     "realizado": _campo("REALIZADO", "REALIZADO TOTAL"),
     "projetado_2026": _campo("PROJETADO 2026"),
@@ -103,7 +108,7 @@ TABELAS_FINANCEIRO = {
         "recurso_ou_meta": _campo("RECURSO PPI FCRH"),
     }, pilar="FORMACAO"),
     "tbl_ProjetosACS": TabelaFinanceira("TAB. 6", {
-        **_PROJETOS, "inicio": _campo("INICIO", tipo="data", opcional=True),
+        **_PROJETOS, "inicio": _campo("ASSINATURA DA SÍNTESE", "INICIO", tipo="data", opcional=True),
     }, True, "STARTUPS"),
     "tbl_VisaoACS": TabelaFinanceira("TAB. 8", {
         **_RECONCILIACAO, "recurso_ou_meta": _campo("TOTAL ACS"),
@@ -133,10 +138,11 @@ _CAMPOS_RESUMO = (
 )
 _CAMPOS_PROJETO = (
     "sequencia", "codigo_projeto_embrapii", "nome", "status", "inicio", "fim", "orcado", "realizado",
+    "data_kickoff", "fim_previsto_real", "etapa", "farol",
     "projetado_2026", "projetado_2027", "realizado_mais_projetado",
     "diferenca", "percentual",
 )
-_LIMITES_TEXTO = {"nome": 255, "status": 120, "farol": 20,
+_LIMITES_TEXTO = {"nome": 255, "status": 120, "farol": 20, "etapa": 40,
                   "codigo_projeto_embrapii": 100}
 
 
@@ -275,6 +281,9 @@ def _ler_tabela(payload, ws, tabela, formulas, especificacao, epoch, chaves):
         chaves.add(chave)
         campos = _CAMPOS_PROJETO if especificacao.projetos else _CAMPOS_RESUMO
         registro = {campo: valores.get(campo) for campo in campos}
+        if especificacao.projetos:
+            registro["etapa"] = registro.get("etapa") or etapa_do_status(registro.get("status"))
+            registro["farol"] = farol_financeiro(registro.get("realizado"), registro.get("orcado"))
         registro.update(origem=especificacao.origem, pilar=pilar, ano=None)
         payload["projetos" if especificacao.projetos else "resumos"].append(registro)
         if especificacao.origem == "TAB. 1.1":

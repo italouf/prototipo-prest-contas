@@ -1,0 +1,17 @@
+{% load core_extras l10n %}
+<c-vars grafico="" />
+<figure class="pillar-financial-chart" data-testid="grafico-financeiro-pilar" aria-label="Orçamento, realizado e projeções dos projetos por etapa">
+  <figcaption>Carteira de projetos por etapa <span>Compare os valores orçados com o realizado e as projeções.</span></figcaption>
+  <div class="pillar-chart-legend">
+    <span><i class="pillar-chart-orcado"></i>Orçado dos projetos</span><span><i class="pillar-chart-realizado"></i>Realizado</span><span><i class="pillar-chart-projetado_2026"></i>Projetado 2026</span><span><i class="pillar-chart-projetado_2027"></i>Projetado 2027</span>
+  </div>
+  {% for linha in grafico.linhas %}
+  <section class="pillar-chart-stage" aria-label="{{ linha.titulo }}">
+    <h3>{{ linha.titulo }} <small>{{ linha.quantidade }} projeto{{ linha.quantidade|pluralize }}</small></h3>
+    <div class="pillar-chart-row"><span>Orçado</span><div class="pillar-chart-track" role="img" aria-label="Orçado dos projetos: {{ linha.orcado|moeda_ptbr }}"><span class="pillar-chart-orcado" style="width: {{ linha.largura_orcado|unlocalize }}%"></span></div><strong>{{ linha.orcado|escala_ptbr }}</strong></div>
+    <div class="pillar-chart-row"><span>Execução e projeção</span><div class="pillar-chart-track" role="img" aria-label="Realizado e projeções: {{ linha.combinado|moeda_ptbr }}">{% for segmento in linha.segmentos %}{% if segmento.valor is not None %}<span class="pillar-chart-{{ segmento.chave }}" style="width: {{ segmento.largura|unlocalize }}%" title="{{ segmento.titulo }}: {{ segmento.valor|moeda_ptbr }}"></span>{% endif %}{% endfor %}</div><strong>{{ linha.combinado|escala_ptbr }}</strong></div>
+    <p class="pillar-chart-values">{% for segmento in linha.segmentos %}<span>{{ segmento.titulo }}: <strong>{{ segmento.valor|escala_ptbr }}</strong></span>{% endfor %}</p>
+  </section>
+  {% empty %}<p class="overview-empty">Nenhum projeto disponível para o intervalo selecionado.</p>{% endfor %}
+  <p class="pillar-table-note">Os orçamentos dos projetos podem diferir do recurso total do PPI. Projeções sem preenchimento aparecem como —.</p>
+</figure>

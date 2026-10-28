@@ -108,9 +108,10 @@ _RESUMO_VALORES = (
 _RESUMO_TEXTOS = ("farol",)
 _PROJETO_VALORES = (
     "sequencia", "inicio", "fim", "orcado", "realizado", "projetado_2026",
+    "data_kickoff", "fim_previsto_real",
     "projetado_2027", "realizado_mais_projetado", "diferenca", "percentual",
 )
-_PROJETO_TEXTOS = ("codigo_projeto_embrapii", "nome", "status")
+_PROJETO_TEXTOS = ("codigo_projeto_embrapii", "nome", "status", "etapa", "farol")
 _KPI_VALORES = (
     "sequencia", "meta_2024", "meta_2025", "meta_2026", "meta_2027", "meta_total",
     "executado_2024", "executado_2025", "acumulado", "gap",

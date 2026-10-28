@@ -679,7 +679,21 @@ def painel_financeiro_pilar(pilar, acomp):
          contrato["diferenca"] if campo == "diferenca" else cabecalho, tipo)
         for campo, cabecalho, tipo in _COLUNAS_VISAO_PDI
     )
-    colunas_projetos = contrato["colunas_projetos"]
+    colunas_projetos = tuple(
+        (campo, "ASSINATURA DA SÍNTESE" if campo == "inicio" else
+         "FINAL PREVISTO NA SÍNTESE" if campo == "fim" else cabecalho, tipo)
+        for campo, cabecalho, tipo in contrato["colunas_projetos"]
+    )
+    if codigo == "STARTUPS":
+        colunas_projetos = (*colunas_projetos[:3], ("inicio", "ASSINATURA DA SÍNTESE", "data"), *colunas_projetos[3:])
+    posicao_datas = next(i for i, coluna in enumerate(colunas_projetos) if coluna[0] == "fim") + 1
+    colunas_projetos = (
+        *colunas_projetos[:posicao_datas],
+        ("data_kickoff", "DATA DO KICK-OFF", "data"),
+        ("fim_previsto_real", "FINAL PREVISTO REAL", "data"),
+        *colunas_projetos[posicao_datas:],
+        ("farol", "FAROL", "texto"), ("etapa", "ETAPA DO PROJETO", "texto"),
+    )
     resumo = ResumoFinanceiro.objects.filter(
         acompanhamento=acomp, pilar=pilar, origem=contrato["origem_visao"], ano__isnull=True,
     ).values(*(c[0] for c in colunas_visao if c[0] != "rotulo")).first()

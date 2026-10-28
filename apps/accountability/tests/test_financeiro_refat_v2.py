@@ -27,7 +27,7 @@ class FinanceiroRefatV2Testes(TestCase):
         cls.usuario = adicionar_grupo(
             get_user_model().objects.create_user(username="refat-v2"), "Master")
         cls.pilares = {
-            codigo: Pilar.objects.create(codigo=codigo, nome=codigo)
+            codigo: Pilar.objects.get_or_create(codigo=codigo, defaults={"nome": codigo})[0]
             for codigo in ("PDI", "FORMACAO", "STARTUPS", "INFRA", "AT", "OUTRASFONTES")
         }
 
@@ -49,9 +49,9 @@ class FinanceiroRefatV2Testes(TestCase):
         for codigo, nome in (("PDI", "PDI"), ("FORMACAO", "FCRH"), ("STARTUPS", "ACS")):
             with self.subTest(codigo=codigo):
                 resposta = self.client.get(reverse("core:pilar", args=[self.pilares[codigo].pk]))
-                self.assertContains(resposta, "CÓDIGO DO PROJETO EMBRAPII")
+                self.assertContains(resposta, "EMBRAPII")
                 self.assertContains(resposta, f'data-testid="tbl_Projetos{nome}"')
-                self.assertContains(resposta, f'data-testid="tbl_Visao{nome}"')
+                self.assertContains(resposta, 'data-testid="grafico-financeiro-pilar"')
 
     def test_codigos_alfanumericos_sao_preservados_na_gravacao_e_exportacao(self):
         codigos = {"PDI": "001-PDI/2026", "FORMACAO": "002-FCRH/2026", "STARTUPS": "003-ACS/2026"}

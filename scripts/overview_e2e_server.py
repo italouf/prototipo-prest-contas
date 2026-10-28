@@ -24,6 +24,7 @@ with TemporaryDirectory(prefix="quiin-overview-") as directory:
     from apps.accounts.models import User
     from apps.accountability.models import Acompanhamento, ResumoFinanceiro
     from apps.accountability.services import ingestar
+    from apps.accountability.refat_workbook import revisar_planilha
     from apps.core.permissions import adicionar_grupo
     from apps.pillars.models import Pilar
 
@@ -31,8 +32,10 @@ with TemporaryDirectory(prefix="quiin-overview-") as directory:
     user = adicionar_grupo(User.objects.create_user(username="overview-e2e", password="overview-test-123"), "Master")
     for codigo in ("PDI", "FORMACAO", "STARTUPS", "INFRA", "AT", "OUTRASFONTES"):
         Pilar.objects.get_or_create(codigo=codigo, defaults={"nome": codigo})
-    ingestar("FINANCEIRO_GERAL", root / "mockup/exemplos_arquivos/FINANCEIRO GERAL - REFAT.xlsx",
-             "Overview E2E", "3T/2026", user)
+    arquivo_revisado = Path(directory) / "refat-v2.xlsx"
+    arquivo_revisado.write_bytes((root / "mockup/exemplos_arquivos/FINANCEIRO GERAL - REFAT - v2.xlsx").read_bytes())
+    revisar_planilha(arquivo_revisado)
+    ingestar("FINANCEIRO_GERAL", arquivo_revisado, "Overview E2E", "3T/2026", user)
     acomp = Acompanhamento.objects.get(centro__nome="Overview E2E")
     pdi = Pilar.objects.get(codigo="PDI")
     for ano, meta, realizado in ((2024, 1000000, 500000), (2025, 2000000, 1500000), (2026, 3000000, 2500000)):

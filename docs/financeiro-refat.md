@@ -188,3 +188,54 @@ Testes de cálculos, importação, permissões e edição:
 Fluxos no Chromium, capturas e PDF:
 `node node_modules/@playwright/test/cli.js test --config=playwright.overview.config.ts`.
 Esse comando cria um banco SQLite temporário e não utiliza o banco local.
+
+## Projetos financeiros: datas, status e etapas
+
+PD&I, FCRH e ACS usam o mesmo modelo de projetos, respeitando os nomes e
+valores de cada pilar. Os cards apresentam recurso PPI total, realizado e
+diferença. A visão financeira apresenta um gráfico por etapa com orçamento,
+realizado e projeções de 2026/2027. O orçamento da carteira de projetos pode
+diferir do recurso PPI disponível; o gráfico mantém essa distinção.
+
+Nas tabelas de projetos do REFAT v2, `INICIO` passa a
+`ASSINATURA DA SÍNTESE` e o final passa a `FINAL PREVISTO NA SÍNTESE`.
+São acrescentados `DATA DO KICK-OFF`, `FINAL PREVISTO REAL`, `FAROL` e
+`ETAPA DO PROJETO`. ACS recebe também a assinatura, antes ausente.
+Novas datas ficam vazias até o preenchimento na origem. Cabeçalhos antigos
+continuam aceitos pelo importador.
+
+A lista de STATUS na planilha inclui `Encerrado apenas no CIMATEC`,
+`Encerrado formalmente EMBRAPII`, `Em aprovação EMBRAPII` e
+`Em aprovação interna (pré-projeto)`, além dos status existentes.
+O status é selecionado na planilha e atualizado no painel após a importação.
+Encerrados são agrupados em **Encerrados**, projetos em andamento em
+**Em andamento**, e os demais em **Futuros projetos**. A coluna calculada
+`ETAPA DO PROJETO` substitui a classificação visual anterior "Em preparação".
+
+O farol financeiro usa realizado/orçamento: pelo menos 90% = Meta atingida;
+pelo menos 50% = Execução parcial; abaixo de 50% = Execução crítica.
+Sem realizado ou sem orçamento positivo = Sem lançamento. A planilha inclui
+a fórmula com resultado armazenado, e o importador recalcula esse indicador
+a partir dos valores financeiros.
+
+Para revisar o arquivo original com backup e validação de integridade:
+
+```powershell
+python manage.py revisar_refat_v2
+```
+
+O comando modifica `mockup/exemplos_arquivos/FINANCEIRO GERAL - REFAT - v2.xlsx`
+diretamente em OOXML, preservando fórmulas e resultados financeiros armazenados.
+Confere os 13 resumos, os 33 projetos e as datas existentes antes de gravar.
+Backup e relatório ficam em `.worktrees/refat-integridade/`. O arquivo precisa
+estar fechado no Excel. Repetir a execução sobre um arquivo revisado não duplica
+colunas. Depois de editar valores, recalcule e salve no Excel antes de importar.
+
+A migração `0006_projetos_datas_etapa_farol` acrescenta quatro campos e preenche
+etapa/farol dos projetos existentes. Os campos de datas antigos mantêm nomes no
+banco, com novos rótulos; datas novas permanecem nulas. Nenhum valor financeiro
+é substituído. No Neon, a aplicação foi feita por transação via MCP com
+conferência de integridade dos campos preexistentes.
+
+Validação específica:
+`python manage.py test apps.accountability.tests.test_project_revision apps.accountability.tests.test_financeiro_refat_v2`.
