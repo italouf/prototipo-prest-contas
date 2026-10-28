@@ -69,6 +69,10 @@ test.describe('Apresentação mensal importada', () => {
     await expect(deck.locator('section.present')).toContainText('Projetos de pesquisa');
     await page.evaluate(() => window.scrollTo(0, 0));
     await page.screenshot({ path: testInfo.outputPath('mensal-pdi.png'), fullPage: true });
+    await page.getByRole('link', { name: 'Criar uma nova apresentação', exact: true }).click();
+    await expect(page).toHaveURL('/prestacao/mensal/editar/');
+    await expect(page.locator('#id_competencia')).toBeEnabled();
+    await expect(page.getByLabel(/^Título/)).toHaveValue('');
   });
 
   test('M02 navegação HTMX, troca de mês e retorno não duplicam eventos', async ({ page }) => {

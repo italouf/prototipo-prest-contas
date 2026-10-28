@@ -11,7 +11,12 @@
   <p class="presentation-crumb">Prestação de contas <span>/</span> Mensal</p>
   <div class="presentation-heading">
     <div><p class="presentation-eyebrow">ACOMPANHAMENTO DO CENTRO DE COMPETÊNCIA</p><h1>Apresentação mensal</h1></div>
-    {% if pode_editar_apresentacao %}<a class="presentation-button" href="{% url 'core:mensal_editar' %}{% if competencia_apresentacao %}?periodo={{ competencia_apresentacao|date:'Y-m-d' }}{% endif %}">{% if apresentacao %}Editar apresentação{% else %}Configurar apresentação{% endif %}</a>{% endif %}
+    {% if pode_editar_apresentacao %}
+    <div class="presentation-heading-actions">
+      {% if apresentacao %}<a class="presentation-button" href="{% url 'core:mensal_editar' %}?periodo={{ apresentacao.competencia|date:'Y-m-d' }}">Editar apresentação</a>{% endif %}
+      <a class="presentation-button primary" href="{% url 'core:mensal_editar' %}">Criar uma nova apresentação</a>
+    </div>
+    {% endif %}
   </div>
   <div class="presentation-context">
     <form method="get" action="{% url 'core:mensal' %}" hx-get="{% url 'core:mensal' %}" hx-target="#main" hx-select="#main" hx-select-oob="#app-header" hx-push-url="true">
