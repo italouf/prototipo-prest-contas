@@ -1,0 +1,9 @@
+{% if not standalone %}
+<div id="dashboard-controls" data-testid="dashboard-controls" data-filtros-fixos class="overview-inline-controls">
+  {% if pilar_overview %}{% include 'dashboard/_controles_pilar_overview.html' %}{% else %}{% include 'dashboard/_controles.html' %}{% endif %}
+  <div class="overview-dashboard-actions" role="toolbar" aria-label="Ações do painel">
+    <a href="{% if pilar_overview %}{{ dashboard_url }}{% else %}{% url 'core:dashboard' %}{% endif %}?base={{ base_param }}{% if acompanhamento %}&amp;acompanhamento={{ acompanhamento.pk }}{% endif %}" class="overview-action-button overview-clear-filters" data-testid="remover-filtros">Remover filtros</a>
+    {% include 'dashboard/_actions.html' %}
+  </div>
+</div>
+{% endif %}

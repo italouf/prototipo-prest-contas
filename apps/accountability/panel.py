@@ -281,13 +281,15 @@ def _linha_tab1(rotulo, recurso, realizado, projetado, combinado, total=False):
     }
 
 
-def _linha_tab11(rotulo, recurso, r2024, r2025, r2026, p2026, p2027, projetado_total, total=False):
+def _linha_tab11(rotulo, recurso, r2024, r2025, r2026, p2026, p2027, projetado_total,
+                 total=False, meta_2024=None, meta_2025=None, meta_2026=None):
     realizado_total = _somar((r2024, r2025, r2026))
     combinado = (realizado_total + projetado_total
                  if realizado_total is not None and projetado_total is not None else None)
-    pct = _percentual_disponivel(combinado, recurso)
+    pct = _percentual_disponivel(realizado_total, recurso)
     return {
         "rotulo": rotulo, "recurso": recurso,
+        "meta_2024": meta_2024, "meta_2025": meta_2025, "meta_2026": meta_2026,
         "realizado_2024": r2024, "realizado_2025": r2025,
         "realizado_2026": r2026, "projetado_2026": p2026, "projetado_2027": p2027,
         "projetado_total": projetado_total, "combinado": combinado,
@@ -320,7 +322,9 @@ def _visao_financeiro_geral(acomp, pilares_selecionados=None):
         referencia = linha.ano or 0
         chave = {"realizado": "executado", "projetado": "projetado"}.get(nome)
         if nome == "recurso_ou_meta" and codigo in PILARES_PPI:
-            chave, referencia = "previsto", 0
+            chave = "meta_anual" if linha.ano is not None else "previsto"
+        elif nome == "recurso_ou_meta" and codigo in ("AT", "OUTRASFONTES"):
+            chave = "meta_captacao"
         elif nome == "captado" and codigo not in PILARES_PPI:
             chave = "previsto"
         elif nome == "projetado" and linha.ano is not None:
@@ -361,7 +365,10 @@ def _visao_financeiro_geral(acomp, pilares_selecionados=None):
         linhas_tab11.append(_linha_tab11(
             rotulo, recurso_tab11, campo(ano24, "realizado"),
             campo(ano25, "realizado"), campo(ano26, "realizado"),
-            p2026, p2027, projetado_total))
+            p2026, p2027, projetado_total,
+            meta_2024=campo(ano24, "recurso_ou_meta"),
+            meta_2025=campo(ano25, "recurso_ou_meta"),
+            meta_2026=campo(ano26, "recurso_ou_meta")))
 
     def totalizar(linhas, campos):
         return {campo: _somar(linha[campo] for linha in linhas) for campo in campos}
@@ -370,11 +377,14 @@ def _visao_financeiro_geral(acomp, pilares_selecionados=None):
     linhas_tab1.append(_linha_tab1("TOTAL", **soma1, total=True))
     soma11 = totalizar(linhas_tab11, (
         "recurso", "realizado_2024", "realizado_2025", "realizado_2026",
-        "projetado_2026", "projetado_2027", "projetado_total"))
+        "projetado_2026", "projetado_2027", "projetado_total",
+        "meta_2024", "meta_2025", "meta_2026"))
     linhas_tab11.append(_linha_tab11(
         "TOTAL", soma11["recurso"], soma11["realizado_2024"],
         soma11["realizado_2025"], soma11["realizado_2026"],
-        soma11["projetado_2026"], soma11["projetado_2027"], soma11["projetado_total"], total=True))
+        soma11["projetado_2026"], soma11["projetado_2027"], soma11["projetado_total"], total=True,
+        meta_2024=soma11["meta_2024"], meta_2025=soma11["meta_2025"],
+        meta_2026=soma11["meta_2026"]))
 
     ppi_total = linhas_tab1[-1]
     graficos = {
@@ -401,6 +411,14 @@ def _visao_financeiro_geral(acomp, pilares_selecionados=None):
             "anel_meta": round(float(min(max(pct_meta, 0), 100)), 2) if pct_meta is not None else 0,
             "anel_exec": round(float(min(max(pct_exec, 0), 100)), 2) if pct_exec is not None else 0,
         }
+    fontes = [
+        {"codigo": codigo, "rotulo": ROTULOS_PAINEL[codigo],
+         "meta": campo(resumo("TAB. 9", codigo), "recurso_ou_meta"),
+         "captado": campo(resumo("TAB. 9", codigo), "captado"),
+         "realizado": campo(resumo("TAB. 9", codigo), "realizado")}
+        for codigo in ("AT", "OUTRASFONTES")
+        if pilares_selecionados is None or codigo in pilares_selecionados
+    ]
     linhas_programa = list(linhas_tab1[:-1])
     for codigo, rotulo in (("AT", "AT"), ("OUTRASFONTES", "Outras fontes")):
         if pilares_selecionados is not None and codigo not in pilares_selecionados:
@@ -412,6 +430,7 @@ def _visao_financeiro_geral(acomp, pilares_selecionados=None):
     total_programa = totalizar(linhas_programa, ("recurso", "realizado", "projetado", "combinado"))
     linhas_programa.append(_linha_tab1("TOTAL", **total_programa, total=True))
     return {"tabela_tab1": {"linhas": linhas_tab1, "total": linhas_tab1[-1]},
+            "fontes": fontes,
             "tabela_programa": {"linhas": linhas_programa, "total": linhas_programa[-1]},
             "tabela_tab11": {"linhas": linhas_tab11, "total": linhas_tab11[-1]}, "graficos_ciclo": graficos}
 

@@ -28,13 +28,79 @@ def subtotal_fontes(linhas):
     }
 
 
+def _somar_presentes(valores):
+    presentes = [valor for valor in valores if valor is not None]
+    return sum(presentes, Decimal(0)) if presentes else None
+
+
+def _indicador_meta(rotulo, meta, valor, total=False):
+    pct = valor / meta * 100 if valor is not None and meta is not None and meta > 0 else None
+    return {
+        "rotulo": rotulo, "recurso": meta, "realizado": valor, "total": total,
+        "diferenca": meta - valor if meta is not None and valor is not None else None,
+        "pct": pct, "pct_exibicao": pct.quantize(Decimal("0.01"), rounding=ROUND_DOWN) if pct is not None else None,
+        "faixa": faixa(pct), "barra": min(max(pct or 0, 0), 100),
+    }
+
+
+def _resumo_financeiro(painel):
+    originais = {card["chave"]: card for card in painel["cards"]}
+    fontes = {fonte["codigo"]: fonte for fonte in painel.get("fontes", [])}
+    cards = []
+    ppi = originais["ppi"]
+    especificacoes = [
+        ("ppi", "Recurso PPI realizado", ppi["executado"], ppi["previsto"], "do PPI", "executado"),
+    ]
+    for codigo, chave in (("AT", "at"), ("OUTRASFONTES", "outras")):
+        fonte = fontes.get(codigo, {})
+        # O plano legado não possui metas de captação pactuadas.
+        origem = originais[chave]
+        realizado = fonte.get("realizado") if "fontes" in painel else origem["executado"]
+        captado = fonte.get("captado") if "fontes" in painel else origem["previsto"]
+        meta = fonte.get("meta")
+        especificacoes.extend([
+            (chave, "Realizado AT" if chave == "at" else "Outras fontes realizado", realizado, meta, "da meta", "executado"),
+            (chave + "-captado", "Recurso captado AT" if chave == "at" else "Outras fontes captado", captado, meta, "da meta", "captado"),
+        ])
+    realizados = [especificacoes[i][2] for i in (0, 1, 3)]
+    metas = [especificacoes[i][3] for i in (0, 1, 3)]
+    especificacoes.append(("total", "Realizado consolidado", _somar_presentes(realizados),
+                           _somar_presentes(metas), "previstos", "executado"))
+    for chave, titulo, valor, meta, denominador, indicador in especificacoes:
+        linha = _indicador_meta(titulo, meta, valor)
+        cards.append({
+            **linha, "chave": chave, "titulo_exibicao": titulo, "executado": valor,
+            "previsto": meta, "denominador": denominador, "indicador": indicador,
+            "valores_em_reais": ppi.get("valores_em_reais", False),
+        })
+    painel["cards_resumo"] = cards
+
+    tabelas = []
+    for campo, nome, percentual in (("captado", "Captação", "% captado total"),
+                                     ("realizado", "Execução", "% executado")):
+        linhas = [_indicador_meta(f["rotulo"], f["meta"], f[campo]) for f in fontes.values()]
+        total = _indicador_meta("Consolidado",
+            _somar_presentes(l["recurso"] for l in linhas),
+            _somar_presentes(l["realizado"] for l in linhas), total=True)
+        tabelas.append({
+            "chave": campo, "titulo": nome + " · AT e outras fontes",
+            "coluna_meta": "Meta de " + nome.lower(),
+            "coluna_valor": "Recurso captado total" if campo == "captado" else "Recurso realizado",
+            "coluna_diferenca": "Diferença " + nome.lower(),
+            "coluna_pct": percentual, "coluna_farol": "Farol " + nome.lower(),
+            "linhas": linhas, "total": total,
+        })
+    painel["tabelas_fontes"] = tabelas
+
+
 def contexto_visao_geral(contexto, selecionados=None):
     painel = contexto["painel"]
     selecionados = list(CODIGOS) if selecionados is None else selecionados
     painel["pilares_selecionados"] = selecionados
     painel["cards_resumo"] = [painel["cards"][i] for i in (3, 0, 1, 2)]
     if contexto["base_param"] == "fin":
-        for card in painel["cards"]:
+        _resumo_financeiro(painel)
+        for card in painel["cards_resumo"]:
             valor = card["executado"]
             divisor = Decimal("1000000") if valor is not None and abs(valor) >= 1000000 else Decimal("1000") if valor is not None and abs(valor) >= 1000 else Decimal(1)
             if not card.get("valores_em_reais"):
@@ -57,24 +123,16 @@ def contexto_visao_geral(contexto, selecionados=None):
             linha["barra"] = min(max(linha.get("pct") or 0, 0), 100)
     if painel.get("tabela_programa"):
         tabela = painel["tabela_programa"]
-        subtotal = dict(painel["tabela_tab1"]["total"], rotulo="Subtotal PPI", detalhe="recurso EMBRAPII")
+        subtotal = dict(painel["tabela_tab1"]["total"], rotulo="Subtotal PPI", detalhe="")
         tabela["grupos"] = [{"codigo": "ppi", "titulo": "Recursos PPI", "linhas": [*painel["tabela_tab1"]["linhas"][:-1], subtotal]}]
-        for codigo, rotulo in (("at", "AT"), ("outras", "Outras fontes")):
-            linhas = [dict(linha, detalhe="base = valor captado", rotulo="Associação Tecnológica (AT)" if codigo == "at" else "Outras fontes")
-                      for linha in tabela["linhas"] if linha["rotulo"] == rotulo]
-            if linhas:
-                tabela["grupos"].append({"codigo": codigo, "titulo": "Associação Tecnológica (AT)" if codigo == "at" else "Outras fontes", "linhas": linhas})
-        tabela["subtotal_fontes"] = subtotal_fontes([
-            linha for grupo in tabela["grupos"][1:] for linha in grupo["linhas"]
-        ])
-        total = tabela["total"]
-        total.update(rotulo="Consolidado", detalhe="PPI + AT + outras fontes")
-        total["pct_exibicao"] = total["pct"].quantize(Decimal("0.01"), rounding=ROUND_DOWN) if total["pct"] is not None else None
+        subtotal["pct_exibicao"] = subtotal["pct"].quantize(Decimal("0.01"), rounding=ROUND_DOWN) if subtotal["pct"] is not None else None
+        tabela["resumo_ppi"] = subtotal
     tabela_anual = painel.get("tabela_tab11", {})
     tabela_anual["sem_dados_anuais"] = not any(
         linha[campo] is not None
         for linha in tabela_anual.get("linhas", []) if not linha["total"]
-        for campo in ("realizado_2024", "realizado_2025", "realizado_2026",
+        for campo in ("meta_2024", "meta_2025", "meta_2026",
+                      "realizado_2024", "realizado_2025", "realizado_2026",
                       "projetado_2026", "projetado_2027")
     )
     acompanhamento = contexto.get("acompanhamento")

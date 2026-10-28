@@ -3,8 +3,5 @@
   {% include 'dashboard/_month_field.html' with input_id='overview-start' input_name='mes_inicial' label='Mês/ano inicial' value=mes_inicial date_value=periodo_analise.inicio %}
   {% include 'dashboard/_month_field.html' with input_id='overview-end' input_name='mes_final' label='Mês/ano final' value=mes_final date_value=periodo_analise.fim %}
   {% if acompanhamento %}<input type="hidden" name="acompanhamento" value="{{ acompanhamento.pk }}">{% endif %}
-  <div class="overview-field overview-base-field"><span>Base de análise</span><div class="overview-base-toggle" role="group" aria-label="Base de análise" data-testid="base-toggle">
-    <a href="{{ dashboard_url }}?{{ filtros_dashboard }}&base=fin" hx-get="{{ dashboard_url }}?{{ filtros_dashboard }}&base=fin" hx-target="#painel-pilar" hx-select="#painel-pilar" hx-swap="outerHTML" hx-push-url="true" {% if base_param == 'fin' %}aria-current="true"{% endif %}>Financeiro</a>
-    <a href="{{ dashboard_url }}?{{ filtros_dashboard }}&base=fis" hx-get="{{ dashboard_url }}?{{ filtros_dashboard }}&base=fis" hx-target="#painel-pilar" hx-select="#painel-pilar" hx-swap="outerHTML" hx-push-url="true" {% if base_param == 'fis' %}aria-current="true"{% endif %}>Físico</a>
-  </div></div><noscript><button type="submit">Aplicar filtros</button></noscript>
+  <noscript><button type="submit">Aplicar filtros</button></noscript>
 </form>

@@ -1,8 +1,8 @@
 {% load core_extras %}
-<c-vars tabela="" />
+<c-vars tabela="" fontes="" />
 <div class="overview-program-sections">
   <div class="overview-table-card">
-    <div class="overview-table-scroll overview-program-tables">
+    <div class="overview-table-scroll overview-program-tables" role="region" aria-label="Recursos PPI" tabindex="0">
       <table class="overview-table overview-financial-table overview-fund-ppi" aria-label="Recursos PPI">
         <caption>Recursos PPI</caption>
         {% include 'dashboard/_programa_colunas.html' %}
@@ -11,21 +11,16 @@
       </table>
     </div>
   </div>
+  {% for fonte in fontes %}
   <div class="overview-table-card">
-    <div class="overview-table-scroll overview-program-tables">
-      <table class="overview-table overview-financial-table overview-fund-fontes" aria-label="AT e Outras fontes">
-        <caption>AT e Outras fontes</caption>
-        {% include 'dashboard/_programa_colunas.html' %}
-        {% include 'dashboard/_programa_cabecalho.html' with recurso='Captado total' %}
-        {% for grupo in tabela.grupos|slice:'1:' %}
-        <tbody class="overview-fund-{{ grupo.codigo }}">
-          <tr class="overview-program-source-heading"><th colspan="8" scope="rowgroup">{{ grupo.titulo }}</th></tr>
-          {% for linha in grupo.linhas %}{% include 'dashboard/_programa_linha.html' %}{% endfor %}
-        </tbody>
-        {% empty %}<tbody><tr><td colspan="8" class="overview-empty">Nenhuma fonte selecionada.</td></tr></tbody>{% endfor %}
-        <tbody class="overview-program-subtotal" data-testid="subtotal-fontes">{% include 'dashboard/_programa_linha.html' with linha=tabela.subtotal_fontes %}</tbody>
-        <tfoot class="overview-program-total">{% include 'dashboard/_programa_linha.html' with linha=tabela.total %}</tfoot>
+    <div class="overview-table-scroll overview-program-tables" role="region" aria-label="{{ fonte.titulo }}" tabindex="0">
+      <table class="overview-table overview-source-table" data-testid="fontes-{{ fonte.chave }}">
+        <caption>{{ fonte.titulo }} <small>em R$ milhões</small></caption>
+        <thead><tr><th scope="col">Fonte</th><th scope="col">{{ fonte.coluna_meta }}</th><th scope="col">{{ fonte.coluna_valor }}</th><th scope="col">{{ fonte.coluna_diferenca }}</th><th scope="col">{{ fonte.coluna_pct }}</th><th scope="col">{{ fonte.coluna_farol }}</th></tr></thead>
+        <tbody>{% for linha in fonte.linhas %}{% include 'dashboard/_fonte_linha.html' %}{% empty %}<tr><td colspan="6" class="overview-empty">Nenhuma fonte selecionada.</td></tr>{% endfor %}</tbody>
+        <tfoot class="overview-program-total">{% include 'dashboard/_fonte_linha.html' with linha=fonte.total %}</tfoot>
       </table>
     </div>
   </div>
+  {% endfor %}
 </div>

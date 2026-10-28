@@ -592,3 +592,59 @@ body:has(.overview-dashboard) [data-testid="app-footer"] .overview-footer-title 
   .overview-card { padding: 8px; min-height: 125px; }
   .overview-program-tables table { min-width: 0; }
 }
+
+/* Visão Geral: filtros no conteúdo e acompanhamento das metas financeiras. */
+.overview-header-row.overview-general-header {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; min-height: 64px; padding: 10px 24px;
+}
+.overview-general-header .overview-base-field { flex: 0 0 auto; }
+.overview-general-header .overview-header-utilities { flex-direction: row; align-items: center; justify-content: flex-end; flex-wrap: nowrap; gap: 16px; width: auto; max-width: 100%; min-width: 0; }
+.overview-general-header .brand-logos { flex: 0 1 auto; width: auto; min-width: 0; }
+.overview-general-header .overview-header-actions { flex: 0 0 auto; margin-left: 0; min-width: 0; }
+.overview-general-header .overview-user-name { max-width: 160px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.overview-inline-controls { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; margin-top: 18px; padding: 16px; border: 1px solid var(--color-border); border-radius: 10px; background: var(--color-surface-2); }
+.overview-inline-controls .overview-filters { flex-wrap: wrap; }
+.overview-inline-controls .overview-dashboard-actions { margin-left: auto; }
+.overview-financial-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.overview-source-table { min-width: 850px; table-layout: auto; }
+.overview-source-table caption small { margin-left: 8px; font-size: 10px; font-weight: 400; text-transform: none; }
+.overview-source-table th[scope="row"] { min-width: 190px; }
+.overview-annual-ppi-table { min-width: 1900px; }
+.overview-annual-ppi-table th[scope="row"], .overview-annual-ppi-table thead tr:last-child th:first-child { position: sticky; left: 0; z-index: 1; background: var(--color-surface-2); min-width: 150px; }
+.overview-annual-ppi-table .overview-total-row th[scope="row"] { background: var(--color-surface); }
+.overview-annual-ppi-table td { white-space: nowrap; }
+.overview-table-scroll:focus-visible { outline: 2px solid var(--color-text); outline-offset: 3px; }
+@media (max-width: 1023px) {
+  .overview-financial-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .overview-header-row.overview-general-header { padding: 10px 16px; gap: 10px; }
+}
+@media (max-width: 560px) {
+  .overview-financial-cards { grid-template-columns: 1fr; }
+  .overview-header-row.overview-general-header { flex-wrap: wrap; }
+  .overview-general-header .overview-base-field { flex-basis: auto; }
+  .overview-general-header .overview-header-utilities { gap: 10px; }
+  .overview-general-header .brand-logos { gap: 5px; }
+  .overview-general-header .brand-logos-principal { width: 52px; height: 24px; }
+  .overview-general-header .brand-logos img { height: 20px; max-width: 70px; }
+  .overview-general-header .overview-user-name { max-width: 72px; }
+  .overview-inline-controls { padding: 12px; }
+  .overview-inline-controls .overview-filters { width: 100%; }
+  .overview-inline-controls .overview-dashboard-actions { margin-left: 0; }
+}
+@media print {
+  .overview-inline-controls { display: none !important; }
+  .overview-financial-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .overview-annual-ppi-table th[scope="row"], .overview-annual-ppi-table thead tr:last-child th:first-child { position: static; }
+  .overview-dashboard .overview-annual-ppi-table { table-layout: fixed; }
+  .overview-dashboard .overview-annual-ppi-table th, .overview-dashboard .overview-annual-ppi-table td { font-size: 6px; padding: 4px 2px; white-space: normal; }
+}
+
+.overview-accordion-methodology { display: flex; align-items: center; justify-content: flex-end; gap: 4px; margin-bottom: 10px; color: var(--color-text-muted); font-size: 11px; }
+.overview-annual-ppi-table .overview-year-groups th:nth-child(2) { color: #15558e; }
+.dark .overview-annual-ppi-table .overview-year-groups th:nth-child(2) { color: #cbc7ff; }
+@media print {
+  .overview-accordion-methodology { display: none !important; }
+  .overview-annual-ppi-table .overview-progress strong, .overview-annual-ppi-table .overview-missing { min-width: 0; font-size: 6px; }
+  .overview-annual-ppi-table .overview-status { white-space: normal; overflow-wrap: anywhere; font-size: 6px; gap: 2px; }
+}

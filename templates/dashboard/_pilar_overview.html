@@ -3,6 +3,7 @@
   {% if not standalone %}<nav class="pillar-breadcrumb" aria-label="Localização"><a href="{% url 'core:dashboard' %}">⌂ Início</a> / {{ painel_pilar.titulo_pagina }}</nav>{% endif %}
   {% include 'dashboard/_print_header.html' with title=painel_pilar.titulo_pagina period=painel_pilar.rotulo_periodo %}
   <div class="overview-page-heading"><h1 class="overview-page-title">{{ painel_pilar.titulo_pagina }}</h1></div>
+  {% include 'dashboard/_filters_bar.html' %}
   {% if erro_periodo %}<div class="overview-notice" role="alert">{{ erro_periodo }}</div>{% elif sem_dados_intervalo %}<div class="overview-notice" role="status">Sem dados para o intervalo selecionado. Não existem lançamentos com a granularidade mensal escolhida.</div>{% endif %}
   <section class="overview-cards{% if painel_pilar.visao_captacao and base_param == 'fin' %} capture-financial-cards{% endif %}" aria-label="Resumo do pilar">{% for card in painel_pilar.cards_overview %}<c-dashboard.pillar-card :card="card" />{% endfor %}</section>
   {% if base_param == 'fin' %}{% if painel_pilar.visao_captacao %}{% include 'dashboard/_pilar_captacao_financeira.html' %}{% else %}

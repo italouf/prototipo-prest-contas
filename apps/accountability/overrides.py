@@ -35,7 +35,7 @@ from .models import KpiAcompanhamento, OverrideAcompanhamento, ResumoFinanceiro
 # legado). Constante local para não importar `planning.views` (evita ciclo).
 LIMITE_VALOR = Decimal(10) ** 10
 
-CAMPOS = ("previsto", "executado", "projetado", "meta_captacao", "captado_anos_1_2", "captado_ano3_ytd")
+CAMPOS = ("previsto", "executado", "projetado", "meta_anual", "meta_captacao", "captado_anos_1_2", "captado_ano3_ytd")
 BASES_CURTA = {"financeiro": "fin", "fin": "fin", "fisico": "fis", "fis": "fis"}
 
 ACAO_EDITAR = "EDITAR_OVERRIDE_PRESTACAO"
@@ -80,6 +80,8 @@ def _resolver_item(acomp, base, item, editaveis):
         raise ValidationError(f"campo inválido: {campo}")
     if campo in ("meta_captacao", "captado_anos_1_2", "captado_ano3_ytd") and (base != "financeiro" or codigo not in ("AT", "OUTRASFONTES") or ano != 0):
         raise ValidationError("Campos de captação disponíveis apenas no ciclo de AT e Outras fontes.")
+    if campo == "meta_anual" and (base != "financeiro" or codigo not in PILARES_PPI or ano not in (2024, 2025, 2026)):
+        raise ValidationError("Metas anuais disponíveis apenas para PPI financeiro de 2024 a 2026.")
     if base == "fisico" and campo == "projetado" and ano not in (2026, 2027):
         raise ValidationError("Projeções físicas disponíveis para 2026 e 2027.")
     pilar = kpi = None

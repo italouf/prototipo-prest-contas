@@ -1,2 +1,11 @@
 {% load core_extras %}
-<tr {% if linha.total %}class="overview-total-row"{% endif %}><th scope="row">{{ linha.rotulo }}{% if linha.detalhe %}<small>{{ linha.detalhe }}</small>{% endif %}</th><td><c-dashboard.overview-progress :linha="linha" preciso="true" somente_percentual="true" /></td><td>{{ linha.recurso|milhoes_ptbr }}</td><td class="overview-executed">{{ linha.realizado|milhoes_ptbr }}</td><td>{{ linha.projetado|milhoes_ptbr }}</td><td>{{ linha.combinado|milhoes_ptbr }}</td><td>{{ linha.diferenca|milhoes_ptbr }}</td><td><c-dashboard.overview-badge faixa="{{ linha.faixa }}" /></td></tr>
+<tr {% if linha.total %}class="overview-total-row"{% endif %}>
+  <th scope="row">{{ linha.rotulo }}</th>
+  <td>{% if linha.recurso is not None %}{{ linha.recurso|milhoes_ptbr }}{% else %}—{% endif %}</td>
+  <td class="overview-executed">{% if linha.realizado is not None %}{{ linha.realizado|milhoes_ptbr }}{% else %}—{% endif %}</td>
+  <td>{% if linha.projetado is not None %}{{ linha.projetado|milhoes_ptbr }}{% else %}—{% endif %}</td>
+  <td>{% if linha.combinado is not None %}{{ linha.combinado|milhoes_ptbr }}{% else %}—{% endif %}</td>
+  <td>{% if linha.diferenca is not None %}{{ linha.diferenca|milhoes_ptbr }}{% else %}—{% endif %}</td>
+  <td><c-dashboard.overview-progress :linha="linha" preciso="true" somente_percentual="true" /></td>
+  <td><c-dashboard.overview-badge faixa="{{ linha.faixa }}" /></td>
+</tr>

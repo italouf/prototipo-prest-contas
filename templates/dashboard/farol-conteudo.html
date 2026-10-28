@@ -6,6 +6,12 @@
   <p class="numerico mt-2 rounded-md border border-border bg-quiin-mist/40 px-3 py-2 text-center font-semibold">Cumprimento = menor valor entre 100% e (Executado ÷ Meta) × 100</p>
   {% if painel or pilar_overview %}<p class="mt-2 text-text-muted">O realizado de cada indicador é limitado à sua meta antes de calcular o cumprimento agregado. O percentual é a soma desses realizados dividida pela soma das metas, considerando apenas indicadores da mesma unidade. Quantidades realizadas acima da meta são preservadas nas tabelas. Indicadores percentuais são apresentados separadamente.</p><p class="mt-2 text-text-muted">As contagens de atingidas, parciais e críticas consideram todos os indicadores e seguem as faixas do farol. Lançamentos ausentes permanecem sem valor.</p>{% else %}<p class="mt-2 text-text-muted">O resumo apresenta a média de cumprimento dos indicadores, com o mesmo peso por indicador. Indicadores sem meta válida ou sem lançamento ficam fora da média.</p>{% endif %}
   <p class="mt-2 text-text-muted">Saldo a executar = maior valor entre zero e (Meta − Executado). Os valores realizados são preservados na tabela.</p>
+  {% elif painel and not pilar_overview %}
+  <p class="mt-1 text-text-muted">Na Visão Geral, o farol compara os valores realizados à meta pactuada. Para PPI, a referência é o recurso PPI total.</p>
+  <p class="mt-2 text-text-muted">AT e outras fontes possuem dois acompanhamentos: captação e execução. Ambos usam a meta da respectiva fonte.</p>
+  <p class="numerico mt-2 rounded-md border border-border px-3 py-2 text-center font-semibold">% Captado = (Captado ÷ Meta) × 100 · % Executado = (Realizado ÷ Meta) × 100</p>
+  <p class="mt-2 text-text-muted">As diferenças são meta menos captado ou realizado. Valores negativos indicam superação da meta. O consolidado das fontes soma somente AT e outras fontes.</p>
+  <p class="mt-2 text-text-muted">O card Realizado consolidado compara a soma dos realizados com recurso PPI total + metas AT e outras fontes. Na tabela anual, o percentual usa apenas os realizados de 2024, 2025 e 2026 YTD, dividido pelo recurso PPI total; projeções não entram no percentual.</p>
   {% else %}
   <p class="mt-1 text-text-muted">O farol mede a taxa de execução de cada pilar em relação à meta pactuada no período selecionado.</p>
   <p class="numerico mt-2 rounded-md border border-border bg-quiin-mist/40 px-3 py-2 text-center font-semibold">% Executado = (Valor executado ÷ Valor projetado) × 100</p>

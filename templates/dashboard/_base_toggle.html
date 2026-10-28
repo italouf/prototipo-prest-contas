@@ -1,0 +1,10 @@
+  <div class="overview-field overview-base-field"><span>Base de análise</span>
+  <div class="overview-base-toggle" role="group" aria-label="Base de análise" data-testid="base-toggle">
+    <a href="{{ base_url }}?{{ filtros_dashboard }}&base=fin" hx-get="{{ base_url }}?{{ filtros_dashboard }}&base=fin"
+       hx-target="{{ painel_alvo }}" hx-select="{{ painel_alvo }}" hx-swap="outerHTML" hx-push-url="true" hx-indicator="#progresso"
+       {% if base_param == 'fin' %}aria-current="true"{% endif %}>Financeiro</a>
+    <a href="{{ base_url }}?{{ filtros_dashboard }}&base=fis" hx-get="{{ base_url }}?{{ filtros_dashboard }}&base=fis"
+       hx-target="{{ painel_alvo }}" hx-select="{{ painel_alvo }}" hx-swap="outerHTML" hx-push-url="true" hx-indicator="#progresso"
+       {% if base_param == 'fis' %}aria-current="true"{% endif %}>Físico</a>
+  </div>
+  </div>

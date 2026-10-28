@@ -63,7 +63,7 @@ def aplicar_periodo(contexto, periodo):
             card.update(executado=None, previsto=None, pct=None, faixa="neutra", barra=0)
             card.pop("status_counts", None)
         campos = ("previsto", "executado", "saldo", "pct", "recurso", "realizado", "projetado", "combinado", "diferenca",
-                  "realizado_2024", "realizado_2025", "realizado_2026", "projetado_2026", "projetado_2027", "projetado_total")
+                  "meta_2024", "meta_2025", "meta_2026", "realizado_2024", "realizado_2025", "realizado_2026", "projetado_2026", "projetado_2027", "projetado_total")
         for tabela in [painel.get(chave, {}) for chave in ("tabela_tab1", "tabela_tab11", "tabela_programa", "tabela_anual_fisica")]:
             for linha in tabela.get("linhas", []):
                 for campo in campos:
@@ -72,6 +72,8 @@ def aplicar_periodo(contexto, periodo):
                 linha.update(faixa="neutra", barra=0)
                 for celula in linha.get("anos", []):
                     celula.update(meta=None, executado=None, saldo=None, projetado=None)
+        for fonte in painel.get("fontes", []):
+            fonte.update(meta=None, captado=None, realizado=None)
         for grupo in painel["tabela"]["grupos"]:
             for linha in grupo["linhas"]:
                 linha.update(previsto=None, executado=None, saldo=None, pct=None, faixa="neutra", barra=0)

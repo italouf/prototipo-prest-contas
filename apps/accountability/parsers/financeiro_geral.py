@@ -41,7 +41,7 @@ def _campo(*cabecalhos, tipo="dinheiro", opcional=False):
 
 
 _COMBINADO = _campo("REALIZADO + PROJETADO")
-_PROJETADO_TOTAL = _campo("PROJETADO TOTAL")
+_PROJETADO_TOTAL = _campo("PROJETADO TOTAL", "TOTAL PROJETADO")
 _PROJETOS = {
     "codigo_projeto_embrapii": _campo(
         "CÓDIGO DO PROJETO EMBRAPII", tipo="texto", opcional=True),
@@ -71,22 +71,25 @@ TABELAS_FINANCEIRO = {
         "realizado": _campo("REALIZADO TOTAL"),
         "projetado": _PROJETADO_TOTAL,
         "realizado_mais_projetado": _COMBINADO,
-        "diferenca": _campo("DIFERENÇA PPI"),
-        "percentual": _campo("% EXECUÇÃO", tipo="percentual"),
+        "diferenca": _campo("DIFERENÇA PPI", "DIFERENÇA ($)"),
+        "percentual": _campo("% EXECUÇÃO", "% EXECUTADO", tipo="percentual"),
         "farol": _campo("FAROL", tipo="texto"),
     }),
     "tbl_VisaoGeral": TabelaFinanceira("TAB. 1.1", {
         "rotulo": _campo("AÇÃO", tipo="texto"),
         "recurso_ou_meta": _campo("RECURSO PPI TOTAL"),
-        "realizado_2024": _campo("REALIZADO 2024"),
-        "realizado_2025": _campo("REALIZADO 2025"),
-        "realizado_2026": _campo("REALIZADO 2026"),
+        "meta_2024": _campo("META ANO 1 - 2024", "META 2024", opcional=True),
+        "realizado_2024": _campo("REALIZADO 2024", "REALIZADO ANO 1 - 2024"),
+        "meta_2025": _campo("META ANO 2 - 2025", "META 2025", opcional=True),
+        "realizado_2025": _campo("REALIZADO 2025", "REALIZADO ANO 2 - 2025"),
+        "meta_2026": _campo("META ANO 3 - 2026", "META 2026", opcional=True),
+        "realizado_2026": _campo("REALIZADO 2026", "REALIZADO ANO 3 - 2026"),
         "projetado_2026": _campo("PROJETADO 2026"),
         "projetado_2027": _campo("PROJETADO 2027"),
         "projetado": _PROJETADO_TOTAL,
         "realizado_mais_projetado": _COMBINADO,
-        "diferenca": _campo("DIFERENÇA PPI"),
-        "percentual": _campo("% EXECUÇÃO", tipo="percentual"),
+        "diferenca": _campo("DIFERENÇA PPI", "DIFERENÇA ($)"),
+        "percentual": _campo("% EXECUÇÃO", "% EXECUTADO", tipo="percentual"),
         "farol": _campo("FAROL", tipo="texto"),
     }),
     "tbl_ProjetosPDI": TabelaFinanceira("TAB. 2", _PROJETOS, True, "PDI"),
@@ -278,10 +281,11 @@ def _ler_tabela(payload, ws, tabela, formulas, especificacao, epoch, chaves):
             for ano in (2024, 2025, 2026, 2027):
                 realizado = valores.get(f"realizado_{ano}")
                 projetado = valores.get(f"projetado_{ano}")
-                if realizado is not None or projetado is not None:
+                meta = valores.get(f"meta_{ano}")
+                if meta is not None or realizado is not None or projetado is not None:
                     anual = {campo: None for campo in _CAMPOS_RESUMO}
                     anual.update(origem=especificacao.origem, pilar=pilar, ano=ano,
-                                 realizado=realizado, projetado=projetado)
+                                 recurso_ou_meta=meta, realizado=realizado, projetado=projetado)
                     payload["resumos"].append(anual)
 
 

@@ -149,3 +149,42 @@ Executar `python manage.py test apps.accountability --noinput`. A suíte inclui 
 arquivo real, mudanças de aba e posição, inversão de colunas, expansão de tabelas,
 inclusão/remoção de projetos, lacunas e fórmulas inválidas, rejeição do formato
 antigo, valores anuais de 2027, HTML exportado, isolamento, overrides e rollback.
+
+
+## Visão Geral: metas financeiras e acompanhamento anual
+
+A Visão Geral compara captação e execução de AT e outras fontes com a
+meta pactuada de cada fonte. Os dois quadros têm diferenças assinadas
+(meta menos captado/realizado), percentuais sobre a meta e faróis
+independentes. Cada consolidado soma apenas as fontes selecionadas.
+O card realizado consolidado usa recurso PPI total mais as metas das fontes.
+
+A tabela `tbl_VisaoGeral` aceita as colunas opcionais
+`META ANO 1 - 2024`, `META ANO 2 - 2025` e `META ANO 3 - 2026`
+(também `META 2024`, `META 2025` e `META 2026`).
+Os cabeçalhos antigos de realizado continuam válidos; também são aceitos
+`REALIZADO ANO 1 - 2024`, `REALIZADO ANO 2 - 2025` e
+`REALIZADO ANO 3 (YTD) - 2026`. As metas são salvas em
+`recurso_ou_meta` dos registros anuais da TAB. 1.1, sem migração.
+Metas anuais ausentes não são derivadas de projeções nem do recurso total.
+
+O editor oferece `meta_anual` para PPI financeiro de 2024 a 2026,
+usando `v__{ano}__financeiro__{pilar}__meta_anual`.
+Ajustes seguem as permissões e a auditoria existentes; campo vazio restaura
+o importado. Metas de captação/execução usam o ajuste `meta_captacao`.
+
+O percentual e o farol anuais usam a soma dos realizados de 2024, 2025
+e 2026 YTD dividida pelo recurso PPI total. Projeções entram somente no
+realizado + projetado e na diferença financeira. Valores ausentes
+permanecem sem preenchimento, e intervalos sem dados não exibem números
+do ciclo completo.
+
+
+### Validação da Visão Geral
+
+Testes de cálculos, importação, permissões e edição:
+`python manage.py test apps.accountability.tests.test_overview_metas`.
+
+Fluxos no Chromium, capturas e PDF:
+`node node_modules/@playwright/test/cli.js test --config=playwright.overview.config.ts`.
+Esse comando cria um banco SQLite temporário e não utiliza o banco local.

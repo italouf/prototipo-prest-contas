@@ -1,25 +1,31 @@
 {% load core_extras %}
 <c-vars tabela="" />
 {% if tabela.sem_dados_anuais %}
-<div class="overview-notice" role="status"><span aria-hidden="true">ⓘ</span><p><strong>Sem lançamentos anuais na base.</strong> Realizado por ano e projeção 2026 e 2027 ainda não foram preenchidos.</p></div>
+<div class="overview-notice" role="status"><p><strong>Sem lançamentos anuais na base.</strong> Metas, realizados por ano e projeções de 2026 e 2027 ainda não foram preenchidos.</p></div>
 {% endif %}
-<div class="overview-table-scroll" data-testid="tabela-anual-ppi">
-  <table class="overview-table overview-annual-table">
+<div class="overview-table-scroll" data-testid="tabela-anual-ppi" role="region" aria-label="Visão consolidada do programa - plano de execução" tabindex="0">
+  <table class="overview-table overview-annual-table overview-annual-ppi-table">
     <thead>
-      <tr class="overview-year-groups"><th colspan="2"></th><th colspan="3" scope="colgroup">Realizado</th><th colspan="3" scope="colgroup">Projetado</th><th colspan="2"></th></tr>
-      <tr><th scope="col">Ação</th><th scope="col">Recurso PPI total</th><th scope="col">2024</th><th scope="col">2025</th><th scope="col">2026 (YTD)</th><th scope="col">2026</th><th scope="col">2027</th><th scope="col">Total</th><th scope="col">Realizado + projetado</th><th scope="col">Diferença PPI</th></tr>
+      <tr class="overview-year-groups"><th colspan="2"></th><th colspan="2" scope="colgroup">Ano 1 · 2024</th><th colspan="2" scope="colgroup">Ano 2 · 2025</th><th colspan="2" scope="colgroup">Ano 3 · 2026</th><th colspan="3" scope="colgroup">Projetado</th><th colspan="4" scope="colgroup">Consolidado</th></tr>
+      <tr><th scope="col">Ação</th><th scope="col">Recurso PPI total</th><th scope="col">Meta ano 1 - 2024</th><th scope="col">Realizado ano 1 - 2024</th><th scope="col">Meta ano 2 - 2025</th><th scope="col">Realizado ano 2 - 2025</th><th scope="col">Meta ano 3 - 2026</th><th scope="col">Realizado ano 3 (YTD) - 2026</th><th scope="col">Projetado 2026</th><th scope="col">Projetado 2027</th><th scope="col">Total projetado</th><th scope="col">Realizado + projetado</th><th scope="col">Diferença ($)</th><th scope="col">% executado</th><th scope="col">Farol</th></tr>
     </thead>
     <tbody>{% for linha in tabela.linhas %}
       <tr {% if linha.total %}class="overview-total-row"{% endif %}>
-        <th scope="row">{{ linha.rotulo }}</th><td class="overview-executed">{{ linha.recurso|milhoes_ptbr }}</td>
+        <th scope="row">{{ linha.rotulo }}</th>
+        <td>{% if linha.recurso is not None %}{{ linha.recurso|milhoes_ptbr }}{% else %}<span class="overview-missing" aria-label="Sem lançamento">—</span>{% endif %}</td>
+        <td>{% if linha.meta_2024 is not None %}{{ linha.meta_2024|milhoes_ptbr }}{% else %}<span class="overview-missing" aria-label="Sem meta">—</span>{% endif %}</td>
         <td>{% if linha.realizado_2024 is not None %}{{ linha.realizado_2024|milhoes_ptbr }}{% else %}<span class="overview-missing" aria-label="Sem lançamento">—</span>{% endif %}</td>
+        <td>{% if linha.meta_2025 is not None %}{{ linha.meta_2025|milhoes_ptbr }}{% else %}<span class="overview-missing" aria-label="Sem meta">—</span>{% endif %}</td>
         <td>{% if linha.realizado_2025 is not None %}{{ linha.realizado_2025|milhoes_ptbr }}{% else %}<span class="overview-missing" aria-label="Sem lançamento">—</span>{% endif %}</td>
+        <td>{% if linha.meta_2026 is not None %}{{ linha.meta_2026|milhoes_ptbr }}{% else %}<span class="overview-missing" aria-label="Sem meta">—</span>{% endif %}</td>
         <td>{% if linha.realizado_2026 is not None %}{{ linha.realizado_2026|milhoes_ptbr }}{% else %}<span class="overview-missing" aria-label="Sem lançamento">—</span>{% endif %}</td>
         <td>{% if linha.projetado_2026 is not None %}{{ linha.projetado_2026|milhoes_ptbr }}{% else %}<span class="overview-missing" aria-label="Sem projeção">—</span>{% endif %}</td>
         <td>{% if linha.projetado_2027 is not None %}{{ linha.projetado_2027|milhoes_ptbr }}{% else %}<span class="overview-missing" aria-label="Sem projeção">—</span>{% endif %}</td>
         <td>{% if linha.projetado_total is not None %}{{ linha.projetado_total|milhoes_ptbr }}{% else %}<span class="overview-missing" aria-label="Sem projeção">—</span>{% endif %}</td>
         <td>{% if linha.combinado is not None %}{{ linha.combinado|milhoes_ptbr }}{% else %}<span class="overview-missing" aria-label="Sem lançamento">—</span>{% endif %}</td>
         <td>{% if linha.diferenca is not None %}{{ linha.diferenca|milhoes_ptbr }}{% else %}<span class="overview-missing" aria-label="Sem lançamento">—</span>{% endif %}</td>
+        <td><c-dashboard.overview-progress :linha="linha" preciso="true" somente_percentual="true" /></td>
+        <td><c-dashboard.overview-badge faixa="{{ linha.faixa }}" /></td>
       </tr>
     {% endfor %}</tbody>
   </table>

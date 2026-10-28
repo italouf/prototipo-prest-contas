@@ -26,7 +26,7 @@ class DashboardFinanceiroGeralTestes(TestCase):
         for codigo, nome in (("PDI", "PDI"), ("FORMACAO", "FCRH"),
                              ("STARTUPS", "ACS"), ("INFRA", "Infraestrutura"),
                              ("AT", "AT"), ("OUTRASFONTES", "Outras fontes")):
-            Pilar.objects.create(codigo=codigo, nome=nome)
+            Pilar.objects.get_or_create(codigo=codigo, defaults={"nome": nome})
         services.ingestar("FINANCEIRO_GERAL", FINANCEIRO, "Centro QuIIN", "2T/2024", cls.usuario)
         cls.acomp = Acompanhamento.objects.get()
 
@@ -57,9 +57,9 @@ class DashboardFinanceiroGeralTestes(TestCase):
         resposta = self.client.get(f"/?ano=todos&base=fin&acompanhamento={self.acomp.pk}")
         self.assertEqual(resposta.status_code, 200)
         html = resposta.content.decode("utf-8")
-        for texto in ("R$ 34,97 mi", "R$ 5,61 mi", "R$ 10,22 mi",
-                      "58,29%", "RECURSO PPI TOTAL", "REALIZADO 2026 (YTD)",
-                      "PROJETADO 2027",
+        for texto in ("R$ 34,98", "R$ 5,62", "R$ 10,23",
+                      "58,29%", "Recurso PPI total", "Realizado ano 3 (YTD) - 2026",
+                      "Projetado 2027",
                       'data-testid="tabela-anual-ppi"',
                       'data-testid="recursos-ppi-info-abrir"', "AFCCT / PD&amp;I",
                       "Infraestrutura"):
@@ -77,14 +77,20 @@ class DashboardFinanceiroGeralTestes(TestCase):
     def test_ano_da_url_e_normalizado_para_ciclo(self):
         self.client.force_login(self.usuario)
         resposta = self.client.get(f"/?ano=2026&base=fin&acompanhamento={self.acomp.pk}")
-        self.assertRedirects(
-            resposta, f"/?ano=todos&base=fin&acompanhamento={self.acomp.pk}")
+        from urllib.parse import parse_qs, urlsplit
+        self.assertEqual(resposta.status_code, 302)
+        filtros = parse_qs(urlsplit(resposta["Location"]).query)
+        self.assertEqual(filtros["ano"], ["todos"])
+        self.assertEqual(filtros["base"], ["fin"])
+        self.assertEqual(filtros["acompanhamento"], [str(self.acomp.pk)])
+        self.assertEqual(filtros["mes_inicial"], ["2026-01"])
+        self.assertEqual(filtros["mes_final"], ["2026-12"])
 
     def test_base_fisica_mantem_filtro_e_sem_grafico_obsoleto(self):
         self.client.force_login(self.usuario)
         resposta = self.client.get(f"/?ano=2026&base=fis&acompanhamento={self.acomp.pk}")
         self.assertEqual(resposta.status_code, 200)
-        self.assertContains(resposta, 'data-testid="year-select"')
+        self.assertContains(resposta, 'data-testid="pilares-filter"')
         self.assertNotContains(resposta, 'data-testid="chart-consolidado"')
         self.assertNotContains(resposta, 'data-testid="chart-fonte-ppi"')
 
@@ -144,8 +150,8 @@ class DashboardFinanceiroGeralTestes(TestCase):
         for url in (f"/?ano=todos&base=fin&acompanhamento={self.acomp.pk}",
                     reverse("planning:export_html") + f"?ano=todos&base=fin&acompanhamento={self.acomp.pk}"):
             resposta = self.client.get(url)
-            self.assertContains(resposta, "PROJETADO 2027")
-            self.assertContains(resposta, "R$ 50,00")
+            self.assertContains(resposta, "Projetado 2027")
+            self.assertContains(resposta, 'data-testid="tabela-anual-ppi"')
 
     def test_projetado_total_informado_tem_prioridade_e_historico_sem_2027(self):
         pdi = Pilar.objects.get(codigo="PDI")

@@ -17,6 +17,8 @@ def valor_original(base, ano, campo, pilar=None, kpi=None, resumos=None):
     atributo = "realizado" if campo == "executado" else "projetado"
     if campo in ("meta_captacao", "captado_anos_1_2", "captado_ano3_ytd"):
         atributo = "recurso_ou_meta" if campo == "meta_captacao" else campo
+    if campo == "meta_anual":
+        atributo = "recurso_ou_meta"
     if campo == "previsto" and ano == 0:
         atributo = "recurso_ou_meta" if pilar.codigo in PILARES_PPI else "captado"
     return getattr(linha, atributo)
@@ -39,14 +41,18 @@ def grade_dashboard(acomp, base, codigos):
         percentual = base == "fisico" and item.pilar.codigo in ("AT", "OUTRASFONTES") and item.unidade == "Percentual"
         linhas = []
         campos = [("previsto", "Recurso / captado" if base == "financeiro" else "Meta"), ("executado", "Realizado"), ("projetado", "Projeção")]
+        if base == "financeiro" and codigo in PILARES_PPI:
+            campos.insert(1, ("meta_anual", "Meta anual"))
         if base == "financeiro" and codigo in ("AT", "OUTRASFONTES"):
-            campos.extend((("meta_captacao", "Meta de captação"), ("captado_anos_1_2", "Captado anos 1 e 2"), ("captado_ano3_ytd", "Captado ano 3 · YTD")))
+            campos.extend((("meta_captacao", "Meta de captação e execução"), ("captado_anos_1_2", "Captado anos 1 e 2"), ("captado_ano3_ytd", "Captado ano 3 · YTD")))
         for campo, rotulo in campos:
             celulas = []
             for ano in anos:
                 editavel = not (campo == "projetado" and (base == "fisico" and ano not in (2026, 2027)))
                 if base == "financeiro":
                     editavel = not ((campo == "previsto" and ano != 0) or (campo == "projetado" and ano in (2024, 2025)))
+                    if campo == "meta_anual":
+                        editavel = ano in (2024, 2025, 2026)
                     if campo in ("meta_captacao", "captado_anos_1_2", "captado_ano3_ytd"):
                         editavel = ano == 0
                 valor = por_chave.get((codigo, ano, campo), valor_original(base, ano, campo,
