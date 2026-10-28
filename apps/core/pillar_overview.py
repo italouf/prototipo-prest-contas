@@ -178,16 +178,26 @@ def apresentar_pilar(contexto, periodo):
                 r["barras"] = [{"titulo": titulo, "valor": r[c], "barra": (r[c] or ZERO) / escala * 100 if escala else ZERO, "faixa": status, "percentual": rotulo} for c, titulo, status, rotulo in (
                     ("recurso_ou_meta", "Meta", "neutra", ""), ("captado", "Captado", r["faixa_meta"], r["meta_rotulo"]), ("realizado", "Realizado", r["faixa_exec"], r["exec_rotulo"]))]
             fontes_por_codigo = {fonte["codigo"]: fonte for fonte in fontes}
-            for codigo_fonte, rotulo_fonte in (("AT", "AT"), ("OUTRASFONTES", "Outras Fontes")):
-                fonte = fontes_por_codigo.get(codigo_fonte, {})
-                captado_fonte = fonte.get("captado")
-                realizado_fonte = fonte.get("realizado")
+            cards.clear()
+            pp["blocos_cards_financeiros"] = []
+            for codigo_fonte, titulo_bloco, campo, titulo_meta, titulo_recurso, titulo_diferenca in (
+                ("AT", "Associação Tecnológica (AT) · Captação", "captado", "Meta de captação do recurso", "Recurso captado total", "Diferença captação"),
+                ("OUTRASFONTES", "Outras Fontes · Execução", "realizado", "Meta de execução dos recursos", "Recurso executado total", "Diferença execução"),
+            ):
+                if codigo_fonte not in fontes_por_codigo:
+                    continue
+                fonte = fontes_por_codigo[codigo_fonte]
                 meta_fonte = fonte.get("recurso_ou_meta")
-                pct_captado = taxa(captado_fonte, meta_fonte)
-                saldo_fonte = abs(captado_fonte - realizado_fonte) if captado_fonte is not None and realizado_fonte is not None else None
-                pct_saldo_fonte = taxa(saldo_fonte, captado_fonte)
-                cards.append({"titulo": f"Captado Total {rotulo_fonte}", "valor": dinheiro(captado_fonte, True), "referencia": "meta de captação de " + dinheiro(meta_fonte, True), "rotulo_barra": numero_ptbr(pct_captado.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)) + "% da meta" if pct_captado is not None else "—", "mostrar_barra": True, **progresso(pct_captado)})
-                cards.append({"titulo": f"Saldo {rotulo_fonte}", "valor": dinheiro(saldo_fonte, True), "referencia": "de " + dinheiro(captado_fonte, True) + " · saldo a executar", "mostrar_barra": True, "cinza": True, "rotulo_barra": numero_curto(pct_inteiro(saldo_fonte, captado_fonte)) + "%" if pct_saldo_fonte is not None else "—", **progresso(pct_saldo_fonte, "neutra")})
+                recurso_fonte = fonte.get(campo)
+                diferenca = meta_fonte - recurso_fonte if meta_fonte is not None and recurso_fonte is not None else None
+                pct_recurso = taxa(recurso_fonte, meta_fonte)
+                cards_fonte = [
+                    {"titulo": titulo_meta, "valor": dinheiro(meta_fonte, True), "referencia": "meta total da fonte"},
+                    {"titulo": titulo_recurso, "valor": dinheiro(recurso_fonte, True), "referencia": "meta de " + dinheiro(meta_fonte, True), "mostrar_barra": True, "rotulo_barra": taxa_texto(pct_recurso) + " da meta" if pct_recurso is not None else "—", **progresso(pct_recurso)},
+                    {"titulo": titulo_diferenca, "valor": dinheiro(diferenca, True), "referencia": "meta menos recurso " + ("captado" if campo == "captado" else "executado"), "descricao": "meta superada" if diferenca is not None and diferenca < 0 else ""},
+                ]
+                cards.extend(cards_fonte)
+                pp["blocos_cards_financeiros"].append({"codigo": codigo_fonte, "titulo": titulo_bloco, "cards": cards_fonte})
             pp["pct_meta_rotulo"] = taxa_texto(pct_meta)
             pp["faixa_meta"] = faixa(pct_meta)
             pp["progresso_meta"] = {**progresso(pct_meta), "pct_exibicao": pct_meta.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP) if pct_meta is not None else None}

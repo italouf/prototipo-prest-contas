@@ -189,6 +189,16 @@ Fluxos no Chromium, capturas e PDF:
 `node node_modules/@playwright/test/cli.js test --config=playwright.overview.config.ts`.
 Esse comando cria um banco SQLite temporário e não utiliza o banco local.
 
+## Resumos financeiros de AT e Outras Fontes
+
+No painel financeiro de AT e Outras Fontes, os cards são separados por fonte.
+AT apresenta meta de captação, captado e diferença (meta menos captado).
+Outras Fontes apresenta meta de execução, executado e diferença (meta menos
+executado). Ambos usam a meta cadastrada da respectiva fonte; valores negativos
+indicam superação. A tabela financeira mantém os percentuais de captação/meta
+e realizado/captado existentes. Não há alteração da planilha nem migração para
+essa reorganização dos cards.
+
 ## Projetos financeiros: datas, status e etapas
 
 PD&I, FCRH e ACS usam o mesmo modelo de projetos, respeitando os nomes e

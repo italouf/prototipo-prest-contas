@@ -1,6 +1,33 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 
+test('AT e Outras Fontes: captação e execução em blocos separados', async ({ page }, info) => {
+  await page.locator('#grp-pilares').getByRole('link', { name: 'AT e Outras Fontes', exact: true }).click();
+  const at = page.getByTestId('resumo-financeiro-AT');
+  const outras = page.getByTestId('resumo-financeiro-OUTRASFONTES');
+  await expect(at.locator('.overview-card-title h3')).toHaveText(['Meta de captação do recurso', 'Recurso captado total', 'Diferença captação']);
+  await expect(outras.locator('.overview-card-title h3')).toHaveText(['Meta de execução dos recursos', 'Recurso executado total', 'Diferença execução']);
+  await expect(at.locator('.overview-card-value')).toHaveText(['R$ 7,75 milhões', 'R$ 5,62 milhões', 'R$ 2,13 milhões']);
+  await expect(outras.locator('.overview-card-value')).toHaveText(['R$ 6,30 milhões', 'R$ 242,11 mil', 'R$ 6,06 milhões']);
+  await expect(outras).toContainText('3,84% da meta');
+  const atBox = await at.boundingBox();
+  const outrasBox = await outras.boundingBox();
+  expect(outrasBox!.y).toBeGreaterThanOrEqual(atBox!.y + atBox!.height);
+  const cardBoxes = await at.locator('.overview-card').evaluateAll(els => els.map(el => el.getBoundingClientRect().y));
+  expect(new Set(cardBoxes).size).toBe(1);
+  await page.getByTestId('financeiro-accordion').locator('summary').first().click();
+  const tabela = page.locator('.pillar-capture-table');
+  await expect(tabela.locator('thead th')).toHaveCount(8);
+  await expect(tabela.locator('tbody tr')).toHaveCount(3);
+  await expect(tabela.locator('tbody tr').last().locator('td').nth(3)).toHaveText('15.843.468,00');
+  await page.screenshot({ path: info.outputPath('fontes-desktop.png'), fullPage: true });
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  await expect(at.locator('.overview-card')).toHaveCount(3);
+  await expect(outras.locator('.overview-card')).toHaveCount(3);
+  await page.screenshot({ path: info.outputPath('fontes-mobile.png'), fullPage: true });
+});
+
 test.skip(!process.env.QUIIN_OVERVIEW_E2E, 'Use --config=playwright.overview.config.ts para executar em banco isolado.');
 
 async function login(page: Page) {

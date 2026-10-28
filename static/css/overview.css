@@ -360,6 +360,8 @@ body:has(.overview-dashboard) #main { max-width: none; flex: none; padding: 24px
 .pillar-source-heading { display: flex; align-items: center; gap: 10px; margin: 24px 0 8px; font-size: 11px; text-transform: uppercase; letter-spacing: .8px; font-weight: 700; }
 .pillar-source-heading::after { content: ''; flex: 1; height: 2px; background: currentColor; opacity: .2; }
 .pillar-source-heading + .overview-accordion { margin-top: 0; }
+.pillar-capture-summary .overview-cards { margin-top: 0; }
+.pillar-capture-summary { break-inside: avoid; }
 .pillar-source-AT > summary strong, .pillar-source-OUTRASFONTES > summary strong { color: inherit; }
 .pillar-source-AT > summary .overview-accordion-heading strong { color: #5535a9; }
 .pillar-source-OUTRASFONTES > summary .overview-accordion-heading strong { color: #2365b8; }
@@ -510,7 +512,7 @@ body:has(.overview-dashboard) [data-testid="app-footer"] .overview-footer-title 
 }
 @media (min-width: 1261px) {
   .pillar-overview .overview-cards { grid-template-columns: 1.3fr 1fr 1fr; }
-  .pillar-overview .capture-financial-cards { grid-template-columns: 1.3fr repeat(4, minmax(0, 1fr)); }
+  .pillar-overview .capture-financial-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 @media (max-width: 1023px) {
   .overview-header-row { grid-template-columns: 32px minmax(0, 1fr); padding: 10px 16px; }
