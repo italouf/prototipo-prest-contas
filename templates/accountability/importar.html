@@ -51,8 +51,10 @@
       <div>
         <label for="periodo_referencia" class="mb-1 block text-sm font-semibold">Período de referência</label>
         <input type="text" id="periodo_referencia" name="periodo_referencia" required
-               placeholder="2T/2024" value="{{ form.periodo_referencia.value|default:'' }}"
+               placeholder="09/2026" value="{{ form.periodo_referencia.value|default:'' }}"
+               aria-describedby="periodo_referencia_ajuda"
                class="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm">
+        <p id="periodo_referencia_ajuda" class="mt-1 text-xs text-text-muted">{{ form.periodo_referencia.help_text }}</p>
         {% for erro in form.periodo_referencia.errors %}
         <p class="mt-1 text-xs text-red-600" role="alert" data-testid="erro-periodo">{{ erro }}</p>
         {% endfor %}

@@ -260,6 +260,21 @@ class ApresentacaoTestes(TestCase):
         self.assertEqual(resposta.status_code, 200)
         self.assertTrue(resposta.context["form"].errors)
 
+    def test_referencia_mensal_aparece_na_selecao_e_na_capa(self):
+        mensal = Acompanhamento.objects.create(centro=self.acomp.centro, periodo_referencia="09/2026")
+        resposta = self.client.get(self.editor)
+        self.assertContains(resposta, "Centro QuIIN · 09/2026")
+        resposta = self.client.post(self.editor, {
+            "competencia": "2026-10", "acompanhamento": mensal.pk, "titulo": ""})
+        self.assertEqual(resposta.status_code, 302)
+        self.apresentacao.refresh_from_db()
+        self.assertEqual(self.apresentacao.acompanhamento, mensal)
+        self.assertEqual(self.apresentacao.competencia, date(2026, 10, 1))
+        resposta = self.client.get(self.url, {"periodo": "2026-10-01"})
+        self.assertContains(resposta, "Referência dos dados <strong>09/2026</strong>", html=True)
+        self.acomp.refresh_from_db()
+        self.assertEqual(self.acomp.periodo_referencia, "3T/2026")
+
     def test_upload_imagem_no_banco_leitura_e_remocao(self):
         url = reverse("core:mensal_conteudo_novo", args=[self.apresentacao.pk])
         resposta = self.client.post(url, {"tipo": "DESTAQUE", "titulo": "Laboratório", "texto": "Infraestrutura disponível.", "ordem": 2, "arquivo_imagem": imagem_png()})

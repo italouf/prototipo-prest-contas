@@ -105,6 +105,25 @@ def _xlsx_desconhecido(nome="desconhecido.xlsx"):
 
 
 class FormularioUploadTestes(TestCase):
+    def test_periodo_mensal_aceita_meses_validos_e_remove_espacos(self):
+        for referencia in ("01/2026", "09/2026", "12/2026", " 09/2026 "):
+            with self.subTest(referencia=referencia):
+                form = UploadPrestacaoForm(
+                    data={"centro": "QuIIN", "periodo_referencia": referencia},
+                    files={"arquivo": _xlsx(b"x")})
+                self.assertTrue(form.is_valid(), form.errors)
+                self.assertEqual(form.cleaned_data["periodo_referencia"], referencia.strip())
+
+    def test_periodo_mensal_rejeita_mes_ano_e_formato_invalidos(self):
+        for referencia in ("00/2026", "13/2026", "09/0000", "9/2026", "09/26", "09/20260",
+                           "2026-09", "09/2026extra", "09/2026/01", "٠٩/٢٠٢٦"):
+            with self.subTest(referencia=referencia):
+                form = UploadPrestacaoForm(
+                    data={"centro": "QuIIN", "periodo_referencia": referencia},
+                    files={"arquivo": _xlsx(b"x")})
+                self.assertFalse(form.is_valid())
+                self.assertIn("periodo_referencia", form.errors)
+
     def test_periodo_normaliza_maiusculas_e_aceita_semestre(self):
         form = UploadPrestacaoForm(
             data={"centro": "QuIIN", "periodo_referencia": "2s/2024"},
@@ -117,7 +136,8 @@ class FormularioUploadTestes(TestCase):
             data={"centro": "QuIIN", "periodo_referencia": "banana"},
             files={"arquivo": _xlsx(b"x")})
         self.assertFalse(form.is_valid())
-        self.assertEqual(list(form.errors["periodo_referencia"]), ["Use o formato 2T/2024."])
+        self.assertEqual(list(form.errors["periodo_referencia"]), [
+            "Use MM/AAAA (ex.: 09/2026), trimestre (2T/2024) ou semestre (2S/2024)."])
 
     def test_extensao_e_validada_antes_de_qualquer_parse(self):
         form = UploadPrestacaoForm(
@@ -146,6 +166,8 @@ class UploadExtrasTestes(TestCase):
         resposta = self.client.get(reverse("accountability:importar"))
         self.assertEqual(resposta.status_code, 200)
         self.assertContains(resposta, 'data-testid="page-importar-prestacao"')
+        self.assertContains(resposta, 'placeholder="09/2026"')
+        self.assertContains(resposta, "Use MM/AAAA")
 
     def test_tipo_nao_identificado_mensagem_amigavel(self):
         resposta = self.client.post(reverse("accountability:importar"), {
@@ -165,6 +187,57 @@ class UploadExtrasTestes(TestCase):
         importacao = ImportacaoAcompanhamento.objects.get(status="SUCESSO")
         self.assertEqual(importacao.resumo["projetos"], 33)
         self.assertEqual(importacao.tipo_fonte, "FINANCEIRO_GERAL")
+
+    def test_importacao_mensal_reutiliza_acompanhamento_e_preserva_referencia_antiga(self):
+        from ..models import Acompanhamento, ImportacaoAcompanhamento, KpiAcompanhamento, ResumoFinanceiro
+        from .fixtures_financeiro import FINANCEIRO
+
+        def enviar(caminho):
+            resposta = self.client.post(reverse("accountability:importar"), {
+                "arquivo": _xlsx(caminho.read_bytes(), caminho.name),
+                "centro": "QuIIN", "periodo_referencia": "09/2026"})
+            self.assertEqual(resposta.status_code, 200)
+            self.assertContains(resposta, "09/2026")
+            self.assertNotContains(resposta, 'data-testid="erro-periodo"')
+
+        enviar(FINANCEIRO)
+        mensal = Acompanhamento.objects.get(periodo_referencia="09/2026")
+        self.assertTrue(ResumoFinanceiro.objects.filter(acompanhamento=mensal).exists())
+        quantidade_resumos = ResumoFinanceiro.objects.filter(acompanhamento=mensal).count()
+        antigo = Acompanhamento.objects.create(centro=mensal.centro, periodo_referencia="3T/2026")
+        enviar(FINANCEIRO.with_name("Indicadores Gerais do Termo de Retificação do PE.xlsx"))
+        self.assertEqual(KpiAcompanhamento.objects.filter(acompanhamento=mensal).count(), 10)
+        enviar(FINANCEIRO)
+        self.assertEqual(ResumoFinanceiro.objects.filter(acompanhamento=mensal).count(), quantidade_resumos)
+        self.assertEqual(ImportacaoAcompanhamento.objects.filter(acompanhamento=mensal, status="SUCESSO").count(), 3)
+        self.assertEqual(Acompanhamento.objects.filter(centro=mensal.centro).count(), 2)
+        antigo.refresh_from_db()
+        self.assertEqual(antigo.periodo_referencia, "3T/2026")
+
+    def test_metadados_mensais_do_v2_precisam_corresponder_ao_upload(self):
+        import tempfile
+        from openpyxl import load_workbook
+        from .test_ingestion import _workbook_v2, CENTRO
+        from ..models import Acompanhamento, ImportacaoAcompanhamento
+
+        with tempfile.TemporaryDirectory() as pasta:
+            caminho = Path(pasta) / "acompanhamento.xlsx"
+            _workbook_v2(caminho)
+            wb = load_workbook(caminho)
+            wb["0. Sumário"]["C3"] = "09/2026"
+            wb.save(caminho)
+            wb.close()
+            bloco = caminho.read_bytes()
+        for referencia, status in (("09/2026", "SUCESSO"), ("10/2026", "ERRO")):
+            with self.subTest(referencia=referencia):
+                resposta = self.client.post(reverse("accountability:importar"), {
+                    "arquivo": _xlsx(bloco), "centro": CENTRO, "periodo_referencia": referencia})
+                self.assertEqual(resposta.status_code, 200)
+                self.assertTrue(ImportacaoAcompanhamento.objects.filter(status=status).exists())
+                if status == "ERRO":
+                    self.assertContains(resposta, "Metadado divergente")
+        self.assertTrue(Acompanhamento.objects.filter(periodo_referencia="09/2026").exists())
+        self.assertFalse(Acompanhamento.objects.filter(periodo_referencia="10/2026").exists())
 
     def test_formula_com_erro_importa_com_aviso_visivel_e_registrado(self):
         from io import BytesIO
