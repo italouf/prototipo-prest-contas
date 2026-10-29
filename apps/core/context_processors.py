@@ -1,7 +1,7 @@
 """Contexto de navegação para o layout base (R1)."""
 from django.db.models import Count
 
-from apps.entries.models import Lancamento
+from apps.entries.models import LancamentoOperacional as Lancamento
 from apps.periods.models import Periodo
 
 

@@ -246,15 +246,30 @@ def _resumos_financeiros(acomp):
         par = list(anual.get((override.pilar.codigo, override.ano), (None, None)))
         par[1 if override.campo == "executado" else 0] = override.valor
         anual[(override.pilar.codigo, override.ano)] = (par[0], par[1])
+    from apps.entries.effective import estado
+    operacional = estado(acomp)
+    if operacional:
+        for (codigo, ano, campo), valor in operacional.ajustes_financeiros().items():
+            if campo not in ("executado", "previsto"):
+                continue
+            destino, chave = (consolidado, codigo) if ano == 0 else (anual, (codigo, ano))
+            par = list(destino.get(chave, (None, None)))
+            par[1 if campo == "executado" else 0] = valor
+            destino[chave] = tuple(par)
     return consolidado, anual
 
 
 def _overrides_financeiros(acomp):
     """Mapa dos overrides financeiros por pilar, ano e campo."""
-    return {
+    ajustes = {
         (override.pilar.codigo, override.ano, override.campo): override.valor
         for override in acomp.overrides.filter(base="financeiro").select_related("pilar")
     }
+    from apps.entries.effective import estado
+    operacional = estado(acomp)
+    if operacional:
+        ajustes.update(operacional.ajustes_financeiros())
+    return ajustes
 
 
 ROTULOS_TAB_PPI = (
@@ -702,7 +717,11 @@ def painel_financeiro_pilar(pilar, acomp):
         campos_projetos.append("sequencia")
     projetos = list(ProjetoFinanceiro.objects.filter(
         acompanhamento=acomp, pilar=pilar, origem=contrato["origem_projetos"],
-    ).order_by("pk").values(*campos_projetos))
+    ).order_by("pk").values(*campos_projetos, "projeto_id"))
+    from apps.entries.effective import estado
+    operacional = estado(acomp)
+    if operacional:
+        operacional.projetos(projetos)
     # Backfill de exibição para snapshots anteriores, cujo ITEM era numérico.
     for registro in projetos:
         if registro.get("codigo_projeto_embrapii") in (None, "") and registro["sequencia"] is not None:
@@ -865,6 +884,10 @@ def painel_captacao(pilar, ano, base, acomp, *, fontes_autorizadas, anos=None):
         total_captacao=total,
         tabela_captacao=_tabela_financeira_pilar("tbl_CaptaoATeOutros", _COLUNAS_CAPTACAO, linhas),
     )
+    from apps.entries.effective import estado
+    operacional = estado(acomp)
+    if operacional:
+        bloco["carteira_fontes"] = operacional.carteira_fontes(fontes)
     return bloco
 
 
@@ -1149,6 +1172,10 @@ def _campos_kpi(kpi, referencia):
             previsto = override.valor
         elif override.campo == "executado":
             executado = override.valor
+    from apps.entries.effective import estado
+    operacional = estado(kpi.acompanhamento_id)
+    if operacional:
+        executado = operacional.kpi(kpi.codigo, referencia)
     return previsto, executado
 
 
@@ -1165,8 +1192,9 @@ def _tabela_gerencial_fisica(kpis, ano):
         linhas = []
         for kpi in por_pilar[codigo]:
             previsto, executado = _campos_kpi(kpi, ano)
+            unidade_exibicao = "publicações" if kpi.codigo == "PE-09" else kpi.unidade
             linha = _linha(
-                f"{kpi.nome} ({kpi.unidade})", previsto, executado,
+                f"{kpi.nome} ({unidade_exibicao})", previsto, executado,
                 codigo=kpi.codigo, pilar=kpi.pilar)
             percentual_meta = percentual_fisico(executado, previsto)
             linha["pct"] = pct_inteiro(percentual_meta, 100) if percentual_meta is not None else None
@@ -1201,7 +1229,7 @@ def _tabela_anual_fisica(kpis):
                          "saldo": saldo_fisico(meta, executado), "projetado": _projecao_kpi(kpi, ano)})
         linhas.append({"rotulo": kpi.nome, "codigo": kpi.codigo,
                        "pilar": ROTULOS_PAINEL.get(kpi.pilar.codigo, kpi.pilar.nome),
-                       "unidade": kpi.unidade, "valores_percentuais": kpi.pilar.codigo == "OUTRASFONTES",
+                       "unidade": "publicações" if kpi.codigo == "PE-09" else kpi.unidade, "valores_percentuais": kpi.pilar.codigo == "OUTRASFONTES",
                        "anos": anos})
     return {"linhas": linhas, "anos": ANOS}
 

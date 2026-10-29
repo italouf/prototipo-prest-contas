@@ -70,8 +70,8 @@
         <span class="nav-rotulo mr-auto">Operação</span><c-ui.icon name="chevron-down" size="16" class="nav-grupo-chev" />
       </button>
       <ul id="grp-operacao" class="mt-0.5 space-y-0.5">
-        {% if pode_lancar and periodo_aberto_nav and pilares_nav %}
-        <li><a href="{% url 'entries:formulario' periodo_aberto_nav.pk pilares_nav.0.pk %}" data-nav-link class="nav-clara {% if '/lancamentos/' in request.path %}nav-ativo{% endif %}"><c-ui.icon name="pencil" size="18" /><span class="nav-rotulo">Lançamentos</span>{% if pendencias_lancamentos %}<span class="sidebar-badge operation-badge">{{ pendencias_lancamentos }}</span>{% endif %}</a></li>
+        {% if pode_lancar and pilares_nav %}
+        <li><a href="{% url 'entries:iniciar' %}" data-nav-link class="nav-clara {% if '/lancamentos/' in request.path or '/operacao/' in request.path %}nav-ativo{% endif %}"><c-ui.icon name="pencil" size="18" /><span class="nav-rotulo">Lançamentos</span>{% if pendencias_lancamentos %}<span class="sidebar-badge operation-badge">{{ pendencias_lancamentos }}</span>{% endif %}</a></li>
         {% endif %}
         {% if pode_aprovar and periodo_aberto_nav %}
         <li><a href="{% url 'entries:aprovacao' periodo_aberto_nav.pk %}" data-nav-link class="nav-clara {% if '/aprovacao/' in request.path %}nav-ativo{% endif %}"><c-ui.icon name="check-circle" size="18" /><span class="nav-rotulo">Aprovação</span>{% if pendencias_aprovacao %}<span class="sidebar-badge operation-badge">{{ pendencias_aprovacao }}</span>{% endif %}</a></li>

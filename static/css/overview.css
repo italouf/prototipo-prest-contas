@@ -3,6 +3,7 @@
 .app-workspace { display: flex; flex-direction: column; }
 .app-workspace > main { flex: 1; }
 .sidebar a[data-nav-link] > svg { display: none; }
+.sidebar { font-family: Montserrat, Arial, sans-serif; }
 /* Hierarquia dos links filhos; o recuo desaparece junto ao rótulo no menu recolhido. */
 .sidebar :is(#grp-pilares, #grp-contas, #grp-operacao, #grp-gestao) .nav-rotulo {
   margin-inline-start: 12px;
@@ -42,17 +43,17 @@ body:has(.overview-dashboard) { background: #f3f3f8; }
 .dark body:has(.overview-dashboard) { background: var(--color-surface); }
 body:has(.overview-dashboard) #main { padding: 18px 24px 42px; max-width: 1500px; }
 body:has(.overview-dashboard) #app-header { background: var(--color-surface-2); backdrop-filter: none; }
-body:has(.overview-dashboard) .sidebar { padding-bottom: 12px; }
-body:has(.overview-dashboard) .sidebar > div { padding: 12px 12px 8px; gap: 4px; }
-body:has(.overview-dashboard) .sidebar > div > a { gap: 5px; }
-body:has(.overview-dashboard) .sidebar [data-testid="sidebar-collapse"] { position: absolute; top: 57px; right: 6px; padding: 2px; }
-body:has(.overview-dashboard) .sidebar nav { padding: 0 10px; }
-body:has(.overview-dashboard) .nav-clara { gap: 7px; padding: 6px 7px; font-size: 10.5px; font-weight: 400; }
-body:has(.overview-dashboard) .nav-clara svg { width: 13px; height: 13px; color: #a2a1b3; }
-body:has(.overview-dashboard) .nav-ativo { background: #04047e; color: white; }
-body:has(.overview-dashboard) .nav-ativo svg { color: white; }
-body:has(.overview-dashboard) [data-nav-grupo] { margin-top: 10px; padding-bottom: 4px; color: var(--color-text-muted); font-size: 8px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
-body:has(.overview-dashboard) .nav-secao-clara { padding: 10px 7px 5px; font-size: 8px; letter-spacing: 1px; }
+body .sidebar { padding-bottom: 12px; }
+body .sidebar > div { padding: 12px 12px 8px; gap: 4px; }
+body .sidebar > div > a { gap: 5px; }
+body .sidebar [data-testid="sidebar-collapse"] { position: absolute; top: 57px; right: 6px; padding: 2px; }
+body .sidebar nav { padding: 0 10px; }
+body .nav-clara { gap: 7px; padding: 6px 7px; font-size: 10.5px; font-weight: 400; }
+body .nav-clara svg { width: 13px; height: 13px; color: #a2a1b3; }
+body .nav-ativo { background: #04047e; color: white; }
+body .nav-ativo svg { color: white; }
+body [data-nav-grupo] { margin-top: 10px; padding-bottom: 4px; color: var(--color-text-muted); font-size: 8px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+body .nav-secao-clara { padding: 10px 7px 5px; font-size: 8px; letter-spacing: 1px; }
 .overview-header-row { display: flex; align-items: center; gap: 12px; min-height: 54px; padding: 7px 24px; }
 .overview-header-row #dashboard-controls { flex: 1; min-width: 0; }
 /* Evita ocultar o cabeçalho novo antes do JS, inclusive em navegadores com estado antigo. */
@@ -183,8 +184,8 @@ body:has(.overview-dashboard) [data-testid="app-footer"] p { font-size: 8px; mar
 body:has(.overview-dashboard) [data-testid="app-footer"] .footer-copy { text-align: left; }
 body:has(.overview-dashboard) [data-testid="app-footer"] .footer-copy p { font-size: 10px; line-height: 1.5; margin: 0; }
 @media (min-width: 1024px) {
-  body:has(.overview-dashboard) .sidebar { position: relative; width: 180px; }
-  body:has(.overview-dashboard) [data-recolhida="true"] .sidebar { width: 60px; }
+  body .sidebar { position: relative; width: 180px; }
+  body [data-recolhida="true"] .sidebar { width: 60px; }
   [data-recolhida="true"] .sidebar-sig-logo { width: 35px; }
   body:has(.overview-dashboard) [data-testid="app-footer"] > div { display: flex; align-items: center; gap: 20px; }
   body:has(.overview-dashboard) [data-testid="app-footer"] .brand-logos { flex-wrap: nowrap; flex-shrink: 0; }
@@ -540,17 +541,17 @@ body:has(.overview-dashboard) [data-testid="app-footer"] { display: block; borde
 body:has(.overview-dashboard) [data-testid="app-footer"] p { font-size: 11px; line-height: 1.55; margin: 2px 0; color: var(--color-text-muted); }
 body:has(.overview-dashboard) [data-testid="app-footer"] .overview-footer-title { font-weight: 700; color: var(--color-text); margin-bottom: 5px; }
 @media (min-width: 1024px) {
-  body:has(.overview-dashboard) .sidebar { position: sticky; top: 0; bottom: auto; left: auto; align-self: flex-start; width: 244px; height: 100vh; overflow: hidden; }
-  body:has(.overview-dashboard) .sidebar nav { min-height: 0; overflow-y: auto; }
-  body:has(.overview-dashboard) .sidebar > .sidebar-admin { flex-shrink: 0; padding: 8px 0 0; }
-  body:has(.overview-dashboard) .sidebar > div { padding: 16px 12px 10px; }
-  body:has(.overview-dashboard) .sidebar-sig-logo { width: 218px; height: 72px; }
-  body:has(.overview-dashboard) .sidebar [data-testid="sidebar-collapse"] { top: 85px; }
-  body:has(.overview-dashboard) .nav-clara { font-size: 12px; padding: 7px 10px; gap: 9px; }
-  body:has(.overview-dashboard) .nav-secao-clara, body:has(.overview-dashboard) [data-nav-grupo] { font-size: 9px; }
+  body .sidebar { position: sticky; top: 0; bottom: auto; left: auto; align-self: flex-start; width: 244px; height: 100vh; overflow: hidden; }
+  body .sidebar nav { min-height: 0; overflow-y: auto; }
+  body .sidebar > .sidebar-admin { flex-shrink: 0; padding: 8px 0 0; }
+  body .sidebar > div { padding: 16px 12px 10px; }
+  body .sidebar-sig-logo { width: 218px; height: 72px; }
+  body .sidebar [data-testid="sidebar-collapse"] { top: 85px; }
+  body .nav-clara { font-size: 12px; padding: 7px 10px; gap: 9px; }
+  body .nav-secao-clara, body [data-nav-grupo] { font-size: 9px; }
   [data-recolhida="true"] .sidebar a[data-nav-link] > svg { display: inline-block; }
-  body:has(.overview-dashboard) [data-recolhida="true"] .sidebar { width: 66px; }
-  body:has(.overview-dashboard) [data-recolhida="true"] .sidebar-sig-logo { width: 36px; }
+  body [data-recolhida="true"] .sidebar { width: 66px; }
+  body [data-recolhida="true"] .sidebar-sig-logo { width: 36px; }
 }
 @media (min-width: 1024px) {
   body [data-recolhida="true"] .sidebar > .sidebar-heading { flex-direction: column; align-items: center; gap: 4px; padding: 12px 4px 8px; }

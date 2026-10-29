@@ -1,0 +1,14 @@
+{% extends 'features/base.html' %}{% load static %}
+{% block title %}Lançamentos dos dashboards · SIG QuIIN{% endblock %}
+{% block extra_head %}<script src="{% static 'js/operation.js' %}" defer></script>{% endblock %}
+{% block feature_content %}
+<p class="feature-crumb">Operação / Lançamentos</p><div class="feature-heading"><h1>Lançamentos dos dashboards</h1>{% if gestor %}<a class="feature-button" href="{% url 'entries:configurar' %}?acompanhamento={{ acompanhamento.pk }}">Conciliar base</a>{% endif %}</div>
+<p class="feature-description">Informe o acumulado desde o início do ciclo. Rascunhos não alteram os dashboards; apenas resultados aprovados são publicados.</p>
+{% include 'entries/_operational_filters.html' %}
+<p class="feature-muted">Base {{ base_operacional.versao }} · corte {{ base_operacional.competencia_corte|date:'m/Y' }} · {{ pagina.paginator.count }} indicadores disponíveis</p>
+{% if gestor %}<div class="feature-actions"><a class="feature-button" href="{% url 'entries:projeto_fonte' %}?acompanhamento={{ acompanhamento.pk }}">Cadastrar projeto financeiro de AT/Outras Fontes</a></div>{% endif %}
+<section class="feature-panel"><div class="feature-table-wrap"><table class="feature-table" data-testid="catalogo-operacional"><thead><tr><th>Projeto / indicador</th><th>Base / unidade</th><th>Acumulado vigente</th><th>Última proposta</th><th>Status</th><th>Ação</th></tr></thead><tbody>
+{% for linha in linhas %}<tr><td><strong>{{ linha.indicador.nome }}</strong><small class="code">{{ linha.indicador.pilar.nome }}</small></td><td>{{ linha.indicador.get_base_display }} · {{ linha.indicador.unidade }}</td><td class="numeric">{{ linha.vigente }}</td><td class="numeric">{{ linha.proposto }}</td><td>{% if linha.proposta %}<span class="feature-badge {{ linha.proposta.status }}">{{ linha.proposta.get_status_display }}</span>{% else %}Sem proposta{% endif %}</td><td><a href="{{ linha.url }}">Lançar / corrigir</a></td></tr>{% empty %}<tr><td colspan="6">Nenhum indicador deste catálogo corresponde aos filtros. Para AT/Outras Fontes, Master/Admin pode cadastrar a carteira financeira própria.</td></tr>{% endfor %}
+</tbody></table></div></section>
+<nav class="feature-actions" aria-label="Páginas de indicadores">{% if anterior %}<a class="feature-button" href="{{ anterior }}">Anterior</a>{% endif %}<span>{{ pagina.number }} / {{ pagina.paginator.num_pages }}</span>{% if proxima %}<a class="feature-button" href="{{ proxima }}">Próxima</a>{% endif %}</nav>
+{% endblock %}

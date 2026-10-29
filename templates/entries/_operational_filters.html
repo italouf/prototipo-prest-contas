@@ -1,0 +1,7 @@
+<form method="get" class="feature-filters" data-operation-filters>
+  <div><label for="op-source">Acompanhamento</label><select id="op-source" name="acompanhamento">{% for a in acompanhamentos %}<option value="{{ a.pk }}" {% if a.pk == acompanhamento.pk %}selected{% endif %}>{{ a }}</option>{% endfor %}</select></div>
+  {% if periodo %}<div><label for="op-period">Competência</label><select id="op-period" data-operation-period>{% for p in periodos %}<option value="{{ p.pk }}" {% if p.pk == periodo.pk %}selected{% endif %}>{{ p.competencia|date:'m/Y' }} · {{ p.get_status_display }}</option>{% endfor %}</select></div>{% endif %}
+  <div><label for="op-base">Base de análise</label><select id="op-base" name="base"><option value="">Todas</option><option value="financeiro" {% if filtro_base == 'financeiro' %}selected{% endif %}>Financeira</option><option value="fisico" {% if filtro_base == 'fisico' %}selected{% endif %}>Física</option></select></div>
+  <div><label for="op-pillar">Pilar</label><select id="op-pillar" name="pilar">{% if not pilar %}<option value="">Todos</option>{% endif %}{% for p in pilares_operacao %}<option value="{{ p.pk }}" {% if filtro_pilar == p.pk|stringformat:'s' %}selected{% endif %}>{{ p.nome }}</option>{% endfor %}</select></div>
+  <div><label for="op-search">Buscar projeto ou indicador</label><input id="op-search" name="q" value="{{ busca }}" type="search"></div><button class="feature-button">Filtrar</button>
+</form>

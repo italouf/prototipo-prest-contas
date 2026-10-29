@@ -55,6 +55,8 @@ def contexto_painel(ano_param, base_param, usuario, acompanhamento=None, pilares
         ano_param = str(ano) if ano is not None else "todos"
     if acompanhamento is None:
         acompanhamento = painel_prestacao.acompanhamento_padrao()
+    from apps.entries.effective import limitar
+    limitar(periodo)
     if (acompanhamento is not None and base_param == BASE_FIN
             and acompanhamento.resumos.filter(origem="TAB. 1").exists()):
         ano = None
@@ -166,6 +168,8 @@ def contexto_pilar(pilar, ano_param, base_param, usuario, acompanhamento=None, p
         ano = periodo["ano"] if base_param == "fis" and not periodo["ciclo"] else None
         ano_param = str(ano) if ano is not None else "todos"
     anos = periodo["anos"] if novo and base_param == "fis" and not periodo["ciclo"] and len(periodo["anos"]) > 1 else None
+    from apps.entries.effective import limitar
+    limitar(periodo)
     if acompanhamento is None:
         acompanhamento = painel_prestacao.acompanhamento_padrao()
     editaveis = (
@@ -174,6 +178,8 @@ def contexto_pilar(pilar, ano_param, base_param, usuario, acompanhamento=None, p
     )
     combinado = pilar.codigo in FONTES_CAPTACAO
     fontes = fontes_captacao_visiveis(usuario) if combinado else (pilar.codigo,)
+    from apps.core.permissions import pilares_visiveis
+    pilar_operacao = pilares_visiveis(usuario).filter(codigo__in=fontes).order_by("ordem").first()
     codigos_edicao = set(fontes) & editaveis
     if combinado:
         pp = painel_prestacao.painel_captacao(
@@ -218,7 +224,8 @@ def contexto_pilar(pilar, ano_param, base_param, usuario, acompanhamento=None, p
         "grade_edicao": grade,
         "base_plano": pp["base"],
         "pilar_pk": pilar.pk,
-        "pode_editar_pilar": bool(codigos_edicao) and (novo or not (combinado and base_param == BASE_FIN)),
+        "pilar_operacao_pk": pilar_operacao.pk if pilar_operacao else pilar.pk,
+        "pode_editar_pilar": pode_editar_painel(usuario) and bool(codigos_edicao) and (novo or not (combinado and base_param == BASE_FIN)),
         "acompanhamento": acompanhamento,
         "acompanhamentos": painel_prestacao.lista_acompanhamentos(),
     }
@@ -362,6 +369,12 @@ def _aplicar_overrides(request, acomp):
         itens = _parse_grade_overrides(request.POST, acomp)
     except ValueError as exc:
         messages.error(request, f"Edição rejeitada: {exc}")
+        return redirect(destino)
+    from apps.entries.models import BaseOperacional
+    if BaseOperacional.objects.filter(acompanhamento=acomp).exists() and any(
+        campo == "executado" or base == "financeiro" and codigo in ("AT", "OUTRASFONTES") and campo in ("previsto", "captado_anos_1_2", "captado_ano3_ytd")
+        for _ano, codigo, base, campo, _valor in itens):
+        messages.error(request, "Execução e captação devem ser atualizadas pela Operação, por indicador ou projeto.")
         return redirect(destino)
     if request.POST.get("edicao_dashboard"):
         base_editor = "financeiro" if base_param == "fin" else "fisico"
@@ -587,6 +600,11 @@ def _csv_pilar(request, pilar, ano_param, base_param):
                     f"{linha['pct']}%" if linha["pct"] is not None else "—",
                 ])
             writer.writerow([])
+        if pp.get("carteira_fontes"):
+            writer.writerow(["Carteira financeira por projeto"])
+            writer.writerow(["Fonte", "Projeto", "Captado acumulado", "Realizado acumulado"])
+            for projeto in pp["carteira_fontes"]:
+                writer.writerow([projeto["codigo"], projeto["nome"], numero_curto(projeto.get("captado")), numero_curto(projeto.get("realizado"))])
         conteudo = documento.getvalue()
     else:
         conteudo = "\n".join(linhas) + "\n"

@@ -107,8 +107,8 @@ def _anual(pp, percentual=False):
     pp["status_anos"] = {nome: sum(linha["faixa"] == nome for linha in rows) for nome in ("ok", "parcial", "critica", "neutra")}
 
 
-def _limpar(pp, periodo, financeiro):
-    indisponivel = not periodo["valido"] or not periodo["ciclo"] and (financeiro or not periodo["anos"])
+def _limpar(pp, periodo, financeiro, operacional=False):
+    indisponivel = not periodo["valido"] or not operacional and not periodo["ciclo"] and (financeiro or not periodo["anos"])
     campos = ("previsto", "executado", "saldo", "executado_limitado", "pct", "captado", "realizado", "recurso_ou_meta", "orcado", "projetado", "projetado_2026", "projetado_2027", "realizado_mais_projetado", "diferenca", "percentual_meta", "percentual_captado", "captado_anos_1_2", "captado_ano3_ytd")
     if indisponivel:
         def limpar(valor):
@@ -130,7 +130,7 @@ def _limpar(pp, periodo, financeiro):
         limpar(pp)
         pp["registros_projetos"] = []
         pp["status_counts"] = None
-    elif not periodo["ciclo"]:
+    elif not periodo["ciclo"] and periodo["anos"]:
         for bloco in [pp, *pp.get("blocos_fisicos", [])]:
             bloco["anos_selecionados"] = periodo["anos"]
             for linha in bloco.get("tabela", []):
@@ -171,7 +171,8 @@ def apresentar_pilar(contexto, periodo):
     nome = NOMES.get(codigo, pp["rotulo"])
     nome_card = "FCRH" if codigo == "FORMACAO" else nome
     contexto.update(periodo_analise=periodo, mes_inicial=periodo["mes_inicial"], mes_final=periodo["mes_final"], erro_periodo=periodo["erro"], dashboard_url=f"/pilar/{contexto['pilar_pk']}/")
-    contexto["sem_dados_intervalo"] = _limpar(pp, periodo, financeiro)
+    from .overview_period import posicao_operacional
+    contexto["sem_dados_intervalo"] = _limpar(pp, periodo, financeiro, posicao_operacional(contexto, periodo))
     for bloco in pp.get("blocos_recursos_percentuais", []):
         _indicador_fonte(bloco)
     pp.update(rotulo_periodo=periodo["rotulo"], nome_curto=nome, titulo_pagina="AT e Outras Fontes" if pp.get("visao_captacao") else pp["pilar"].nome)

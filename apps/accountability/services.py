@@ -263,6 +263,9 @@ def ingestar(tipo_fonte: str, caminho: Path | str, centro_nome: str,
             if termo and acomp.termo_cooperacao != termo:
                 acomp.termo_cooperacao = termo
                 acomp.save()
+            from apps.entries.models import BaseOperacional
+            if BaseOperacional.objects.filter(acompanhamento=acomp).exists():
+                payload["avisos"].append("A operação possui uma base confirmada. Resultados homologados foram preservados; concilie a base operacional para incorporar mudanças nos valores importados.")
             contagens = _contagens(tipo_fonte, payload)
             importacao = ImportacaoAcompanhamento.objects.create(
                 acompanhamento=acomp,

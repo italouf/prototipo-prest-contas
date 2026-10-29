@@ -1,0 +1,14 @@
+{% extends 'features/base.html' %}{% load static %}
+{% block title %}Base da operação · SIG QuIIN{% endblock %}
+{% block extra_head %}<script src="{% static 'js/operation.js' %}" defer></script>{% endblock %}
+{% block feature_content %}
+<p class="feature-crumb">Operação / Base inicial</p><h1>Confirmar a base de resultados</h1>
+<p class="feature-description">Os lançamentos usam acumulados do ciclo 2024–2027. Confirme a referência dos dados antes de iniciar o fluxo de aprovação.</p>
+{% include 'entries/_operational_filters.html' %}
+{% if gestor and acompanhamento %}<section class="feature-panel"><form method="post" action="{% url 'entries:configurar' %}?acompanhamento={{ acompanhamento.pk }}" class="feature-form" hx-boost="false">{% csrf_token %}
+<p>{{ acompanhamento }}{% if base_operacional %} · Base versão {{ base_operacional.versao }} · corte {{ base_operacional.competencia_corte|date:'m/Y' }}{% endif %}</p>
+<div class="feature-fields"><div><label for="op-cutoff">Competência de corte dos dados importados</label><input id="op-cutoff" type="month" name="competencia" required min="2024-01" max="2027-06"></div><div><label for="op-first">Competência inicial de lançamento</label><input id="op-first" type="month" name="competencia_inicial" required min="2024-01" max="2027-06"></div><div class="wide"><label for="op-reason">Justificativa{% if base_operacional %} obrigatória para conciliação{% endif %}</label><textarea id="op-reason" name="justificativa" {% if base_operacional %}required{% endif %}></textarea></div></div>
+<p class="feature-muted">A base inicial preserva os números e ajustes importados. A conciliação cria uma nova versão; resultados já aprovados continuam prevalecendo. Propostas pendentes precisarão ser revistas.</p>
+<div class="feature-actions"><button class="feature-button primary">{% if base_operacional %}Conciliar base{% else %}Confirmar base inicial{% endif %}</button></div></form></section>
+{% elif not acompanhamento %}<p class="feature-notice">Importe um acompanhamento financeiro ou físico antes de iniciar a operação.</p>{% else %}<p class="feature-notice">Solicite a Master/Admin a confirmação da base inicial e a abertura de uma competência.</p>{% endif %}
+{% endblock %}

@@ -1,0 +1,9 @@
+{% extends 'features/base.html' %}
+{% block title %}Lançar resultado · SIG QuIIN{% endblock %}
+{% block feature_content %}
+<p class="feature-crumb">Operação / Lançamentos / {{ periodo.competencia|date:'m/Y' }}</p><h1>{{ indicador.nome }}</h1><p class="feature-description">{{ indicador.pilar.nome }} · {{ indicador.get_base_display }} · {{ acompanhamento }}</p>
+<section class="feature-panel"><form method="post" class="feature-form" hx-boost="false">{% csrf_token %}<p><strong>Acumulado vigente:</strong> {{ vigente }}</p>
+<div class="feature-fields"><div><label for="op-value">Novo acumulado do ciclo · {{ indicador.unidade }}</label><input id="op-value" name="valor" value="{{ valor }}" inputmode="decimal" required {% if bloqueado %}disabled{% endif %}></div><div class="wide"><label for="op-comment">Comentário / justificativa de correção</label><textarea id="op-comment" name="comentario" rows="4" {% if bloqueado %}disabled{% endif %}>{{ comentario }}</textarea></div></div>
+<p class="feature-muted">Não some novamente o valor vigente. Informe o total acumulado até esta competência. Reduções e ajustes diretos exigem justificativa.</p>
+<div class="feature-actions"><button class="feature-button" name="acao" value="salvar" {% if bloqueado %}disabled{% endif %}>Salvar rascunho</button><button class="feature-button primary" name="acao" value="enviar" {% if bloqueado %}disabled{% endif %}>Enviar para análise</button>{% if gestor %}<button class="feature-button" name="acao" value="direto" {% if bloqueado %}disabled{% endif %}>Publicar ajuste direto</button>{% endif %}</div></form></section>
+{% endblock %}

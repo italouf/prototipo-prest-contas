@@ -43,13 +43,28 @@ def resolver_periodo(params, ano_param="todos"):
             "erro": " ".join(m for mensagens in form.errors.values() for m in mensagens)}
 
 
+def posicao_operacional(contexto, periodo):
+    from apps.entries.effective import estado
+    oficial = estado(contexto.get("acompanhamento"))
+    disponivel = bool(oficial and periodo["valido"] and periodo["fim"] >= oficial.base.competencia_corte)
+    if disponivel:
+        contexto["nota_operacional"] = (
+            f"Resultados homologados · base v{oficial.base.versao}, corte {oficial.base.competencia_corte:%m/%Y}. "
+            + (f"Posição acumulada desde 2024 até {periodo['fim']:%m/%Y}; os acumulados mensais não são somados. "
+               if not periodo["ciclo"] and (contexto["base_param"] == "fin" or not periodo["anos"]) else "")
+            + "Detalhamentos anuais sem referência histórica permanecem indisponíveis."
+        )
+    return disponivel
+
+
 def aplicar_periodo(contexto, periodo):
     painel = contexto["painel"]
     contexto["periodo_analise"] = periodo
     contexto["mes_inicial"] = periodo["mes_inicial"]
     contexto["mes_final"] = periodo["mes_final"]
     painel["rotulo_periodo"] = periodo["rotulo"]
-    indisponivel = not periodo["valido"] or (not periodo["ciclo"] and
+    operacional = posicao_operacional(contexto, periodo)
+    indisponivel = not periodo["valido"] or (not operacional and not periodo["ciclo"] and
         (contexto["base_param"] == "fin" or not periodo["anos"]))
     contexto["sem_dados_intervalo"] = indisponivel
     contexto["erro_periodo"] = periodo["erro"]

@@ -1,0 +1,3 @@
+{% extends 'features/base.html' %}{% load static %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/operation.css' %}">{% endblock %}
+{% block feature_content %}<a href="{{ origem }}">Voltar ao painel de aprovação</a><section class="feature-panel feature-pad">{% include 'entries/_operational_detail.html' %}</section>{% endblock %}

@@ -46,6 +46,8 @@ def grade_dashboard_fontes(acomp, base, codigos):
 
 
 def grade_dashboard(acomp, base, codigos, *, kpis=None):
+    from apps.entries.models import BaseOperacional
+    controlado = BaseOperacional.objects.filter(acompanhamento=acomp).exists()
     anos = [0, *ANOS]
     ajustes = list(acomp.overrides.filter(base=base).select_related("pilar", "kpi"))
     por_chave = {(a.kpi.codigo if a.kpi else a.pilar.codigo, a.ano, a.campo): a.valor for a in ajustes}
@@ -69,6 +71,8 @@ def grade_dashboard(acomp, base, codigos, *, kpis=None):
         if base == "financeiro" and codigo in ("AT", "OUTRASFONTES"):
             campos.extend((("meta_captacao", "Meta de captação e execução"), ("captado_anos_1_2", "Captado anos 1 e 2"), ("captado_ano3_ytd", "Captado ano 3 · YTD")))
         for campo, rotulo in campos:
+            if controlado and (campo == "executado" or base == "financeiro" and codigo in ("AT", "OUTRASFONTES") and campo in ("previsto", "captado_anos_1_2", "captado_ano3_ytd")):
+                continue
             celulas = []
             for ano in anos:
                 editavel = not (campo == "projetado" and (base == "fisico" and ano not in (2026, 2027)))

@@ -50,4 +50,19 @@ with TemporaryDirectory(prefix="quiin-overview-") as directory:
         ResumoFinanceiro.objects.update_or_create(acompanhamento=acomp, origem="TAB. 1.1", pilar=pdi,
             ano=ano, defaults={"recurso_ou_meta": meta, "realizado": realizado,
                               "projetado": 1000000 if ano == 2026 else None})
-    call_command("runserver", "127.0.0.1:8013", use_reloader=False)
+    if os.environ.get("QUIIN_OPERATION_E2E") == "1":
+        from datetime import date
+        from django.utils import timezone
+        from apps.entries.models import IndicadorOperacional, LancamentoOperacional
+        from apps.entries.operational import confirmar_base
+        from apps.periods.models import Periodo
+        from apps.pillars.models import UsuarioPilar
+        focal = adicionar_grupo(User.objects.create_user(username="operation-focal", password="operation-test-123"), "PontoFocal")
+        UsuarioPilar.objects.create(usuario=focal, pilar=pdi)
+        confirmar_base(acomp, date(2026, 9, 1), user)
+        periodo = Periodo.objects.create(competencia=date(2026, 10, 1), status="ABERTO")
+        item = IndicadorOperacional.objects.get(acompanhamento=acomp, chave="kpi:PE-09")
+        LancamentoOperacional.objects.bulk_create([LancamentoOperacional(indicador=item, periodo=periodo, versao=n,
+            valor=9, valor_base=9, base_versao=1, status="APROVADO", criado_por=user, revisado_por=user,
+            aprovado_em=timezone.now()) for n in range(1, 51)])
+    call_command("runserver", "127.0.0.1:8014" if os.environ.get("QUIIN_OPERATION_E2E") == "1" else "127.0.0.1:8013", use_reloader=False)

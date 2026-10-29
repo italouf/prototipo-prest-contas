@@ -131,12 +131,16 @@ class RecursosPercentuaisTestes(TestCase):
             (2024, "PE-02", "executado", D("0.0042")),
             (2024, "PE-03", "executado", D("5"))], self.master)
         overrides.aplicar_overrides(self.acomp, "financeiro", [(0, "AT", "executado", D("123"))], self.master)
-        self.enviar(usuario=self.focal("AT"), acao="restaurar")
+        # Ponto focal propõe pela Operação; restauração direta é exclusiva do gestor.
+        antes = set(OverrideAcompanhamento.objects.filter(acompanhamento=self.acomp).values_list("chave", flat=True))
+        self.assertEqual(self.enviar(usuario=self.focal("AT"), acao="restaurar").status_code, 403)
+        self.assertEqual(antes, set(OverrideAcompanhamento.objects.filter(acompanhamento=self.acomp).values_list("chave", flat=True)))
+        self.enviar(acao="restaurar")
         chaves = set(OverrideAcompanhamento.objects.filter(acompanhamento=self.acomp).values_list("chave", flat=True))
-        self.assertEqual(chaves, {"fis|PE-02|2024|executado", "fis|PE-03|2024|executado"})
+        self.assertEqual(chaves, {"fis|PE-03|2024|executado"})
         self.enviar("fis", acao="restaurar")
         self.assertEqual(list(OverrideAcompanhamento.objects.filter(acompanhamento=self.acomp).values_list("chave", flat=True)),
-                         ["fis|PE-02|2024|executado"])
+                         [])
 
     def test_csv_e_html_exportam_recursos_no_financeiro(self):
         self.client.force_login(self.master)

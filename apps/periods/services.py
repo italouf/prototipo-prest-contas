@@ -1,5 +1,6 @@
 """Transições de estado do período (RF-040 a RF-045 / RN-010, RN-011)."""
 from django.core.exceptions import ValidationError
+from django.db import transaction
 from django.utils import timezone
 
 from apps.audit.services import registrar_auditoria
@@ -20,7 +21,10 @@ def abrir_periodo(periodo, usuario):
     return periodo
 
 
+@transaction.atomic
 def fechar_periodo(periodo, usuario):
+    type(periodo).objects.select_for_update().get(pk=periodo.pk)
+    periodo.refresh_from_db()
     if periodo.status not in ("ABERTO", "REABERTO"):
         raise ValidationError("Apenas períodos abertos ou reabertos podem ser fechados.")
     periodo.snapshot_json = _gerar_snapshot(periodo)
@@ -84,5 +88,7 @@ def _gerar_snapshot(periodo):
         "competencia": periodo.rotulo,
         "gerado_em": timezone.now().isoformat(),
         "lancamentos": lancamentos,
+        "lancamentos_operacionais": [dict(item, valor=str(item["valor"])) for item in periodo.lancamentos_operacionais.filter(status="APROVADO").values(
+            "indicador__chave", "indicador__acompanhamento_id", "valor", "versao", "origem")],
         "financeiro": financeiro,
     }

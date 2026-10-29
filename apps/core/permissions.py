@@ -83,8 +83,8 @@ def pode_ver_auditoria(usuario):
 
 
 def pode_editar_painel(usuario):
-    """Master/Admin/PontoFocal editam o plano anual (RN-021)."""
-    return eh_gestor(usuario) or eh_pontofocal(usuario)
+    """Planejamento e ajustes diretos são exclusivos de Master/Admin."""
+    return eh_gestor(usuario)
 
 
 def pilares_editaveis_painel(usuario):

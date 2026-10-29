@@ -4,6 +4,8 @@
   <div class="overview-dashboard-actions" role="toolbar" aria-label="Ações do painel">
     <a href="{% if pilar_overview %}{{ dashboard_url }}{% else %}{% url 'core:dashboard' %}{% endif %}?base={{ base_param }}{% if acompanhamento %}&amp;acompanhamento={{ acompanhamento.pk }}{% endif %}" class="overview-action-button overview-clear-filters" data-testid="remover-filtros">Remover filtros</a>
     {% include 'dashboard/_actions.html' %}
+    {% if pode_lancar %}<a class="overview-action-button" href="{% url 'entries:iniciar' %}?{% if acompanhamento %}acompanhamento={{ acompanhamento.pk }}&amp;{% endif %}base={% if base_param == 'fin' %}financeiro{% else %}fisico{% endif %}{% if pilar_overview %}&amp;pilar={{ pilar_operacao_pk|default:pilar_pk }}{% endif %}">{% if pode_aprovar %}Ajustar resultados{% else %}Propor atualização{% endif %}</a>{% endif %}
   </div>
 </div>
 {% endif %}
+{% if nota_operacional %}<p class="overview-source-note" role="note">{{ nota_operacional }}</p>{% endif %}
