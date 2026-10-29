@@ -223,6 +223,10 @@ def contexto_pilar(pilar, ano_param, base_param, usuario, acompanhamento=None, p
             from apps.core.permissions import eh_gestor
             contexto["quadro_entregaveis"] = quadro_entregaveis(contexto)
             contexto["pode_gerenciar_book"] = eh_gestor(usuario)
+        if base_param == "fis" and combinado and "AT" in fontes:
+            from apps.projects.at_services import quadro_at
+            contexto["quadro_entregaveis_at"] = quadro_at(contexto)
+            contexto["pode_editar_produtos_at"] = "AT" in codigos_edicao
         contexto.update(pilar_overview=True, grade_edicao_geral=grade_dashboard(acompanhamento, pp["base"], codigos_edicao) if acompanhamento else [], editor_codigos=sorted(codigos_edicao))
         return apresentar_pilar(contexto, periodo)
     return contexto

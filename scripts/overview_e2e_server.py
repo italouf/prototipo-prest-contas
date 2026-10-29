@@ -37,6 +37,12 @@ with TemporaryDirectory(prefix="quiin-overview-") as directory:
     revisar_planilha(arquivo_revisado)
     ingestar("FINANCEIRO_GERAL", arquivo_revisado, "Overview E2E", "3T/2026", user)
     acomp = Acompanhamento.objects.get(centro__nome="Overview E2E")
+    if os.environ.get("QUIIN_MATERIAL_LIBRARY_E2E") == "1":
+        from apps.projects.models import MaterialProjeto, MaterialProdutoAT, ProdutoAT, Projeto
+        produto = ProdutoAT.objects.get(centro=acomp.centro, codigo_padrao="WHITE_PAPER")
+        projeto = Projeto.objects.filter(centro=acomp.centro, pilar__codigo="PDI").first()
+        MaterialProdutoAT.objects.bulk_create([MaterialProdutoAT(produto=produto, titulo=f"Relatório AT {i:03}", tipo="RELATORIO", url=f"https://example.org/at/{i}") for i in range(120)])
+        MaterialProjeto.objects.bulk_create([MaterialProjeto(projeto=projeto, titulo=f"Artigo PDI {i:03}", tipo="ARTIGO", url=f"https://example.org/pdi/{i}") for i in range(120)])
     pdi = Pilar.objects.get(codigo="PDI")
     for ano, meta, realizado in ((2024, 1000000, 500000), (2025, 2000000, 1500000), (2026, 3000000, 2500000)):
         ResumoFinanceiro.objects.update_or_create(acompanhamento=acomp, origem="TAB. 1.1", pilar=pdi,

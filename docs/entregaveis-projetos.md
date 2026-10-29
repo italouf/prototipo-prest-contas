@@ -1,5 +1,9 @@
 # Entregáveis dos projetos
 
+O dashboard utiliza agora resumo por projeto e páginas de consulta paginadas.
+Consulte [Consulta de materiais](consulta-materiais.md) para os fluxos de busca,
+biblioteca, retorno contextual e relatórios completos.
+
 O quadro existe exclusivamente no Físico de PDI, FCRH e ACS, entre a visão
 gerencial e o detalhamento anual. Mostra a carteira completa de projetos
 ativos do centro e pilar selecionados, independentemente das datas dos KPIs.

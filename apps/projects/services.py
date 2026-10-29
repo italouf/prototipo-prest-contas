@@ -28,7 +28,7 @@ def resolver_projeto_importado(centro, pilar, origem, nome, codigo=""):
 
 
 def auditar(usuario, acao, registro, anterior=""):
-    campos = ("nome", "codigo_embrapii", "titulo", "tipo", "url", "data_publicacao", "ativo")
+    campos = ("nome", "codigo_embrapii", "titulo", "tipo", "url", "data_publicacao", "ativo", "ordem", "centro_id", "projeto_id", "produto_id")
     valores = {c: str(getattr(registro, c)) for c in campos if hasattr(registro, c)}
     registrar_auditoria(usuario, acao, registro.__class__.__name__, registro.pk,
                         valor_anterior=anterior, valor_novo=valores)

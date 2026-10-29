@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% block title %}{{ titulo }} · Materiais · QuIIN{% endblock %}
+{% block content %}
+<section class="materials-page">
+  {% if voltar %}<a href="{{ voltar }}">← Voltar à consulta anterior</a>{% endif %}
+  <div class="materials-heading"><div><p>{{ centro.nome }} · {% if global %}Todos os pilares autorizados{% else %}Materiais do produto/projeto{% endif %}</p><h1>{{ titulo }}</h1></div><div class="project-actions">{% if novo_url %}<a class="overview-action-button" href="{{ novo_url }}">Adicionar material</a>{% endif %}{% if not global %}<a class="overview-action-button" href="{{ biblioteca_url }}">Biblioteca de materiais</a>{% endif %}</div></div>
+  {% if proprietario and not proprietario.ativo %}<p class="materials-notice">Este produto/projeto está arquivado. Seus materiais ficam fora da carteira ativa.</p>{% endif %}
+  {% if book %}<p class="project-book-note">Book geral: <a href="{{ book.url }}" target="_blank" rel="noopener noreferrer">{{ book.titulo }}</a></p>{% endif %}
+  <form method="get" class="materials-filters" data-testid="materiais-filtros">
+    <input type="hidden" name="acompanhamento" value="{{ request.GET.acompanhamento }}">
+    {% for nome, valor in contexto_oculto %}<input type="hidden" name="{{ nome }}" value="{{ valor }}">{% endfor %}
+    {% for field in form %}{% if global or field.name != 'pilar' and field.name != 'origem' %}<div><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{{ field.errors }}</div>{% endif %}{% endfor %}
+    <div class="project-actions"><button class="overview-action-button" type="submit">Aplicar filtros</button><a href="{{ limpar_url }}">Limpar filtros</a></div>
+  </form>
+  <div class="materials-result-heading"><p aria-live="polite">{% if total %}{{ page_obj.start_index }}–{{ page_obj.end_index }} de {{ total }} materiais{% else %}Nenhum material encontrado{% endif %}</p><div class="project-actions"><a href="{{ relatorio_url }}" target="_blank" rel="noopener" class="overview-action-button">Relatório completo</a><a href="{{ csv_url }}" class="overview-action-button">Baixar resultados (CSV)</a></div></div>
+  {% include 'projects/material_rows.html' %}
+  <nav class="materials-pagination" aria-label="Paginação de materiais"><span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span><div>{% if page_obj.has_previous %}<a class="overview-action-button" href="?{{ query }}&page={{ page_obj.previous_page_number }}">Anterior</a>{% endif %}{% if page_obj.has_next %}<a class="overview-action-button" href="?{{ query }}&page={{ page_obj.next_page_number }}">Próxima</a>{% endif %}</div></nav>
+</section>
+{% endblock %}

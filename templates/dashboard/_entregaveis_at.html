@@ -1,0 +1,14 @@
+<details id="entregaveis-at" class="overview-accordion project-deliverables" data-testid="entregaveis-at-accordion" {% if standalone or request.GET.entregaveis_at %}open{% endif %}>
+  <summary><span class="overview-expand-icon"></span><span class="overview-accordion-heading"><strong>Entregáveis da AT</strong><span>Carteira completa de produtos · não acompanha o filtro de datas</span></span></summary>
+  <div class="overview-accordion-body">
+    {% if quadro_entregaveis_at.sem_centro %}<p class="overview-empty">Selecione um acompanhamento com centro de competência para consultar os produtos da AT.</p>{% else %}
+    {% if not standalone %}<div class="project-deliverables-toolbar">
+      <a class="overview-action-button" href="{% url 'materials:biblioteca' %}?acompanhamento={{ acompanhamento.pk }}">Biblioteca de materiais</a><a class="overview-action-button" target="_blank" rel="noopener" href="{% url 'materials:relatorio' %}?acompanhamento={{ acompanhamento.pk }}&amp;pilar=AT">Relatório completo</a>
+      {% if pode_editar_produtos_at %}<a class="overview-action-button" href="{% url 'deliverables_at:novo' %}?{{ filtros_dashboard }}&base=fis">Novo produto</a><a class="overview-action-button" href="{% url 'deliverables_at:gerenciar' %}?{{ filtros_dashboard }}&base=fis">Gerenciar produtos e materiais</a>{% endif %}
+      <a class="overview-action-button" href="{% url 'deliverables_at:csv' %}?{{ filtros_dashboard }}&base=fis">Baixar entregáveis da AT (CSV)</a>
+    </div>{% endif %}
+    <div class="overview-table-scroll"><table class="overview-table project-deliverables-table at-deliverables-table" data-testid="tabela-entregaveis-at"><thead><tr><th>Produto</th><th>Materiais do produto</th>{% if pode_editar_produtos_at and not standalone %}<th class="at-deliverables-actions">Ações</th>{% endif %}</tr></thead><tbody>
+    {% for produto in quadro_entregaveis_at.produtos %}<tr><th scope="row">{{ produto.nome }}</th><td><p class="materials-summary"><strong>{{ produto.total_materiais }} materia{{ produto.total_materiais|pluralize:"l,is" }}</strong>{% if produto.ultima_inclusao %}<small>Última inclusão em {{ produto.ultima_inclusao|date:'d/m/Y' }}</small>{% else %}<small>Nenhum material cadastrado.</small>{% endif %}</p><a href="{% url 'deliverables_at:detalhe' produto.pk %}?acompanhamento={{ acompanhamento.pk }}&amp;mes_inicial={{ mes_inicial|urlencode }}&amp;mes_final={{ mes_final|urlencode }}">Ver materiais</a></td>{% if pode_editar_produtos_at and not standalone %}<td class="at-deliverables-actions"><a href="{% url 'deliverables_at:material_novo' produto.pk %}?{{ filtros_dashboard }}&base=fis">Adicionar material</a></td>{% endif %}</tr>{% empty %}<tr><td colspan="{% if pode_editar_produtos_at and not standalone %}3{% else %}2{% endif %}" class="project-empty">Nenhum produto ativo neste centro.</td></tr>{% endfor %}
+    </tbody></table></div>{% endif %}
+  </div>
+</details>

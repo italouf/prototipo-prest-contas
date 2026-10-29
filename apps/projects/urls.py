@@ -1,10 +1,14 @@
 from django.urls import path
 
 from . import views
+from . import library_views
 
 app_name = "projects"
 
 urlpatterns = [
+    path("pilar/<int:pilar_pk>/<uuid:pk>/", library_views.projeto, name="detalhe"),
+    path("pilar/<int:pilar_pk>/<uuid:pk>/relatorio/", library_views.projeto, {"modo": "relatorio"}, name="relatorio"),
+    path("pilar/<int:pilar_pk>/<uuid:pk>/materiais.csv", library_views.projeto, {"modo": "csv"}, name="csv_consulta"),
     path("pilar/<int:pilar_pk>/novo/", views.projeto_form, name="novo"),
     path("pilar/<int:pilar_pk>/gerenciar/", views.gerenciar, name="gerenciar"),
     path("pilar/<int:pilar_pk>/book/", views.book_form, name="book"),

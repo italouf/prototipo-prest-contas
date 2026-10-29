@@ -17,6 +17,8 @@ urlpatterns = [
     path("gestao-at/", include("apps.gestao_at.urls", namespace="gestao_at")),
     path("talentos/", include("apps.talentos.urls", namespace="talentos")),
     path("projetos/", include("apps.projects.urls", namespace="projects")),
+    path("entregaveis-at/", include("apps.projects.at_urls", namespace="deliverables_at")),
+    path("materiais/", include("apps.projects.library_urls", namespace="materials")),
     path("auditoria/", include("apps.audit.urls", namespace="audit")),
     path("plano-anual/", include("apps.planning.urls", namespace="planning")),
 ]

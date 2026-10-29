@@ -390,7 +390,45 @@ body:has(.overview-dashboard) #main { max-width: none; flex: none; padding: 24px
 .project-management-card .project-materials { margin-top: 14px; }
 .project-management-card .project-actions { margin-top: 8px; }
 .project-reference { font-size: 12px; margin-top: 16px; }
+.materials-summary { display: flex; flex-direction: column; gap: 4px; margin-bottom: 7px; }
+.materials-summary small { font-size: 10px; color: var(--color-text-muted); }
+.materials-page { margin: 16px auto; max-width: 1250px; color: var(--color-text); }
+.materials-heading, .materials-result-heading, .materials-pagination { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+.materials-heading h1 { font-size: 25px; line-height: 1.3; font-weight: 700; margin-top: 5px; }
+.materials-heading p, .materials-result-heading p, .materials-pagination span { font-size: 12px; color: var(--color-text-muted); }
+.materials-page a { color: var(--color-primary, #24249b); text-decoration: underline; text-underline-offset: 3px; }
+.materials-page .overview-action-button { text-decoration: none; }
+.materials-filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px; padding: 20px; border: 1px solid var(--color-border); border-radius: 10px; background: var(--color-surface-2); }
+.materials-filters label { display: block; margin-bottom: 6px; font-size: 12px; font-weight: 600; }
+.materials-filters input, .materials-filters select { width: 100%; min-height: 38px; border: 1px solid var(--color-border); border-radius: 5px; padding: 7px; background: var(--color-surface-2); color: var(--color-text); }
+.materials-filters .errorlist { font-size: 12px; color: #b42626; }
+.materials-filters .project-actions { align-self: end; min-height: 38px; }
+.materials-table { min-width: 650px; background: var(--color-surface-2); }
+.materials-table thead th, .materials-table td { text-align: left; }
+.materials-table th, .materials-table td { vertical-align: top; overflow-wrap: anywhere; white-space: normal; }
+.materials-table th[scope=row] { min-width: 200px; }
+.materials-table small { display: block; font-size: 10px; margin-top: 6px; color: var(--color-text-muted); }
+.materials-pagination > div { display: flex; gap: 8px; }
+.materials-notice { padding: 12px; background: var(--color-surface-2); border: 1px solid var(--color-border); border-radius: 8px; }
+.materials-catalog-count { margin: 12px 0 5px; color: var(--color-text-muted); font-size: 12px; }
+.materials-report { padding: 20px; }
+.materials-report-filters { display: flex; flex-wrap: wrap; gap: 8px; font-size: 12px; margin-bottom: 20px; }
+.materials-report-filters dt { font-weight: 700; }
+@media (max-width: 560px) { .materials-filters { grid-template-columns: 1fr; padding: 14px; } }
+@media screen and (max-width: 700px) {
+  .materials-table { display: block; min-width: 0; background: transparent; }
+  .materials-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .materials-table tbody { display: block; }
+  .materials-table tr { display: block; margin-bottom: 14px; padding: 14px; border: 1px solid var(--color-border); border-radius: 10px; background: var(--color-surface-2); }
+  .materials-table td, .materials-table th[scope=row] { display: block; min-width: 0; width: auto; padding: 6px 0; border: 0; }
+  .materials-table td[data-label]::before { content: attr(data-label); display: block; font-size: 10px; font-weight: 600; color: var(--color-text-muted); margin-bottom: 4px; }
+}
+@media print { .materials-print-button { display: none; } .materials-report .materials-table { min-width: 0; } .materials-table tr { break-inside: avoid; } }
+.at-deliverables-table thead th:first-child { width: 38%; }
+.at-deliverables-table thead th:nth-child(2) { width: auto; }
+.at-deliverables-table .at-deliverables-actions { width: 140px; }
 @media print {
+  .at-deliverables-actions { display: none !important; }
   .project-deliverables-toolbar, .project-deliverables .project-edit-link { display: none !important; }
   .project-deliverables-table th:nth-child(4), .project-deliverables-table td:nth-child(4) { display: none; }
   .project-deliverables-table { min-width: 0; font-size: 9px; }

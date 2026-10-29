@@ -18,6 +18,8 @@ from .forms import AssociacaoForm, BookForm, MaterialForm, ProjetoForm
 from .identity import PILARES
 from .models import BookPrograma, MaterialProjeto, Projeto, ReferenciaImportacaoProjeto
 from .presentation import carteira
+from .presentation import resumo_projetos
+from .navigation import aplicar_retorno
 from .services import associar_referencia, auditar, salvar_book
 
 
@@ -38,8 +40,8 @@ def escopo(request, pilar_pk, *, escrita=False, book=False):
     params = {k: request.GET[k] for k in ("ano", "mes_inicial", "mes_final") if k in request.GET}
     params.update(acompanhamento=acomp.pk, base="fis", entregaveis="1")
     query = urlencode(params)
-    return {"pilar": pilar, "acomp": acomp, "centro": acomp.centro, "query": query,
-            "voltar": reverse("core:pilar", args=[pilar.pk]) + "?" + query + "#entregaveis"}, None
+    return aplicar_retorno(request, {"pilar": pilar, "acomp": acomp, "centro": acomp.centro, "query": query,
+            "voltar": reverse("core:pilar", args=[pilar.pk]) + "?" + query + "#entregaveis"}), None
 
 
 def tela_form(request, s, form, titulo):
@@ -114,7 +116,7 @@ def gerenciar(request, pilar_pk):
     s, erro = escopo(request, pilar_pk, escrita=True)
     if erro is not None:
         return erro
-    projetos = Projeto.objects.filter(centro=s["centro"], pilar=s["pilar"]).prefetch_related("materiais", "referencias_importacao")
+    projetos = resumo_projetos(s["centro"], s["pilar"], incluir_arquivados=True).prefetch_related("referencias_importacao")
     return render(request, "projects/manage.html", {**s, "projetos": projetos,
         "books": BookPrograma.objects.filter(centro=s["centro"]) if eh_gestor(request.user) else [], "gestor": eh_gestor(request.user)})
 
@@ -144,7 +146,7 @@ def situacao(request, pilar_pk, recurso, pk):
             registro.save()
             auditar(request.user, "REATIVAR_ENTREGAVEL" if ativo else "ARQUIVAR_ENTREGAVEL", registro, anterior)
     messages.success(request, "Situação atualizada.")
-    return redirect(reverse("projects:gerenciar", args=[s["pilar"].pk]) + "?" + s["query"])
+    return redirect(s.get("retorno_consulta") or reverse("projects:gerenciar", args=[s["pilar"].pk]) + "?" + s["query"])
 
 
 @login_required

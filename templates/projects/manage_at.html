@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block title %}Gerenciar entregáveis da AT · QuIIN{% endblock %}
+{% block content %}
+<section class="project-editor project-management">
+  <a class="project-back" href="{{ voltar }}">← Voltar aos entregáveis da AT</a>
+  <h1>Gerenciar produtos e materiais da AT</h1><p>{{ centro.nome }}</p>
+  <p>Arquivar um produto preserva seus materiais. Ao reativá-lo, os materiais ativos voltam a aparecer na carteira.</p>
+  {% for produto in produtos %}<article class="project-management-card">
+    <h2>{{ produto.nome }}{% if not produto.ativo %} <small>Arquivado</small>{% endif %}</h2><p>Ordem de exibição: {{ produto.ordem }}</p>
+    <div class="project-actions"><a href="{% url 'deliverables_at:editar' produto.pk %}?{{ query }}">Editar produto e ordem</a>
+    <form method="post" action="{% url 'deliverables_at:produto_situacao' produto.pk %}?{{ query }}">{% csrf_token %}<button class="overview-action-button" name="acao" value="{% if produto.ativo %}arquivar{% else %}reativar{% endif %}">{% if produto.ativo %}Arquivar{% else %}Reativar{% endif %} produto</button></form></div>
+<p class="materials-catalog-count">{{ produto.total_materiais }} materia{{ produto.total_materiais|pluralize:"l,is" }} ativo{{ produto.total_materiais|pluralize }}</p><a href="{% url 'deliverables_at:detalhe' produto.pk %}?{{ query }}">Ver materiais</a>
+  </article>{% empty %}<p>Nenhum produto cadastrado.</p>{% endfor %}
+</section>
+{% endblock %}

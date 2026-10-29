@@ -6,6 +6,7 @@ from django.core.validators import URLValidator
 from django.db import models
 
 from .identity import PILARES, normalizar_nome
+from .at_catalog import TIPOS_MATERIAL_AT
 
 
 class RegistroEditavel(models.Model):
@@ -89,6 +90,48 @@ class BookPrograma(RegistroEditavel):
     class Meta:
         ordering = ["-criado_em", "-pk"]
         constraints = [models.UniqueConstraint(fields=["centro"], condition=models.Q(ativo=True), name="uniq_book_vigente_centro")]
+
+    def __str__(self):
+        return self.titulo
+
+
+class ProdutoAT(RegistroEditavel):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    centro = models.ForeignKey("accountability.CentroCompetencia", on_delete=models.PROTECT, related_name="produtos_at")
+    codigo_padrao = models.CharField(max_length=40, null=True, blank=True, editable=False)
+    nome = models.CharField("Nome do produto", max_length=255)
+    nome_normalizado = models.CharField(max_length=255, editable=False)
+    ordem = models.PositiveSmallIntegerField("Ordem de exibição", default=0)
+
+    class Meta:
+        ordering = ["ordem", "nome", "pk"]
+        constraints = [
+            models.UniqueConstraint(fields=["centro", "nome_normalizado"], name="uniq_produto_at_nome"),
+            models.UniqueConstraint(fields=["centro", "codigo_padrao"], name="uniq_produto_at_padrao"),
+        ]
+
+    def clean(self):
+        super().clean()
+        self.nome = self.nome.strip()
+        self.nome_normalizado = normalizar_nome(self.nome)
+
+    def save(self, *args, **kwargs):
+        self.nome_normalizado = normalizar_nome(self.nome)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.nome
+
+
+class MaterialProdutoAT(RegistroEditavel):
+    produto = models.ForeignKey(ProdutoAT, on_delete=models.PROTECT, related_name="materiais")
+    titulo = models.CharField("Título", max_length=255)
+    tipo = models.CharField("Tipo", max_length=20, choices=TIPOS_MATERIAL_AT)
+    url = models.URLField("Link do material", max_length=2000, validators=[URLValidator(schemes=["http", "https"])])
+    data_publicacao = models.DateField("Data de publicação/entrega", null=True, blank=True)
+
+    class Meta:
+        ordering = [models.F("data_publicacao").desc(nulls_last=True), "titulo", "pk"]
 
     def __str__(self):
         return self.titulo
