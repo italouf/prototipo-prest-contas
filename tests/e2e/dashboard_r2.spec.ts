@@ -58,6 +58,29 @@ async function expectCover(page: Page) {
   await expect(cover.locator('.deck-cover-content h2')).toBeVisible();
 }
 
+async function expectPaintedCover(page: Page) {
+  await expectCover(page);
+  const title = page.getByTestId('presentation-deck').locator('.deck-cover-content h2');
+  await expect(title).toBeInViewport({ ratio: 0.9 });
+  try {
+    // HTMX's view transition can temporarily cover an otherwise ready deck.
+    await expect.poll(async () => {
+      const box = await title.boundingBox();
+      const pixels = await page.screenshot({ clip: box! });
+      return Number(execFileSync(python, ['-c', `
+import sys
+from io import BytesIO
+from PIL import Image
+im=Image.open(BytesIO(sys.stdin.buffer.read())).convert('RGB')
+print(sum(max(pixel)<130 for pixel in im.get_flattened_data()) / (im.width*im.height))
+`], { input: pixels, encoding: 'utf8' }).trim());
+    }, { message: 'O título da capa deve estar desenhado no canvas visível', timeout: 5_000 }).toBeGreaterThan(0.01);
+  } catch (error) {
+    await page.screenshot({ path: test.info().outputPath('capa-vazia.png') });
+    throw error;
+  }
+}
+
 test.describe('Apresentação mensal importada', () => {
   test.skip(!process.env.QUIIN_PRESENTATION_E2E, 'Use --config=playwright.presentation.config.ts para executar em banco isolado.');
   test.describe.configure({ mode: 'serial' });
@@ -248,6 +271,35 @@ test.describe('Apresentação mensal importada', () => {
     await page.goto(talentosHref!);
     await expect(page.locator('#grp-gestao')).toBeVisible();
     await expect(sidebar.getByRole('link', { name: 'Talentos', exact: true })).toHaveAttribute('aria-current', 'page');
+  });
+
+  test('M09 capa permanece desenhada ao clicar repetidamente em Mensal', async ({ page }, info) => {
+    test.setTimeout(90_000);
+    await page.goto('/prestacao/mensal/?periodo=2098-11-01');
+    await expectPaintedCover(page);
+    for (let i = 0; i < 5; i++) {
+      await page.locator('[data-testid="sidebar"]').getByRole('link', { name: 'Mensal', exact: true }).click();
+      await expectPaintedCover(page);
+      await page.screenshot({ path: info.outputPath(`mensal-retorno-${i}.png`) });
+    }
+  });
+
+  test('M10 leitura contínua permanece disponível sem JavaScript', async ({ page, browser }) => {
+    const context = await browser.newContext({ javaScriptEnabled: false });
+    await context.addCookies(await page.context().cookies());
+    try {
+      const reader = await context.newPage();
+      await reader.goto('/prestacao/mensal/?periodo=2098-11-01');
+      const deck = reader.getByTestId('presentation-deck');
+      await expect(deck).toHaveClass(/presentation-reading/);
+      await expect(deck.locator('.slides > section')).toHaveCount(9);
+      await expect(deck.locator('.slides > section').first()).toBeVisible();
+      await expect(deck.locator('.slides > section').last()).toBeVisible();
+      await expect(reader.locator('noscript p')).toBeVisible();
+      await expect(reader.locator('noscript p')).toContainText('A apresentação está disponível em leitura contínua.');
+    } finally {
+      await context.close();
+    }
   });
 
 });

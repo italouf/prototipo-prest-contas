@@ -1,5 +1,5 @@
 {% load static core_extras %}
-<div class="reveal quiin-deck" data-presentation-deck data-reveal-url="{% static 'vendor/reveal-6.0.2/reveal.js' %}" data-reveal-style-url="{% static 'vendor/reveal-6.0.2/reveal.css' %}" data-presentation-style-url="{% static 'css/presentation.css' %}" {% if modo_impressao %}data-presentation-print{% endif %} tabindex="0" aria-label="Apresentação de acompanhamento mensal" data-testid="presentation-deck">
+<div class="reveal quiin-deck presentation-reading" data-presentation-deck data-reveal-url="{% static 'vendor/reveal-6.0.2/reveal.js' %}" data-reveal-style-url="{% static 'vendor/reveal-6.0.2/reveal.css' %}" data-presentation-style-url="{% static 'css/presentation.css' %}" {% if modo_impressao %}data-presentation-print{% endif %} tabindex="0" aria-label="Apresentação de acompanhamento mensal" data-testid="presentation-deck">
   <div class="slides">
     {% for slide in slides %}
     <section class="quiin-slide quiin-slide-{{ slide.tipo }}" data-slide-kind="{{ slide.tipo }}" data-slide-key="{{ slide.chave }}" aria-label="{{ slide.numero }}. {{ slide.titulo }}">
@@ -34,4 +34,5 @@
     {% endfor %}
   </div>
 </div>
-<noscript><style>.quiin-deck{height:auto;aspect-ratio:auto;overflow:visible}.quiin-deck .slides{position:static!important;width:100%!important;height:auto!important;transform:none!important}.quiin-deck .slides>section.quiin-slide{position:relative!important;display:block!important;transform:none!important;visibility:visible!important;opacity:1!important;width:100%;height:auto;min-height:550px;overflow:visible;padding-bottom:90px}.quiin-deck .deck-body{height:auto}.quiin-deck .deck-cover-art{display:none}</style><p>A apresentação está disponível em leitura contínua. Ative o JavaScript para navegar pelos slides.</p></noscript>
+<script>document.currentScript.previousElementSibling.classList.remove('presentation-reading');</script>
+<noscript><p>A apresentação está disponível em leitura contínua. Ative o JavaScript para navegar pelos slides.</p></noscript>

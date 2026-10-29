@@ -30,6 +30,7 @@ Substitui o dashboard mensal L20 na rota `core:mensal`. O PowerPoint de referên
 - `ConteudoApresentacao` armazena tipo, pilar opcional, título, texto, ordem e imagem opcional nos destaques. JPEG/PNG/WebP, até 5 MB, ficam em campo binário no banco. Não há limite de resolução na validação da apresentação.
 - Navegação por botões e teclado quando o deck possui foco, contador, tela cheia do contêiner e respeito a movimento reduzido.
 - Inicialização/destruição acompanha navegação HTMX e histórico do navegador. Os estilos e as fontes são aguardados antes de inicializar e sincronizar a capa; a marca de prontidão do HTML em cache é descartada. Imagens também são aguardadas antes de preparar o PDF.
+- O modo de leitura sem JavaScript usa a classe `presentation-reading`, retirada antes de iniciar os slides. O `<noscript>` contém apenas a mensagem, sem CSS inline que possa ser ativado pelo parser de fragmentos HTMX e encobrir a capa.
 - PDF pelo diálogo do navegador. Validação em Chromium: um slide por página, sem cortes, com cores de fundo.
 
 ## Inicialização

@@ -77,6 +77,8 @@
     instances.set(root, state);
     // History snapshots can contain the previous instance's ready attribute.
     root.removeAttribute('data-ready');
+    // The reading fallback must never override Reveal's runtime layout.
+    root.classList.remove('presentation-reading');
     const bind = (element, event, handler) => {
       if (!element) return;
       element.addEventListener(event, handler);
