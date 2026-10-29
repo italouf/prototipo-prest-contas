@@ -293,6 +293,13 @@ def ingestar(tipo_fonte: str, caminho: Path | str, centro_nome: str,
 def _gravar_fatos(acomp, tipo_fonte: str, payload: dict, pilares: dict) -> None:
     """Apaga e recria os fatos da fonte; KPIs fazem upsert (Ruling 7)."""
     if tipo_fonte == "FINANCEIRO_GERAL":
+        from apps.projects.services import resolver_projeto_importado
+        # Serializa a resolução de identidades no centro durante a importação.
+        CentroCompetencia.objects.select_for_update().get(pk=acomp.centro_id)
+        projetos_permanentes = [resolver_projeto_importado(
+            acomp.centro, pilares[item["pilar"]], item["origem"], item["nome"],
+            item.get("codigo_projeto_embrapii"),
+        ) for item in payload["projetos"]]
         # Ruling 5: delete do escopo inteiro da fonte antes do insert —
         # a unicidade não protege linhas com ano=NULL.
         ResumoFinanceiro.objects.filter(acompanhamento=acomp).delete()
@@ -306,9 +313,10 @@ def _gravar_fatos(acomp, tipo_fonte: str, payload: dict, pilares: dict) -> None:
         ProjetoFinanceiro.objects.bulk_create(
             ProjetoFinanceiro(
                 acompanhamento=acomp, origem=item["origem"],
+                projeto=projeto,
                 pilar=pilares[item["pilar"]],
                 **_campos(item, _PROJETO_VALORES, _PROJETO_TEXTOS))
-            for item in payload["projetos"])
+            for item, projeto in zip(payload["projetos"], projetos_permanentes, strict=True))
     elif tipo_fonte == "INDICADORES_PE":
         _gravar_kpis(acomp, payload, pilares)
     else:

@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+{% block title %}{{ titulo }} · QuIIN{% endblock %}
+{% block content %}
+<section class="project-editor">
+  <a class="project-back" href="{{ voltar }}">← Voltar aos entregáveis</a>
+  <h1>{{ titulo }}</h1><p>{{ centro.nome }} · {{ pilar.nome }}</p>
+  <form method="post" class="project-form">{% csrf_token %}{{ form.non_field_errors }}
+    {% for field in form %}<div class="project-form-field">{{ field.label_tag }}{{ field }}{{ field.errors }}{% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}</div>{% endfor %}
+    <div class="project-actions"><button type="submit" class="overview-action-button">Salvar</button><a href="{{ voltar }}" class="overview-action-button">Cancelar</a></div>
+  </form>
+</section>
+{% endblock %}

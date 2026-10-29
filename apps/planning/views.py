@@ -218,6 +218,11 @@ def contexto_pilar(pilar, ano_param, base_param, usuario, acompanhamento=None, p
     if novo:
         from apps.accountability.overview_edit import grade_dashboard
         from apps.core.pillar_overview import apresentar_pilar
+        if base_param == "fis" and pilar.codigo in ("PDI", "FORMACAO", "STARTUPS"):
+            from apps.projects.presentation import quadro_entregaveis
+            from apps.core.permissions import eh_gestor
+            contexto["quadro_entregaveis"] = quadro_entregaveis(contexto)
+            contexto["pode_gerenciar_book"] = eh_gestor(usuario)
         contexto.update(pilar_overview=True, grade_edicao_geral=grade_dashboard(acompanhamento, pp["base"], codigos_edicao) if acompanhamento else [], editor_codigos=sorted(codigos_edicao))
         return apresentar_pilar(contexto, periodo)
     return contexto

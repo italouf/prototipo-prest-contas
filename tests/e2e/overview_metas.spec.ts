@@ -44,6 +44,69 @@ async function expand(page: Page) {
 
 test.beforeEach(async ({ page }) => login(page));
 
+test('entregáveis físicos: materiais próprios e Book geral nos três pilares', async ({ page }, info) => {
+  test.setTimeout(120_000);
+  async function abrirFisico(nome: string) {
+    const link = page.locator('#grp-pilares').getByRole('link', { name: nome, exact: true });
+    const destino = new URL((await link.getAttribute('href'))!, page.url());
+    const caminho = destino.pathname;
+    await link.click();
+    await expect(page).toHaveURL(destino.href);
+    await expect(page.getByTestId('painel-pilar')).toBeVisible();
+    await expect(page.getByTestId('painel-pilar')).toHaveAttribute('data-base', destino.searchParams.get('base') || 'fin');
+    const fisico = page.getByTestId('base-toggle').getByRole('link', { name: 'Físico', exact: true });
+    await expect.poll(async () => new URL((await fisico.getAttribute('href'))!, page.url()).pathname).toBe(caminho);
+    if (await page.getByTestId('painel-pilar').getAttribute('data-base') !== 'fis') await fisico.click();
+    await expect(page.getByTestId('painel-pilar')).toHaveAttribute('data-base', 'fis');
+  }
+  await abrirFisico('PDI');
+  let quadro = page.getByTestId('entregaveis-accordion');
+  await quadro.locator('summary').first().click();
+  await expect(quadro).toContainText('Carteira completa');
+  await expect(quadro.locator('tbody tr')).toHaveCount(18);
+  await quadro.getByRole('link', { name: 'Adicionar material', exact: true }).first().click();
+  await page.getByLabel(/^Título/).fill('Artigo de validação PDI');
+  await page.getByLabel(/^Tipo/).selectOption('ARTIGO');
+  await page.getByLabel('Link do material').fill('https://example.org/artigo-pdi');
+  await page.getByRole('button', { name: 'Salvar', exact: true }).click();
+  await expect(quadro.getByRole('link', { name: 'Artigo de validação PDI', exact: true })).toHaveAttribute('href', 'https://example.org/artigo-pdi');
+  await quadro.getByRole('link', { name: 'Editar material', exact: true }).click();
+  await page.getByLabel(/^Título/).fill('Artigo PDI revisado');
+  await page.getByRole('button', { name: 'Salvar', exact: true }).click();
+  await expect(quadro).toContainText('Artigo PDI revisado');
+  await quadro.getByRole('link', { name: 'Novo projeto', exact: true }).click();
+  await page.getByLabel('Nome do projeto').fill('Projeto físico de validação');
+  await page.getByRole('button', { name: 'Salvar', exact: true }).click();
+  await expect(quadro.locator('tbody tr')).toHaveCount(19);
+  await quadro.getByRole('link', { name: 'Cadastrar Book geral', exact: true }).click();
+  await page.getByLabel('Título do Book').fill('Book geral de validação');
+  await page.getByLabel('Link do Book').fill('https://example.org/book-geral');
+  await page.getByRole('button', { name: 'Salvar', exact: true }).click();
+  for (const [nome, quantidade] of [['PDI', 19], ['FCRH', 8], ['ACS', 7]] as const) {
+    await abrirFisico(nome);
+    quadro = page.getByTestId('entregaveis-accordion');
+    if (!(await quadro.getAttribute('open') !== null)) await quadro.locator('summary').first().click();
+    await expect(quadro.getByRole('link', { name: /^Abrir Book geral para/ })).toHaveCount(quantidade);
+    if (nome !== 'PDI') await expect(quadro).not.toContainText('Artigo PDI revisado');
+  }
+  await page.locator('#overview-start').fill('01/2025');
+  await page.locator('#overview-start').press('Tab');
+  await expect.poll(() => new URL(page.url()).searchParams.get('mes_inicial')).toBe('01/2025');
+  if (await quadro.getAttribute('open') === null) await quadro.locator('summary').first().click();
+  await expect(quadro.locator('tbody tr')).toHaveCount(7);
+  await expect(quadro).toContainText('Book geral de validação');
+  await page.screenshot({ path: info.outputPath('entregaveis-desktop.png'), fullPage: true });
+  const csv = await page.request.get((await quadro.getByRole('link', { name: 'Baixar entregáveis (CSV)' }).getAttribute('href'))!);
+  expect(await csv.text()).toContain('https://example.org/book-geral');
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  await page.screenshot({ path: info.outputPath('entregaveis-mobile.png'), fullPage: true });
+  await page.setViewportSize({ width: 1123, height: 794 });
+  await page.emulateMedia({ media: 'print' });
+  const pdf = await page.pdf({ path: info.outputPath('entregaveis.pdf'), landscape: true, printBackground: true });
+  expect(pdf.subarray(0, 4).toString()).toBe('%PDF');
+});
+
 test('filtros no conteúdo, seis cards e quadros financeiros independentes', async ({ page }, info) => {
   const header = page.getByTestId('app-header');
   const controls = page.getByTestId('dashboard-controls');

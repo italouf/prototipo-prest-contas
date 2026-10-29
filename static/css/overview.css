@@ -362,6 +362,40 @@ body:has(.overview-dashboard) #main { max-width: none; flex: none; padding: 24px
 .pillar-source-heading + .overview-accordion { margin-top: 0; }
 .pillar-capture-summary .overview-cards { margin-top: 0; }
 .pillar-capture-summary { break-inside: avoid; }
+.project-deliverables-toolbar, .project-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.project-deliverables-toolbar { padding: 14px 18px; border-bottom: 1px solid var(--color-border); }
+.project-book-note { padding: 12px 18px; color: var(--color-text-muted); font-size: 12px; }
+.project-deliverables-table { min-width: 680px; table-layout: fixed; }
+.project-deliverables-table thead th, .project-deliverables-table td { text-align: left; }
+.project-deliverables-table thead th:first-child { width: 29%; }
+.project-deliverables-table thead th:nth-child(2) { width: 39%; }
+.project-deliverables-table th, .project-deliverables-table td { vertical-align: top; overflow-wrap: anywhere; white-space: normal; }
+.project-code, .project-materials small { display: block; font-size: 10px; font-weight: 400; color: var(--color-text-muted); margin-top: 5px; }
+.project-materials { list-style: none; padding: 0; margin: 0; }
+.project-materials li + li { margin-top: 14px; }
+.project-deliverables a, .project-editor a { color: var(--color-primary, #24249b); text-decoration: underline; text-underline-offset: 3px; }
+.project-deliverables .overview-action-button, .project-actions .overview-action-button { text-decoration: none; }
+.project-empty { color: var(--color-text-muted); font-weight: 400; }
+.project-edit-link { display: inline-block; margin-top: 6px; font-size: 10px; }
+.project-editor { max-width: 900px; margin: 20px auto; color: var(--color-text); }
+.project-editor h1 { font-size: 25px; font-weight: 700; margin: 18px 0 8px; }
+.project-editor > p { color: var(--color-text-muted); margin-bottom: 16px; }
+.project-form { max-width: 680px; background: var(--color-surface-2); border: 1px solid var(--color-border); border-radius: 12px; padding: 24px; }
+.project-form-field { margin-bottom: 20px; }
+.project-form-field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 7px; }
+.project-form-field input, .project-form-field select { width: 100%; min-height: 40px; padding: 8px 12px; border: 1px solid var(--color-border); border-radius: 6px; background: var(--color-surface-2); color: var(--color-text); }
+.project-form .errorlist { color: #b42626; margin: 6px 0; font-size: 12px; }
+.project-management-card { margin: 16px 0; padding: 18px; border: 1px solid var(--color-border); border-radius: 10px; background: var(--color-surface-2); }
+.project-management-card h2, .project-management > h2 { font-size: 17px; font-weight: 700; margin: 14px 0; }
+.project-management-card .project-materials { margin-top: 14px; }
+.project-management-card .project-actions { margin-top: 8px; }
+.project-reference { font-size: 12px; margin-top: 16px; }
+@media print {
+  .project-deliverables-toolbar, .project-deliverables .project-edit-link { display: none !important; }
+  .project-deliverables-table th:nth-child(4), .project-deliverables-table td:nth-child(4) { display: none; }
+  .project-deliverables-table { min-width: 0; font-size: 9px; }
+  .project-deliverables-table tr { break-inside: avoid; }
+}
 .pillar-source-AT > summary strong, .pillar-source-OUTRASFONTES > summary strong { color: inherit; }
 .pillar-source-AT > summary .overview-accordion-heading strong { color: #5535a9; }
 .pillar-source-OUTRASFONTES > summary .overview-accordion-heading strong { color: #2365b8; }
