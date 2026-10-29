@@ -17,6 +17,7 @@ Substitui o dashboard mensal L20 na rota `core:mensal`. O PowerPoint de referên
 - `GET /prestacao/mensal/?periodo=YYYY-MM-DD&print-pdf=1`: documento independente, sem sidebar/cabeçalho do portal, com o mesmo conteúdo filtrado.
 - `/prestacao/mensal/editar/?periodo=YYYY-MM-DD`: edição da referência e do título; sem parâmetro, inicia um novo cadastro propondo o mês atual.
 - Rotas de conteúdo permitem cadastrar/editar texto e imagem e excluir somente por POST. A imagem possui endpoint autenticado que verifica o escopo do pilar.
+- Adicionar ou editar conteúdo com sucesso redireciona para a apresentação do mesmo mês, com confirmação. Erros exibem uma mensagem e mantêm os campos para correção; arquivos precisam ser selecionados novamente. Falhas de persistência não geram confirmação de sucesso.
 - Admin e Master editam; leitores seguem o RBAC existente. A regra vale no backend e no Django Admin. Cada alteração gera auditoria.
 
 ## Apresentação
@@ -28,7 +29,7 @@ Substitui o dashboard mensal L20 na rota `core:mensal`. O PowerPoint de referên
 - Indicadores e textos extensos geram continuações, sem truncar o conteúdo. Itens são ordenados por ordem e ID.
 - `ConteudoApresentacao` armazena tipo, pilar opcional, título, texto, ordem e imagem opcional nos destaques. JPEG/PNG/WebP, até 5 MB, ficam em campo binário no banco. Não há limite de resolução na validação da apresentação.
 - Navegação por botões e teclado quando o deck possui foco, contador, tela cheia do contêiner e respeito a movimento reduzido.
-- Inicialização/destruição acompanha navegação HTMX; fontes e imagens são aguardadas antes de preparar o PDF.
+- Inicialização/destruição acompanha navegação HTMX e histórico do navegador. Os estilos e as fontes são aguardados antes de inicializar e sincronizar a capa; a marca de prontidão do HTML em cache é descartada. Imagens também são aguardadas antes de preparar o PDF.
 - PDF pelo diálogo do navegador. Validação em Chromium: um slide por página, sem cortes, com cores de fundo.
 
 ## Inicialização
@@ -36,7 +37,7 @@ Substitui o dashboard mensal L20 na rota `core:mensal`. O PowerPoint de referên
 1. Executar `python manage.py migrate`.
 2. Acessar `/prestacao/mensal/` como Admin/Master e escolher **Configurar apresentação**.
 3. Informar o mês, selecionar um acompanhamento já importado e salvar.
-4. Cadastrar os conteúdos e abrir **Ver apresentação**.
+4. Cadastrar os conteúdos; salvar abre a apresentação com uma confirmação.
 
 Não há associação automática de dados antigos nem criação de conteúdos de demonstração na migração.
 

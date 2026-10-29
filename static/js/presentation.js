@@ -8,6 +8,43 @@
   const instances = new Map();
   let libraryPromise;
 
+  function waitForStyles(root, signal) {
+    // A history cache hit restores body markup without restoring the old head.
+    const links = [root.dataset.revealStyleUrl, root.dataset.presentationStyleUrl].filter(Boolean).map(url => {
+      const href = new URL(url, document.baseURI).href;
+      let link = Array.from(document.querySelectorAll('link[rel="stylesheet"]')).find(item => item.href === href);
+      if (!link) {
+        link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = href;
+        link.setAttribute('data-presentation-style', '');
+        document.head.appendChild(link);
+      }
+      return link;
+    });
+    return Promise.all(links.map(link => {
+      if (link.sheet) return Promise.resolve();
+      return new Promise((resolve, reject) => {
+        function finish(error) {
+          clearTimeout(timeout);
+          link.removeEventListener('load', loaded);
+          link.removeEventListener('error', failed);
+          signal.removeEventListener('abort', aborted);
+          if (error) reject(error);
+          else resolve();
+        }
+        const loaded = () => finish();
+        const failed = () => finish(new Error('presentation-style-load'));
+        const aborted = () => finish(new Error('presentation-cancelled'));
+        const timeout = setTimeout(failed, 10_000);
+        link.addEventListener('load', loaded, {once: true});
+        link.addEventListener('error', failed, {once: true});
+        signal.addEventListener('abort', aborted, {once: true});
+        if (signal.aborted) aborted();
+      });
+    }));
+  }
+
   function loadLibrary(url) {
     if (window.Reveal) return Promise.resolve(window.Reveal);
     if (!libraryPromise) {
@@ -26,29 +63,35 @@
     const state = instances.get(root);
     if (!state) return;
     state.cancelled = true;
+    state.controller.abort();
     state.observer?.disconnect();
     state.listeners.forEach(([element, event, handler]) => element.removeEventListener(event, handler));
     state.deck?.destroy();
+    root.removeAttribute('data-ready');
     instances.delete(root);
   }
 
   async function start(root) {
     if (instances.has(root)) return;
-    const state = {cancelled: false, listeners: [], deck: null, observer: null};
+    const state = {cancelled: false, listeners: [], deck: null, observer: null, controller: new AbortController()};
     instances.set(root, state);
+    // History snapshots can contain the previous instance's ready attribute.
+    root.removeAttribute('data-ready');
     const bind = (element, event, handler) => {
       if (!element) return;
       element.addEventListener(event, handler);
       state.listeners.push([element, event, handler]);
     };
     try {
-      const Reveal = await loadLibrary(root.dataset.revealUrl);
+      // On an HTMX return, Reveal is cached while the head extension reloads CSS.
+      const [Reveal] = await Promise.all([loadLibrary(root.dataset.revealUrl), waitForStyles(root, state.controller.signal)]);
       if (state.cancelled || !root.isConnected) return;
       const print = root.hasAttribute('data-presentation-print');
+      await document.fonts.ready;
       if (print) {
-        await document.fonts.ready;
         await Promise.all(Array.from(root.querySelectorAll('img')).map(img => img.decode().catch(() => {})));
       }
+      await new Promise(resolve => requestAnimationFrame(resolve));
       if (state.cancelled || !root.isConnected) return;
       const deck = new Reveal(root, {
         embedded: !print, width: 1280, height: 720, margin: 0,
@@ -66,6 +109,11 @@
       state.deck = deck;
       await deck.initialize();
       if (state.cancelled || !root.isConnected) return;
+      if (!print) {
+        // Rebuild the visible slide state, including markup restored from history.
+        deck.slide(0, 0);
+        deck.sync();
+      }
       root.dataset.ready = 'true';
       if (print) {
         const button = document.querySelector('[data-presentation-print-button]');
@@ -107,6 +155,7 @@
       update();
     } catch (_) {
       if (state.cancelled || !root.isConnected) return;
+      state.controller.abort();
       state.deck?.destroy();
       root.classList.add('presentation-reading');
       const message = document.createElement('p');
@@ -123,6 +172,11 @@
   }
   window.quiinPresentation = {init};
   document.addEventListener('htmx:afterSettle', init);
+  document.addEventListener('htmx:historyRestore', init);
+  window.addEventListener('pageshow', () => {
+    init();
+    for (const state of instances.values()) if (state.deck?.isReady()) state.deck.sync();
+  });
   document.addEventListener('htmx:beforeCleanupElement', event => {
     for (const root of instances.keys()) {
       if (event.target === root || event.target.contains(root)) remove(root);

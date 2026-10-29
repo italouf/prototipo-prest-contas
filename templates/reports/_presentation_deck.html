@@ -1,5 +1,5 @@
 {% load static core_extras %}
-<div class="reveal quiin-deck" data-presentation-deck data-reveal-url="{% static 'vendor/reveal-6.0.2/reveal.js' %}" {% if modo_impressao %}data-presentation-print{% endif %} tabindex="0" aria-label="Apresentação de acompanhamento mensal" data-testid="presentation-deck">
+<div class="reveal quiin-deck" data-presentation-deck data-reveal-url="{% static 'vendor/reveal-6.0.2/reveal.js' %}" data-reveal-style-url="{% static 'vendor/reveal-6.0.2/reveal.css' %}" data-presentation-style-url="{% static 'css/presentation.css' %}" {% if modo_impressao %}data-presentation-print{% endif %} tabindex="0" aria-label="Apresentação de acompanhamento mensal" data-testid="presentation-deck">
   <div class="slides">
     {% for slide in slides %}
     <section class="quiin-slide quiin-slide-{{ slide.tipo }}" data-slide-kind="{{ slide.tipo }}" data-slide-key="{{ slide.chave }}" aria-label="{{ slide.numero }}. {{ slide.titulo }}">

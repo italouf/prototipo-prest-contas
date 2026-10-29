@@ -9,7 +9,10 @@ const cleanup = `
 from apps.reports.models import ApresentacaoMensal
 from apps.accountability.models import CentroCompetencia
 from apps.accounts.models import User
+from apps.projects.models import ProdutoAT,Projeto
 ApresentacaoMensal.objects.filter(acompanhamento__centro__codigo='mensal-e2e').delete()
+ProdutoAT.objects.filter(centro__codigo='mensal-e2e').delete()
+Projeto.objects.filter(centro__codigo='mensal-e2e').delete()
 CentroCompetencia.objects.filter(codigo='mensal-e2e').delete()
 User.objects.filter(username='mensal_e2e').delete()
 `;
@@ -41,6 +44,18 @@ async function login(page: Page) {
   await page.getByLabel('Senha', { exact: true }).fill('mensal-e2e-123');
   await page.getByRole('button', { name: /entrar/i }).click();
   await expect(page).not.toHaveURL(/accounts\/login/);
+}
+
+async function expectCover(page: Page) {
+  const deck = page.getByTestId('presentation-deck');
+  await expect(deck).toHaveAttribute('data-ready', 'true');
+  await expect(page.locator('link[data-presentation-style]')).toHaveCount(2);
+  const cover = deck.locator('.slides > section').first();
+  await expect(cover).toHaveClass(/present/);
+  await expect(cover).toBeVisible();
+  await expect(cover).toHaveCSS('opacity', '1');
+  await expect(deck.locator('.slides')).toHaveCSS('opacity', '1');
+  await expect(cover.locator('.deck-cover-content h2')).toBeVisible();
 }
 
 test.describe('Apresentação mensal importada', () => {
@@ -77,40 +92,95 @@ test.describe('Apresentação mensal importada', () => {
 
   test('M02 navegação HTMX, troca de mês e retorno não duplicam eventos', async ({ page }) => {
     await page.locator('[data-testid="sidebar"]').getByRole('link', { name: 'Mensal', exact: true }).click();
-    await expect(page.getByTestId('presentation-deck')).toHaveAttribute('data-ready', 'true');
+    await expectCover(page);
     await page.evaluate(() => { (window as any).__mensalMarker = 42; });
     await page.getByTestId('presentation-month').selectOption('2098-11-01');
     await page.getByRole('button', { name: 'Exibir', exact: true }).click();
     await expect(page).toHaveURL(/periodo=2098-11-01/);
-    await expect(page.getByTestId('presentation-deck')).toHaveAttribute('data-ready', 'true');
+    await expectCover(page);
     expect(await page.evaluate(() => (window as any).__mensalMarker)).toBe(42);
     await page.locator('[data-testid="sidebar"]').getByRole('link', { name: 'Visão geral', exact: true }).click();
     await expect(page.getByTestId('presentation-deck')).toHaveCount(0);
+    await page.goBack();
+    await expectCover(page);
+    await page.goForward();
+    await expect(page.getByTestId('presentation-deck')).toHaveCount(0);
     await page.locator('[data-testid="sidebar"]').getByRole('link', { name: 'Mensal', exact: true }).click();
-    await expect(page.getByTestId('presentation-deck')).toHaveAttribute('data-ready', 'true');
+    await expectCover(page);
     await page.getByRole('button', { name: 'Próximo slide', exact: true }).click();
     await expect(page.locator('[data-presentation-counter]')).toHaveText('2 / 9');
+    await page.getByRole('button', { name: 'Slide anterior', exact: true }).click();
+    await expectCover(page);
+    await page.goBack();
+    await expect(page.getByTestId('presentation-deck')).toHaveCount(0);
+    await page.goForward();
+    await expectCover(page);
   });
 
-  test('M03 editor salva destaque com imagem no banco e gera continuação', async ({ page }) => {
+  test('M03 editor informa erros, preserva campos e redireciona após adicionar e editar', async ({ page }) => {
+    test.setTimeout(60_000);
     await page.goto('/prestacao/mensal/editar/?periodo=2098-12-01');
     await page.getByRole('link', { name: 'Adicionar conteúdo', exact: true }).click();
     await page.getByLabel(/^Título/).fill('Marco de pesquisa do mês');
     await page.getByLabel(/^Texto/).fill('Integração das tecnologias quânticas e clássicas. '.repeat(25));
+    await page.getByLabel(/^Imagem opcional/).setInputFiles({
+      name: 'invalida.png', mimeType: 'image/png', buffer: Buffer.from('invalid-image'),
+    });
+    await page.getByRole('button', { name: 'Salvar conteúdo', exact: true }).click();
+    await expect(page.getByRole('alert')).toContainText('O conteúdo não foi salvo.');
+    await expect(page.getByLabel(/^Título/)).toHaveValue('Marco de pesquisa do mês');
+    await expect(page.getByLabel(/^Texto/)).toHaveValue('Integração das tecnologias quânticas e clássicas. '.repeat(25));
     await page.getByLabel(/^Imagem opcional/).setInputFiles({
       name: 'marco.png', mimeType: 'image/png',
       buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64'),
     });
     await page.getByLabel(/^Descrição da imagem/).fill('Ilustração do marco de pesquisa');
     await page.getByRole('button', { name: 'Salvar conteúdo', exact: true }).click();
-    await expect(page.getByText('Marco de pesquisa do mês', { exact: true })).toBeVisible();
-    await page.getByRole('link', { name: 'Ver apresentação', exact: true }).click();
+    await expect(page).toHaveURL('/prestacao/mensal/?periodo=2098-12-01');
+    await expect(page.locator('#toasts')).toContainText('Conteúdo adicionado à apresentação.');
+    await expectCover(page);
     const deck = page.getByTestId('presentation-deck');
     await expect(deck).toHaveAttribute('data-ready', 'true');
     expect(await deck.locator('[data-slide-kind="editorial"]').count()).toBeGreaterThan(1);
     const image = deck.locator('.deck-editorial img').first();
     await expect(image).toHaveAttribute('src', /prestacao\/mensal\/imagens\/\d+\//);
     expect(await image.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0)).toBe(true);
+    await page.getByRole('link', { name: 'Editar apresentação', exact: true }).click();
+    const row = page.locator('tr').filter({ hasText: 'Marco de pesquisa do mês' });
+    await row.getByRole('link', { name: 'Editar', exact: true }).click();
+    await page.getByLabel(/^Título/).fill('Marco de pesquisa atualizado');
+    await page.getByRole('button', { name: 'Salvar conteúdo', exact: true }).click();
+    await expect(page).toHaveURL('/prestacao/mensal/?periodo=2098-12-01');
+    await expect(page.locator('#toasts')).toContainText('Conteúdo atualizado na apresentação.');
+    await expectCover(page);
+  });
+
+  test('M08 retorno com estilos atrasados aguarda o layout antes de liberar a capa', async ({ page }) => {
+    await page.goto('/prestacao/mensal/?periodo=2098-11-01');
+    await expectCover(page);
+    await page.evaluate(() => {
+      (window as any).__prematureDecks = [];
+      new MutationObserver(() => {
+        const root = document.querySelector('[data-presentation-deck][data-ready="true"]');
+        if (!root) return;
+        const styles = Array.from(document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]'))
+          .filter(link => /presentation.*\.css|reveal.*\.css/.test(link.href));
+        if (styles.some(link => !link.sheet)) (window as any).__prematureDecks.push(root.outerHTML.slice(0, 200));
+      }).observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ['data-ready'] });
+    });
+    await page.locator('[data-testid="sidebar"]').getByRole('link', { name: 'Visão geral', exact: true }).click();
+    await expect(page.getByTestId('presentation-deck')).toHaveCount(0);
+    await page.route(/(?:presentation|reveal).*\.css/, async route => {
+      const response = await route.fetch();
+      await new Promise(resolve => setTimeout(resolve, 400));
+      await route.fulfill({ response });
+    });
+    await page.locator('[data-testid="sidebar"]').getByRole('link', { name: 'Mensal', exact: true }).click();
+    await expectCover(page);
+    expect(await page.evaluate(() => (window as any).__prematureDecks)).toEqual([]);
+    const total = await page.getByTestId('presentation-deck').locator('.slides > section').count();
+    await page.getByRole('button', { name: 'Próximo slide', exact: true }).click();
+    await expect(page.locator('[data-presentation-counter]')).toHaveText(`2 / ${total}`);
   });
 
   test('M04 PDF contém uma página por slide, sem shell e sem cortes', async ({ page }, testInfo) => {

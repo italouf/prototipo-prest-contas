@@ -1,8 +1,11 @@
 """Apresentação Reveal.js e edição restrita a Admin/Master."""
+import logging
 from datetime import date
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import ValidationError
+from django.db import DatabaseError
 from django.db.models import Q
 from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -16,6 +19,8 @@ from .editorial import excluir_editorial, salvar_editorial
 from .forms import ApresentacaoMensalForm, ConteudoApresentacaoForm
 from .models import ApresentacaoMensal, ConteudoApresentacao
 from .presentation import compor_apresentacao
+
+logger = logging.getLogger(__name__)
 
 
 def _competencia(bruto):
@@ -95,11 +100,21 @@ def editar_conteudo(request, apresentacao_pk, pk=None):
     if request.method == "POST" and form.is_valid():
         obj = form.save(commit=False)
         obj.apresentacao = apresentacao
-        salvar_editorial(obj, request.user)
-        messages.success(request, "Conteúdo salvo na apresentação.")
-        return redirect(_url(apresentacao, "core:mensal_editar"))
+        try:
+            salvar_editorial(obj, request.user)
+        except ValidationError as exc:
+            form.add_error(None, exc)
+        except DatabaseError:
+            logger.exception("Falha ao salvar conteúdo da apresentação %s", apresentacao.pk)
+            form.add_error(None, "Não foi possível salvar o conteúdo. Tente novamente.")
+        else:
+            messages.success(request, "Conteúdo atualizado na apresentação." if conteudo else "Conteúdo adicionado à apresentação.")
+            return redirect(_url(apresentacao))
+    if request.method == "POST" and form.errors:
+        messages.error(request, "Não foi possível salvar o conteúdo. Revise os campos e tente novamente.")
     return render(request, "reports/presentation_content_form.html", {
         "form": form, "apresentacao": apresentacao, "conteudo": conteudo,
+        "reenvio_imagem": bool(request.FILES),
     })
 
 

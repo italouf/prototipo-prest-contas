@@ -2,12 +2,14 @@
 from datetime import date
 from decimal import Decimal
 from io import BytesIO
+from unittest.mock import patch
 
 from PIL import Image
 from django.contrib import admin
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import connection
+from django.db import DatabaseError
 from django.test import RequestFactory, TestCase, override_settings
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
@@ -325,6 +327,59 @@ class ApresentacaoTestes(TestCase):
         form = ConteudoApresentacaoForm({"tipo": "DESTAQUE", "titulo": "Teste", "texto": "Texto", "ordem": 0}, {"arquivo_imagem": arquivo})
         self.assertFalse(form.is_valid())
         self.assertIn("arquivo_imagem", form.errors)
+
+    def test_criar_e_editar_conteudo_redireciona_para_apresentacao_com_mensagem(self):
+        destino = self.url + "?periodo=2026-10-01"
+        resposta = self.client.post(reverse("core:mensal_conteudo_novo", args=[self.apresentacao.pk]), {
+            "tipo": "DESTAQUE", "titulo": "Evento do mês", "texto": "Avanço na pesquisa.", "ordem": 0,
+        }, follow=True)
+        self.assertRedirects(resposta, destino)
+        self.assertContains(resposta, "Conteúdo adicionado à apresentação.")
+        obj = ConteudoApresentacao.objects.get(titulo="Evento do mês")
+        resposta = self.client.post(reverse("core:mensal_conteudo_editar", args=[self.apresentacao.pk, obj.pk]), {
+            "tipo": "DESTAQUE", "titulo": "Evento atualizado", "texto": "Texto atualizado.", "ordem": 0,
+        }, follow=True)
+        self.assertRedirects(resposta, destino)
+        self.assertContains(resposta, "Conteúdo atualizado na apresentação.")
+        obj.refresh_from_db()
+        self.assertEqual(obj.titulo, "Evento atualizado")
+
+    def test_erro_ao_adicionar_mantem_campos_e_informa_fracasso_sem_gravar(self):
+        resposta = self.client.post(reverse("core:mensal_conteudo_novo", args=[self.apresentacao.pk]), {
+            "tipo": "DESTAQUE", "pilar": self.pilares["AT"].pk,
+            "titulo": "Evento Quantum", "texto": "Texto que deve ser preservado.", "ordem": 3,
+            "arquivo_imagem": SimpleUploadedFile("foto.jpg", b"invalida", content_type="image/jpeg"),
+        })
+        self.assertEqual(resposta.status_code, 200)
+        self.assertContains(resposta, "O conteúdo não foi salvo.")
+        self.assertContains(resposta, "Selecione novamente a imagem")
+        self.assertEqual(resposta.context["form"]["titulo"].value(), "Evento Quantum")
+        self.assertEqual(resposta.context["form"]["texto"].value(), "Texto que deve ser preservado.")
+        self.assertEqual(resposta.context["form"]["pilar"].value(), str(self.pilares["AT"].pk))
+        self.assertFalse(ConteudoApresentacao.objects.exists())
+
+    def test_erro_ao_editar_preserva_conteudo_e_imagem_salvos(self):
+        obj = self.conteudo(imagem=b"imagem-original", imagem_mime="image/png")
+        resposta = self.client.post(reverse("core:mensal_conteudo_editar", args=[self.apresentacao.pk, obj.pk]), {
+            "tipo": "DESTAQUE", "titulo": "Alteração sem salvar", "texto": "Texto novo", "ordem": 0,
+            "arquivo_imagem": SimpleUploadedFile("foto.png", b"invalida", content_type="image/png"),
+        })
+        self.assertEqual(resposta.status_code, 200)
+        self.assertContains(resposta, "O conteúdo não foi salvo.")
+        obj.refresh_from_db()
+        self.assertEqual(obj.titulo, "Destaque de pesquisa")
+        self.assertEqual(bytes(obj.imagem), b"imagem-original")
+
+    def test_falha_de_persistencia_exibe_erro_e_permite_tentar_novamente(self):
+        with patch("apps.reports.presentation_views.salvar_editorial", side_effect=DatabaseError("indisponível")):
+            with self.assertLogs("apps.reports.presentation_views", level="ERROR"):
+                resposta = self.client.post(reverse("core:mensal_conteudo_novo", args=[self.apresentacao.pk]), {
+                    "tipo": "DESTAQUE", "titulo": "Evento do mês", "texto": "Texto preservado", "ordem": 0,
+                })
+        self.assertEqual(resposta.status_code, 200)
+        self.assertContains(resposta, "Não foi possível salvar o conteúdo. Tente novamente.")
+        self.assertEqual(resposta.context["form"]["titulo"].value(), "Evento do mês")
+        self.assertFalse(ConteudoApresentacao.objects.exists())
 
     def test_exclusao_exige_post_e_nao_cruza_apresentacoes(self):
         obj = self.conteudo()
