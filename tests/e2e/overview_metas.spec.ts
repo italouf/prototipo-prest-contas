@@ -44,6 +44,35 @@ async function expand(page: Page) {
 
 test.beforeEach(async ({ page }) => login(page));
 
+test('AT e Outras Fontes: indicadores percentuais ficam no Financeiro', async ({ page }, info) => {
+  await page.locator('#grp-pilares').getByRole('link', { name: 'AT e Outras Fontes', exact: true }).click();
+  await expect(page.getByTestId('resumo-financeiro-AT')).toBeVisible();
+  const indicadores = page.getByTestId('indicador-accordion');
+  await expect(indicadores).toHaveCount(2);
+  await expect(indicadores.nth(0).locator('summary')).toContainText('Recursos de empresas da Associação · percentual');
+  await expect(indicadores.nth(1).locator('summary')).toContainText('Recursos de outras fontes · percentual');
+  for (const [i, meta, executado] of [[0, '55,49%', '0,51%'], [1, '62,51%', '0,16%']] as const) {
+    const indicador = indicadores.nth(i);
+    await indicador.locator('summary').click();
+    await expect(indicador.locator('.pillar-indicator-summary article strong').nth(0)).toHaveText(meta);
+    await expect(indicador.locator('.pillar-indicator-summary article strong').nth(1)).toHaveText(executado);
+    await expect(indicador.locator('tbody tr')).toHaveCount(5);
+  }
+  await page.screenshot({ path: info.outputPath('recursos-financeiro-desktop.png'), fullPage: true });
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  await page.screenshot({ path: info.outputPath('recursos-financeiro-mobile.png'), fullPage: true });
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.getByTestId('base-toggle').getByRole('link', { name: 'Físico', exact: true }).click();
+  await expect(page.getByTestId('painel-pilar')).toHaveAttribute('data-base', 'fis');
+  await expect(indicadores).toHaveCount(1);
+  await expect(indicadores.locator('summary')).toContainText('Empresas associadas · número absoluto');
+  await expect(page.getByTestId('entregaveis-at-accordion')).toBeVisible();
+  await expect(page.locator('[name="v__0__fisico__PE-04__previsto"]')).toHaveCount(0);
+  await expect(page.locator('[name="v__0__fisico__PE-02__previsto"]')).toHaveCount(0);
+  await page.screenshot({ path: info.outputPath('at-fisico-sem-recursos.png'), fullPage: true });
+});
+
 test('produtos da AT: catálogo, materiais, filtros e exportação', async ({ page }, info) => {
   test.setTimeout(120_000);
   const link = page.locator('#grp-pilares').getByRole('link', { name: 'AT e Outras Fontes', exact: true });

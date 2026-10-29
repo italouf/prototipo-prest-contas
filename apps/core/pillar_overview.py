@@ -141,14 +141,39 @@ def _limpar(pp, periodo, financeiro):
     return indisponivel
 
 
+def _indicador_fonte(bloco):
+    percentual = bloco.get("unidade_indicador") == "Percentual"
+    bloco.update(valores_percentuais=percentual,
+                 valor_fmt=valor_fisico(bloco["executado"], percentual),
+                 meta_fmt=valor_fisico(bloco["previsto"], percentual),
+                 saldo_fmt=valor_fisico(bloco["saldo"], percentual))
+    bloco["titulo_indicador"] = (
+        "Empresas associadas · número absoluto" if not percentual else
+        "Recursos de empresas da Associação · percentual" if bloco["codigo"] == "AT" else
+        "Recursos de outras fontes · percentual")
+    bloco["progresso"] = progresso(bloco["pct"], bloco["faixa"])
+    bloco["progresso"]["barra"] = min(max(taxa(
+        bloco.get("executado_limitado", bloco["executado"]), bloco["previsto"]) or ZERO, ZERO), Decimal(100))
+    _anual(bloco, percentual)
+
+
 def apresentar_pilar(contexto, periodo):
     pp = contexto["painel_pilar"]
     financeiro = contexto["base_param"] == "fin"
+    if pp.get("visao_captacao") and not financeiro:
+        pp["blocos_fisicos"] = [b for b in pp.get("blocos_fisicos", [])
+                                if b.get("unidade_indicador") != "Percentual"]
+        grupos = pp.get("tabela_gerencial_fisica", {}).get("grupos", [])
+        for grupo in grupos:
+            grupo["linhas"] = [l for l in grupo["linhas"] if not l.get("valores_percentuais")]
+        pp["tabela_gerencial_fisica"] = {"grupos": [g for g in grupos if g["linhas"]]}
     codigo = pp["codigo"]
     nome = NOMES.get(codigo, pp["rotulo"])
     nome_card = "FCRH" if codigo == "FORMACAO" else nome
     contexto.update(periodo_analise=periodo, mes_inicial=periodo["mes_inicial"], mes_final=periodo["mes_final"], erro_periodo=periodo["erro"], dashboard_url=f"/pilar/{contexto['pilar_pk']}/")
     contexto["sem_dados_intervalo"] = _limpar(pp, periodo, financeiro)
+    for bloco in pp.get("blocos_recursos_percentuais", []):
+        _indicador_fonte(bloco)
     pp.update(rotulo_periodo=periodo["rotulo"], nome_curto=nome, titulo_pagina="AT e Outras Fontes" if pp.get("visao_captacao") else pp["pilar"].nome)
     pp["progresso"] = progresso(pp.get("pct"), pp.get("faixa"))
     if not financeiro and not pp.get("visao_captacao"):
@@ -220,12 +245,7 @@ def apresentar_pilar(contexto, periodo):
         if pp.get("visao_captacao"):
             blocos = pp.get("blocos_fisicos", [])
             for b in blocos:
-                percentual = b.get("unidade_indicador") == "Percentual"
-                b.update(valores_percentuais=percentual, valor_fmt=valor_fisico(b["executado"], percentual), meta_fmt=valor_fisico(b["previsto"], percentual), saldo_fmt=valor_fisico(b["saldo"], percentual))
-                b["titulo_indicador"] = "Empresas associadas · número absoluto" if not percentual else "Recursos de empresas da Associação · percentual" if b["codigo"] == "AT" else "Recursos de outras fontes · percentual"
-                b["progresso"] = progresso(b["pct"], b["faixa"])
-                b["progresso"]["barra"] = min(max(taxa(b.get("executado_limitado", b["executado"]), b["previsto"]) or ZERO, ZERO), Decimal(100))
-                _anual(b, percentual)
+                _indicador_fonte(b)
             for i, b in enumerate(blocos):
                 cards.append({"titulo": "Empresas associadas · AT" if not b["valores_percentuais"] else "Recursos de empresas · AT" if b["codigo"] == "AT" else "Recursos de outras fontes", "valor": b["valor_fmt"], "referencia": "de " + b["meta_fmt"] + " previstos" if b["valores_percentuais"] else "", "referencia_inline": "de " + b["meta_fmt"] + " empresas" if not b["valores_percentuais"] else None, "descricao": "indicador principal da Associação Tecnológica" if not b["valores_percentuais"] else "", "hero": i == 0, "mostrar_barra": i != 0, "cor_fonte": b["codigo"] if i != 0 else None, **b["progresso"]})
         else:

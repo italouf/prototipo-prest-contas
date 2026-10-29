@@ -36,6 +36,8 @@ with TemporaryDirectory(prefix="quiin-overview-") as directory:
     arquivo_revisado.write_bytes((root / "mockup/exemplos_arquivos/FINANCEIRO GERAL - REFAT - v2.xlsx").read_bytes())
     revisar_planilha(arquivo_revisado)
     ingestar("FINANCEIRO_GERAL", arquivo_revisado, "Overview E2E", "3T/2026", user)
+    ingestar("INDICADORES_PE", root / "mockup/exemplos_arquivos/Indicadores Gerais do Termo de Retificação do PE.xlsx",
+             "Overview E2E", "3T/2026", user)
     acomp = Acompanhamento.objects.get(centro__nome="Overview E2E")
     if os.environ.get("QUIIN_MATERIAL_LIBRARY_E2E") == "1":
         from apps.projects.models import MaterialProjeto, MaterialProdutoAT, ProdutoAT, Projeto

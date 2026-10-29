@@ -24,7 +24,28 @@ def valor_original(base, ano, campo, pilar=None, kpi=None, resumos=None):
     return getattr(linha, atributo)
 
 
-def grade_dashboard(acomp, base, codigos):
+def kpis_recursos_percentuais(acomp, codigos):
+    """Indicadores de recursos exibidos no Financeiro, mantendo sua origem no PE."""
+    return set(KpiAcompanhamento.objects.filter(
+        acompanhamento=acomp, pilar__codigo__in=set(codigos) & {"AT", "OUTRASFONTES"},
+        unidade="Percentual").values_list("codigo", flat=True))
+
+
+def escopos_edicao_fontes(acomp, base, codigos):
+    recursos = kpis_recursos_percentuais(acomp, codigos)
+    if base == "financeiro":
+        return [("financeiro", None), ("fisico", recursos)]
+    fisicos = set(KpiAcompanhamento.objects.filter(
+        acompanhamento=acomp, pilar__codigo__in=codigos).values_list("codigo", flat=True))
+    return [("fisico", fisicos - recursos)]
+
+
+def grade_dashboard_fontes(acomp, base, codigos):
+    return [bloco for origem, kpis in escopos_edicao_fontes(acomp, base, codigos)
+            for bloco in grade_dashboard(acomp, origem, codigos, kpis=kpis)]
+
+
+def grade_dashboard(acomp, base, codigos, *, kpis=None):
     anos = [0, *ANOS]
     ajustes = list(acomp.overrides.filter(base=base).select_related("pilar", "kpi"))
     por_chave = {(a.kpi.codigo if a.kpi else a.pilar.codigo, a.ano, a.campo): a.valor for a in ajustes}
@@ -36,6 +57,8 @@ def grade_dashboard(acomp, base, codigos):
     else:
         resumos = {}
         itens = KpiAcompanhamento.objects.filter(acompanhamento=acomp, pilar__codigo__in=codigos).select_related("pilar").order_by("sequencia")
+        if kpis is not None:
+            itens = itens.filter(codigo__in=kpis)
     for item in itens:
         codigo = item.codigo
         percentual = base == "fisico" and item.pilar.codigo in ("AT", "OUTRASFONTES") and item.unidade == "Percentual"

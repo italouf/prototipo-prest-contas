@@ -181,6 +181,13 @@ def contexto_pilar(pilar, ano_param, base_param, usuario, acompanhamento=None, p
         if base_param == BASE_FIN:
             ano_param = "todos"
             grade = []
+            if novo:
+                # Preserva a origem no PE e seus overrides; só muda a base de exibição.
+                indicadores = painel_prestacao.painel_captacao(
+                    pilar, None, "fis", acompanhamento, fontes_autorizadas=fontes)
+                pp["blocos_recursos_percentuais"] = [
+                    b for b in indicadores["blocos_fisicos"]
+                    if b.get("unidade_indicador") == "Percentual"]
         elif acompanhamento is None:
             grade = grade_edicao(base_param, codigos_edicao or {"__nenhum__"})
         else:
@@ -216,7 +223,7 @@ def contexto_pilar(pilar, ano_param, base_param, usuario, acompanhamento=None, p
         "acompanhamentos": painel_prestacao.lista_acompanhamentos(),
     }
     if novo:
-        from apps.accountability.overview_edit import grade_dashboard
+        from apps.accountability.overview_edit import grade_dashboard, grade_dashboard_fontes
         from apps.core.pillar_overview import apresentar_pilar
         if base_param == "fis" and pilar.codigo in ("PDI", "FORMACAO", "STARTUPS"):
             from apps.projects.presentation import quadro_entregaveis
@@ -227,7 +234,10 @@ def contexto_pilar(pilar, ano_param, base_param, usuario, acompanhamento=None, p
             from apps.projects.at_services import quadro_at
             contexto["quadro_entregaveis_at"] = quadro_at(contexto)
             contexto["pode_editar_produtos_at"] = "AT" in codigos_edicao
-        contexto.update(pilar_overview=True, grade_edicao_geral=grade_dashboard(acompanhamento, pp["base"], codigos_edicao) if acompanhamento else [], editor_codigos=sorted(codigos_edicao))
+        montar_grade = grade_dashboard_fontes if combinado else grade_dashboard
+        contexto.update(pilar_overview=True, grade_edicao_geral=montar_grade(acompanhamento, pp["base"], codigos_edicao) if acompanhamento else [], editor_codigos=sorted(codigos_edicao))
+        if combinado and acompanhamento and not contexto["grade_edicao_geral"]:
+            contexto["pode_editar_pilar"] = False
         return apresentar_pilar(contexto, periodo)
     return contexto
 
@@ -337,7 +347,14 @@ def _aplicar_overrides(request, acomp):
         if request.POST.get("edicao_dashboard"):
             codigos = fontes_captacao_visiveis(request.user) if combinado else [pilar_escopo.codigo] if pilar_escopo else request.POST.getlist("pilares")
             escopo = {"base": "financeiro" if base_param == "fin" else "fisico", "codigos": codigos}
-        removidos = overrides_prestacao.restaurar_tudo(acomp, request.user, **escopo)
+        if combinado and request.POST.get("edicao_dashboard"):
+            from apps.accountability.overview_edit import escopos_edicao_fontes
+            with transaction.atomic():
+                removidos = sum(overrides_prestacao.restaurar_tudo(
+                    acomp, request.user, codigos=codigos, base=origem, kpis=kpis)
+                    for origem, kpis in escopos_edicao_fontes(acomp, escopo["base"], codigos))
+        else:
+            removidos = overrides_prestacao.restaurar_tudo(acomp, request.user, **escopo)
         messages.success(
             request, f"Valores importados restaurados ({removidos} ajuste(s) removido(s)).")
         return redirect(destino)
@@ -346,8 +363,16 @@ def _aplicar_overrides(request, acomp):
     except ValueError as exc:
         messages.error(request, f"Edição rejeitada: {exc}")
         return redirect(destino)
-    if request.POST.get("edicao_dashboard") and any(item[2] != ("financeiro" if base_param == "fin" else "fisico") for item in itens):
-        return sem_permissao(request)
+    if request.POST.get("edicao_dashboard"):
+        base_editor = "financeiro" if base_param == "fin" else "fisico"
+        if combinado:
+            from apps.accountability.overview_edit import escopos_edicao_fontes
+            escopos = dict(escopos_edicao_fontes(acomp, base_editor, fontes_captacao_visiveis(request.user)))
+            if any(base not in escopos or (escopos[base] is not None and codigo not in escopos[base])
+                   for _ano, codigo, base, _campo, _valor in itens):
+                return sem_permissao(request)
+        elif any(item[2] != base_editor for item in itens):
+            return sem_permissao(request)
     if combinado:
         fontes = set(fontes_captacao_visiveis(request.user))
         fontes_kpis = dict(KpiAcompanhamento.objects.filter(
@@ -550,6 +575,17 @@ def _csv_pilar(request, pilar, ano_param, base_param):
                             valor += "%"
                     valores.append(valor)
                 writer.writerow(valores)
+            writer.writerow([])
+        for bloco in pp.get("blocos_recursos_percentuais", []):
+            writer.writerow([bloco["titulo_indicador"]])
+            writer.writerow(["Fonte", "Unidade", "Ano", "Meta", "Executado", "Saldo", "% Executado"])
+            for linha in bloco["tabela"]:
+                writer.writerow([
+                    bloco["rotulo"], "%", linha["rotulo"],
+                    *(numero_curto(linha[campo] * 100 if linha[campo] is not None else None)
+                      for campo in ("previsto", "executado", "saldo")),
+                    f"{linha['pct']}%" if linha["pct"] is not None else "—",
+                ])
             writer.writerow([])
         conteudo = documento.getvalue()
     else:

@@ -180,7 +180,7 @@ def _pilar_do_override(override):
     return override.pilar.codigo if override.pilar is not None else None
 
 
-def restaurar_tudo(acomp, usuario, *, codigos=None, base=None):
+def restaurar_tudo(acomp, usuario, *, codigos=None, base=None, kpis=None):
     """Remove os overrides do acompanhamento **no escopo do usuário** e audita.
 
     Spec §9 combina "remove todos os overrides do acompanhamento" com
@@ -188,6 +188,7 @@ def restaurar_tudo(acomp, usuario, *, codigos=None, base=None):
     em conflito, a regra de permissão prevalece (Ruling 28): nenhum usuário
     modifica dado fora do seu escopo, nem por operação em massa — gestores
     limpam tudo, PontoFocal só os overrides dos pilares vinculados.
+    `kpis` restringe a restauração aos códigos de indicadores informados.
 
     Returns:
         int: quantidade de overrides efetivamente removidos.
@@ -205,6 +206,7 @@ def restaurar_tudo(acomp, usuario, *, codigos=None, base=None):
             OverrideAcompanhamento.objects.filter(acompanhamento=acomp)
             .select_related("pilar", "kpi__pilar")
             if _pilar_do_override(override) in editaveis and (base is None or override.base == base)
+            and (kpis is None or (override.kpi is not None and override.kpi.codigo in kpis))
         ]
         if alvos:
             OverrideAcompanhamento.objects.filter(pk__in=[o.pk for o in alvos]).delete()
