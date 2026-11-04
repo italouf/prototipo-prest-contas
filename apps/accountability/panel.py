@@ -46,12 +46,19 @@ from apps.planning.services import (
     ANOS,
     PILARES_PPI,
     ROTULOS_PAINEL,
+    ROTULO_FAROL,
     faixa,
     pct_inteiro,
     percentual,
     painel_pilar as painel_pilar_legado,
 )
 
+from .infra import (
+    NOME_TABELA_PROJETOS_INFRA,
+    NOME_TABELA_VISAO_INFRA,
+    ORIGEM_PROJETOS_INFRA,
+    ORIGEM_VISAO_INFRA,
+)
 from .models import (
     Acompanhamento,
     KpiAcompanhamento,
@@ -645,6 +652,23 @@ _COLUNAS_PROJETOS_ACS = (
     *_COLUNAS_PROJECAO_PROJETOS,
     ("percentual", "% REALIZADO", "percentual"),
 )
+_COLUNAS_PROJETOS_INFRA = (
+    ("codigo_projeto_embrapii", "CÓDIGO", "texto"),
+    ("nome", "PROJETO", "texto"),
+    ("categoria", "CATEGORIA", "texto"),
+    ("status", "STATUS", "texto"),
+    ("inicio", "INÍCIO", "data"),
+    ("fim", "FINAL PREVISTO", "data"),
+    ("orcado", "ORÇADO", "dinheiro"),
+    ("realizado", "REALIZADO", "dinheiro"),
+    ("projetado_2026", "PROJETADO 2026", "dinheiro"),
+    ("projetado_2027", "PROJETADO 2027", "dinheiro"),
+    ("realizado_mais_projetado", "REALIZADO + PROJETADO", "dinheiro"),
+    ("diferenca", "DIFERENÇA ORÇADO", "dinheiro"),
+    ("percentual", "% REALIZADO", "percentual"),
+    ("farol", "FAROL", "texto"),
+    ("etapa", "ETAPA", "texto"),
+)
 _TABELAS_PILARES_FINANCEIROS = {
     "PDI": {
         "origem_visao": "TAB. 3", "origem_projetos": "TAB. 2",
@@ -664,6 +688,16 @@ _TABELAS_PILARES_FINANCEIROS = {
         "recurso": "TOTAL ACS", "diferenca": "DIFERENÇA PPI",
         "colunas_projetos": _COLUNAS_PROJETOS_ACS, "total": "TOTAL",
     },
+    "INFRA": {
+        "origem_visao": ORIGEM_VISAO_INFRA,
+        "origem_projetos": ORIGEM_PROJETOS_INFRA,
+        "nome_visao": NOME_TABELA_VISAO_INFRA,
+        "nome_projetos": NOME_TABELA_PROJETOS_INFRA,
+        "recurso": "RECURSO INFRA",
+        "diferenca": "DIFERENÇA",
+        "colunas_projetos": _COLUNAS_PROJETOS_INFRA,
+        "total": "TOTAL",
+    },
 }
 PILARES_TABELAS_FINANCEIRAS = tuple(_TABELAS_PILARES_FINANCEIROS)
 
@@ -677,15 +711,40 @@ def _tabela_financeira_pilar(nome, colunas, registros):
             if tipo == "percentual" and valor is not None:
                 valor *= 100
             celulas.append({"campo": campo, "tipo": tipo, "valor": valor})
-        linhas.append({"celulas": celulas, "total": registro.get("total", False)})
+        linhas.append({
+            "celulas": celulas,
+            "total": registro.get("total", False),
+            "nao_detalhado": registro.get("nao_detalhado", False),
+        })
     return {"nome": nome, "cabecalhos": [c[1] for c in colunas], "linhas": linhas}
 
 
-def painel_financeiro_pilar(pilar, acomp):
-    """Visão integral das tabelas PDI, FCRH e ACS, sem recortes por ano.
+def _soma_se_houver(valores):
+    presentes = [valor for valor in valores if valor is not None]
+    return sum(presentes, Decimal(0)) if presentes else None
 
-    A diferença é apresentada em módulo. O PK preserva a ordem de inclusão
-    das linhas, inclusive nos arquivos sem coluna ITEM.
+
+def _soma_projetado_infra(projetos):
+    valores = []
+    for projeto in projetos:
+        anos = [projeto.get("projetado_2026"), projeto.get("projetado_2027")]
+        if any(valor is not None for valor in anos):
+            valores.append(sum((valor or Decimal(0) for valor in anos), Decimal(0)))
+    return sum(valores, Decimal(0)) if valores else None
+
+
+def _farol_texto(realizado, orcado):
+    if realizado is None or orcado is None or orcado <= 0:
+        return "Sem lançamento"
+    return ROTULO_FAROL[faixa(percentual(realizado, orcado))]
+
+
+def painel_financeiro_pilar(pilar, acomp):
+    """Visão integral das tabelas financeiras do pilar, sem recorte por ano.
+
+    PDI/FCRH/ACS mantêm as tabelas de projeto e reconciliação existentes.
+    INFRA usa ``TAB. 10``/``TAB. 11``, acrescenta a categoria, a linha
+    "Não detalhado" e um fallback para ``TAB. 1`` em acompanhamentos antigos.
     """
     codigo = pilar.codigo
     contrato = _TABELAS_PILARES_FINANCEIROS[codigo]
@@ -701,17 +760,23 @@ def painel_financeiro_pilar(pilar, acomp):
     )
     if codigo == "STARTUPS":
         colunas_projetos = (*colunas_projetos[:3], ("inicio", "ASSINATURA DA SÍNTESE", "data"), *colunas_projetos[3:])
-    posicao_datas = next(i for i, coluna in enumerate(colunas_projetos) if coluna[0] == "fim") + 1
-    colunas_projetos = (
-        *colunas_projetos[:posicao_datas],
-        ("data_kickoff", "DATA DO KICK-OFF", "data"),
-        ("fim_previsto_real", "FINAL PREVISTO REAL", "data"),
-        *colunas_projetos[posicao_datas:],
-        ("farol", "FAROL", "texto"), ("etapa", "ETAPA DO PROJETO", "texto"),
-    )
+    if codigo != "INFRA":
+        posicao_datas = next(i for i, coluna in enumerate(colunas_projetos) if coluna[0] == "fim") + 1
+        colunas_projetos = (
+            *colunas_projetos[:posicao_datas],
+            ("data_kickoff", "DATA DO KICK-OFF", "data"),
+            ("fim_previsto_real", "FINAL PREVISTO REAL", "data"),
+            *colunas_projetos[posicao_datas:],
+            ("farol", "FAROL", "texto"), ("etapa", "ETAPA DO PROJETO", "texto"),
+        )
     resumo = ResumoFinanceiro.objects.filter(
         acompanhamento=acomp, pilar=pilar, origem=contrato["origem_visao"], ano__isnull=True,
     ).values(*(c[0] for c in colunas_visao if c[0] != "rotulo")).first()
+    infra_sem_detalhamento = codigo == "INFRA" and resumo is None
+    if resumo is None and codigo == "INFRA":
+        resumo = ResumoFinanceiro.objects.filter(
+            acompanhamento=acomp, pilar=pilar, origem="TAB. 1", ano__isnull=True,
+        ).values(*(c[0] for c in colunas_visao if c[0] != "rotulo")).first()
     campos_projetos = [c[0] for c in colunas_projetos]
     if "sequencia" not in campos_projetos:
         campos_projetos.append("sequencia")
@@ -720,7 +785,7 @@ def painel_financeiro_pilar(pilar, acomp):
     ).order_by("pk").values(*campos_projetos, "projeto_id"))
     from apps.entries.effective import estado
     operacional = estado(acomp)
-    if operacional:
+    if operacional and codigo != "INFRA":
         operacional.projetos(projetos)
     # Backfill de exibição para snapshots anteriores, cujo ITEM era numérico.
     for registro in projetos:
@@ -735,23 +800,85 @@ def painel_financeiro_pilar(pilar, acomp):
             real, proj, rec = resumo["realizado"], resumo["projetado"], resumo["recurso_ou_meta"]
             resumo["realizado_mais_projetado"] = real + (proj or Decimal(0)) if real is not None else None
             resumo["diferenca"] = rec - resumo["realizado_mais_projetado"] if rec is not None and real is not None else None
+        if codigo == "INFRA" and resumo.get("diferenca") is None:
+            if resumo.get("recurso_ou_meta") is not None and resumo.get("realizado") is not None:
+                resumo["diferenca"] = resumo["recurso_ou_meta"] - resumo["realizado"]
     recurso = resumo.get("recurso_ou_meta") if resumo else None
     realizado = resumo.get("realizado") if resumo else None
     diferenca_importada = resumo.get("diferenca") if resumo else None
     diferenca = abs(diferenca_importada) if diferenca_importada is not None else None
     pct = pct_inteiro(realizado, recurso) if realizado is not None else None
     faixa_execucao = faixa(percentual(realizado, recurso)) if pct is not None else "neutra"
+    denominador = "do recurso" if codigo == "INFRA" else "do PPI"
     cards = [
-        _card_pilar("previsto", contrato["recurso"], recurso, recurso, "do PPI", False),
-        _card_pilar("executado", "REALIZADO", realizado, recurso, "do PPI", realizado is not None),
-        _card_pilar("saldo", contrato["diferenca"], diferenca, recurso, "do PPI", diferenca is not None),
+        _card_pilar("previsto", contrato["recurso"], recurso, recurso, denominador, False),
+        _card_pilar("executado", "REALIZADO", realizado, recurso, denominador, realizado is not None),
+        _card_pilar("saldo", contrato["diferenca"], diferenca, recurso, denominador, diferenca is not None),
     ]
     cards[0]["ocultar_progresso"] = True
-    cards[2]["rotulo_percentual"] = "do recurso PPI"
+    cards[2]["rotulo_percentual"] = "do recurso" if codigo == "INFRA" else "do recurso PPI"
     for card in cards:
         card.update(valores_em_reais=True, precisao_financeira=True)
+
     linhas_projetos = list(projetos)
-    if projetos:
+    nao_detalhado = None
+    if codigo == "INFRA":
+        soma_orcado = _soma_se_houver(p.get("orcado") for p in projetos) if projetos else None
+        soma_realizado = _soma_se_houver(p.get("realizado") for p in projetos) if projetos else None
+        soma_combinado = _soma_se_houver(
+            p.get("realizado_mais_projetado") for p in projetos) if projetos else None
+        soma_projetado = _soma_projetado_infra(projetos) if projetos else None
+        residual_orcado = (recurso - (soma_orcado or Decimal(0))
+                           if recurso is not None else None)
+        residual_realizado = (realizado - (soma_realizado or Decimal(0))
+                              if realizado is not None else None)
+        resumo_projetado = resumo.get("projetado") if resumo else None
+        residual_projetado = (resumo_projetado - (soma_projetado or Decimal(0))
+                              if resumo_projetado is not None else None)
+        resumo_combinado = resumo.get("realizado_mais_projetado") if resumo else None
+        if resumo_combinado is not None:
+            residual_combinado = resumo_combinado - (soma_combinado or Decimal(0))
+        elif residual_realizado is not None:
+            residual_combinado = residual_realizado + (residual_projetado or Decimal(0))
+        else:
+            residual_combinado = None
+        residual_diferenca = (
+            residual_combinado - residual_orcado
+            if residual_combinado is not None and residual_orcado is not None else None)
+        residual_percentual = (
+            percentual(residual_realizado, residual_orcado)
+            if residual_realizado is not None and residual_orcado not in (None, 0) else None)
+        nao_detalhado = {
+            "codigo_projeto_embrapii": None, "nome": "Não detalhado",
+            "categoria": "", "status": "", "inicio": None, "fim": None,
+            "orcado": residual_orcado, "realizado": residual_realizado,
+            "projetado_2026": None, "projetado_2027": None,
+            "realizado_mais_projetado": residual_combinado,
+            "diferenca": residual_diferenca, "percentual": residual_percentual,
+            "farol": _farol_texto(residual_realizado, residual_orcado),
+            "etapa": "", "nao_detalhado": True, "total": False, "sequencia": None,
+        }
+        total_combinado = resumo_combinado
+        if total_combinado is None and realizado is not None:
+            total_combinado = realizado + (resumo_projetado or Decimal(0))
+        total_diferenca = (
+            total_combinado - recurso
+            if total_combinado is not None and recurso is not None else None)
+        total_percentual = (
+            percentual(realizado, recurso)
+            if realizado is not None and recurso not in (None, 0) else None)
+        total = {
+            "codigo_projeto_embrapii": None, "nome": contrato["total"],
+            "categoria": "", "status": "", "inicio": None, "fim": None,
+            "orcado": recurso, "realizado": realizado,
+            "projetado_2026": None, "projetado_2027": None,
+            "realizado_mais_projetado": total_combinado,
+            "diferenca": total_diferenca, "percentual": total_percentual,
+            "farol": _farol_texto(realizado, recurso), "etapa": "",
+            "nao_detalhado": False, "total": True, "sequencia": None,
+        }
+        linhas_projetos.extend([nao_detalhado, total])
+    elif projetos:
         total = {campo: _somar(p[campo] for p in projetos)
                  for campo, _cabecalho, tipo in colunas_projetos if tipo == "dinheiro"}
         total.update({"nome": contrato["total"], "total": True})
@@ -760,16 +887,18 @@ def painel_financeiro_pilar(pilar, acomp):
         "pilar": pilar, "codigo": codigo, "rotulo": ROTULOS_PAINEL[codigo],
         "ano": None, "base": BASE_FINANCEIRO, "unidade": "R$",
         "rotulo_periodo": "Acumulado do ciclo completo",
-        "rotulo_previsto": contrato["recurso"], "denominador": "do PPI",
+        "rotulo_previsto": contrato["recurso"], "denominador": denominador,
         "previsto": recurso, "executado": realizado, "saldo": diferenca,
         "pct": pct, "faixa": faixa_execucao, "cards": cards,
         "serie_previsto": [None] * len(ANOS), "serie_executado": [None] * len(ANOS),
         "tabela": [], "projetos": len(projetos), "unidade_projetos": "projetos",
         "valores_em_reais": True, "visao_financeira_pilar": True,
         "registros_projetos": projetos,
+        "nao_detalhado": nao_detalhado,
+        "infra_sem_detalhamento": infra_sem_detalhamento,
         "tabela_visao_financeira": _tabela_financeira_pilar(
             contrato["nome_visao"], colunas_visao,
-            [{**resumo, "rotulo": "RECURSO PPI", "diferenca": diferenca}] if resumo else [],
+            [{**resumo, "rotulo": contrato["recurso"], "diferenca": diferenca}] if resumo else [],
         ),
         "tabela_projetos_financeiros": _tabela_financeira_pilar(
             contrato["nome_projetos"], colunas_projetos, linhas_projetos,

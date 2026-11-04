@@ -125,7 +125,7 @@ def fontes_captacao_visiveis(usuario):
 
 def usuario_pode_dashboard_pilar(usuario, pilar):
     """Acesso aos dashboards, independente do acesso operacional ao pilar."""
-    if not pilar.ativo or pilar.codigo == "INFRA":
+    if not pilar.ativo:
         return False
     if pilar.codigo in FONTES_CAPTACAO:
         return bool(fontes_captacao_visiveis(usuario))

@@ -161,7 +161,7 @@ def _resolver_pilar_escopo(request, fonte):
 def contexto_pilar(pilar, ano_param, base_param, usuario, acompanhamento=None, periodo=None):
     """Contexto do painel anual do pilar, legado ou importado."""
     ano = None if ano_param == "todos" else int(ano_param)
-    novo = pilar.codigo in ("PDI", "FORMACAO", "STARTUPS", "AT")
+    novo = pilar.codigo in ("PDI", "FORMACAO", "STARTUPS", "INFRA", "AT")
     if novo:
         from apps.core.overview_period import resolver_periodo
         periodo = periodo or resolver_periodo({}, ano_param)

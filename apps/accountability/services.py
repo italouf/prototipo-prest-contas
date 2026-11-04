@@ -37,6 +37,7 @@ from django.utils.text import slugify
 from apps.audit.services import registrar_auditoria
 from apps.pillars.models import Pilar
 
+from .infra import ORIGEM_PROJETOS_INFRA
 from .models import (
     Acompanhamento,
     CentroCompetencia,
@@ -111,7 +112,8 @@ _PROJETO_VALORES = (
     "data_kickoff", "fim_previsto_real",
     "projetado_2027", "realizado_mais_projetado", "diferenca", "percentual",
 )
-_PROJETO_TEXTOS = ("codigo_projeto_embrapii", "nome", "status", "etapa", "farol")
+_PROJETO_TEXTOS = (
+    "codigo_projeto_embrapii", "nome", "categoria", "status", "etapa", "farol")
 _KPI_VALORES = (
     "sequencia", "meta_2024", "meta_2025", "meta_2026", "meta_2027", "meta_total",
     "executado_2024", "executado_2025", "acumulado", "gap",
@@ -299,10 +301,11 @@ def _gravar_fatos(acomp, tipo_fonte: str, payload: dict, pilares: dict) -> None:
         from apps.projects.services import resolver_projeto_importado
         # Serializa a resolução de identidades no centro durante a importação.
         CentroCompetencia.objects.select_for_update().get(pk=acomp.centro_id)
-        projetos_permanentes = [resolver_projeto_importado(
-            acomp.centro, pilares[item["pilar"]], item["origem"], item["nome"],
-            item.get("codigo_projeto_embrapii"),
-        ) for item in payload["projetos"]]
+        projetos_permanentes = [
+            None if item["origem"] == ORIGEM_PROJETOS_INFRA else resolver_projeto_importado(
+                acomp.centro, pilares[item["pilar"]], item["origem"], item["nome"],
+                item.get("codigo_projeto_embrapii"),
+            ) for item in payload["projetos"]]
         # Ruling 5: delete do escopo inteiro da fonte antes do insert —
         # a unicidade não protege linhas com ano=NULL.
         ResumoFinanceiro.objects.filter(acompanhamento=acomp).delete()

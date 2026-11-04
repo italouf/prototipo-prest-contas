@@ -81,15 +81,16 @@ test('P07 sidebar: 5 pilares clicáveis; AT abre o painel; Funil AT em Gestão',
   await expect(gestao.getByRole('link', { name: /Associação Tecnológica \(AT\)/ })).toHaveCount(0);
 });
 
-test('P06 tabela por ano com farol e gráfico com destaque', async ({ page }) => {
+test('P06 Infraestrutura exibe dashboard financeiro próprio', async ({ page }) => {
   await login(page);
-  await page.goto('/pilar/5/?ano=2026&base=fin');
-  const tabela = page.getByTestId('pilar-tabela');
-  await expect(tabela.getByRole('row', { name: /Ano 3: 2026/ })).toContainText('Meta atingida');
-  await expect(tabela.getByRole('row', { name: /Ano 3: 2026/ })).toHaveAttribute('data-destaque', 'true');
-  await expect(tabela.getByRole('row', { name: /^Total/ })).toContainText('90%');
-  const grafico = page.getByTestId('chart-fonte-pilar');
-  await expect(grafico.locator('g[data-categoria="Ano 3 2026"]')).toHaveAttribute('data-destaque', 'true');
+  await page.goto('/pilar/5/?base=fin');
+  const painel = page.getByTestId('painel-pilar');
+  await expect(painel).toContainText('RECURSO INFRA');
+  await expect(painel).toContainText('Não detalhado');
+  await expect(page.getByTestId('grafico-financeiro-pilar')).toContainText(
+    'Carteira de projetos por categoria',
+  );
+  await expect(page.getByTestId('tbl_ProjetosINFRA')).toBeVisible();
 });
 
 test('P08 CSV do pilar reflete ano e base', async ({ page }) => {

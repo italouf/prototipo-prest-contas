@@ -37,7 +37,8 @@ consolidada e segregada por pilar, rodando apenas localmente.
 - Ciclo mensal: a reunião com a Embrapii ocorre após o dia 15 e apresenta o
   mês de competência anterior (RN-001).
 - Pilares: PDI/FCCT, Formação, Startups, Associação Tecnológica, Infraestrutura,
-  Financeiro/Outras Fontes.
+  Financeiro/Outras Fontes. Infraestrutura tem dashboard financeiro próprio
+  (`TAB. 10`/`TAB. 11`) e base física em construção.
 - Execução financeira = valor efetivamente gasto/comprovado; captação ≠ execução.
 - Renovações não contam para a meta de CNPJs novos.
 - Ambiente: Django 5.2 + SQLite, executado via `runserver`; interface via

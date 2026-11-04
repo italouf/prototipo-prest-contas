@@ -22,7 +22,8 @@ class SidebarNavegacaoTestes(TestCase):
             ("AT", "Associação Tecnológica"), ("INFRA", "Infraestrutura"),
             ("OUTRASFONTES", "Outras Fontes"),
         ]):
-            Pilar.objects.create(codigo=codigo, nome=nome, ordem=i + 1)
+            Pilar.objects.get_or_create(
+                codigo=codigo, defaults={"nome": nome, "ordem": i + 1})
         Periodo.objects.create(competencia=date(2026, 6, 1), status="ABERTO")
 
     def test_grupos_e_itens_do_mockup_mais_operacao_e_gestao(self):
@@ -39,9 +40,9 @@ class SidebarNavegacaoTestes(TestCase):
         sidebar = resposta.content.decode().split('data-testid="sidebar"')[1].split("</aside>")[0]
         self.assertNotIn("OUTRASFONTES", sidebar)
         pilares = sidebar.split('id="grp-pilares"')[1].split("</ul>")[0]
-        for rotulo in ["PDI", "Formação FCRH", "ACS", "AT e Outras Fontes"]:
+        for rotulo in ["PDI", "Formação FCRH", "ACS", "Infraestrutura",
+                       "AT e Outras Fontes"]:
             self.assertIn(rotulo, pilares)
-        self.assertNotIn("Infraestrutura", pilares)
         self.assertNotIn("Talentos", pilares)
         self.assertNotIn("Funil AT", pilares)
         gestao = sidebar.split('id="grp-gestao"')[1].split("</ul>")[0]
@@ -57,9 +58,9 @@ class SidebarNavegacaoTestes(TestCase):
         self.assertContains(resposta, "Auditoria")
         sidebar = resposta.content.decode().split('data-testid="sidebar"')[1].split("</aside>")[0]
         pilares = sidebar.split('id="grp-pilares"')[1].split("</ul>")[0]
-        for rotulo in ["PDI", "Formação FCRH", "ACS", "AT e Outras Fontes"]:
+        for rotulo in ["PDI", "Formação FCRH", "ACS", "Infraestrutura",
+                       "AT e Outras Fontes"]:
             self.assertIn(rotulo, pilares)
-        self.assertNotIn("Infraestrutura", pilares)
         gestao = sidebar.split('id="grp-gestao"')[1].split("</ul>")[0]
         self.assertIn("Auditoria", gestao)
         self.assertNotIn("Funil AT", gestao)

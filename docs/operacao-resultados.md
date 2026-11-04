@@ -6,6 +6,8 @@ Após `python manage.py migrate` e `collectstatic`, Master/Admin acessa **Opera�
 
 O catálogo contém somente indicadores PE presentes nos dashboards, realizados de projetos PPI com identidade permanente e o realizado de Infraestrutura. AT e Outras Fontes possuem uma carteira financeira independente, cadastrada pelo gestor, com captado e realizado por projeto. Produtos, materiais e entregáveis da AT não participam dessa carteira. PE-09 é quantidade de publicações, preservando sua exclusão atual dos agregados físicos de PD&I. PE-02 e PE-04 aparecem na base financeira.
 
+O dashboard financeiro de Infraestrutura lê o total oficial de `TAB. 11` (`tbl_VisaoINFRA`) e o detalhamento de `TAB. 10` (`tbl_ProjetosINFRA`, com `categoria`). A diferença entre o total e a soma dos projetos aparece como **Não detalhado**. O indicador operacional `INFRA-EXECUCAO` continua válido para lançamentos e para o Dashboard Geral; a base física do pilar está marcada como em construção. O campo `ProjetoFinanceiro.categoria` é aditivo e não altera os snapshots anteriores.
+
 ## Propostas e publicação
 
 Ponto focal lança apenas em seus pilares. Rascunho e proposta enviada não alteram resultados oficiais. O envio bloqueia a edição; a devolução exige justificativa e permite correção. Master/Admin aprova uma proposta enviada ou publica um ajuste direto justificado. Cada correção de um resultado já aprovado cria outra revisão, preservando a anterior. Períodos fechados impedem escrita e aprovação. Aprovação, conciliação, abertura da carteira e fechamento são transacionais; fechamento e publicação compartilham a trava do período.

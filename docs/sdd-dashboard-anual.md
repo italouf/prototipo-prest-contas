@@ -192,7 +192,9 @@ Outras 0/8 (0%), consolidado 34/68 (50%). Per-ano e por pilar conforme tabelas d
 Mesmo visual do painel geral, recortado por pilar, reagindo a `?ano=&base=`.
 Pilares com painel: **PDI, Formação FCRH, ACS, Infraestrutura, Associação
 Tecnológica** (Outras Fontes fica fora). Sem mudança de schema — reuso de
-`planning.PlanoAnual` (ver `docs/modelo-dados.md`).
+`planning.PlanoAnual` (ver `docs/modelo-dados.md`). Para Infraestrutura, a base
+financeira usa `TAB. 10`/`TAB. 11` (detalhamento por categoria e linha
+“Não detalhado”); a base física exibe **Seção em construção** nesta etapa.
 
 ### 9.1 Requisitos (continuação)
 

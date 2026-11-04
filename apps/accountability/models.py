@@ -9,6 +9,8 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
 
+from .infra import CATEGORIAS_INFRA
+
 TIPOS_FONTE = [
     ("FINANCEIRO_GERAL", "FINANCEIRO GERAL"),
     ("INDICADORES_PE", "Indicadores Gerais do PE"),
@@ -192,6 +194,10 @@ class ProjetoFinanceiro(models.Model):
     )
     diferenca = models.DecimalField("Diferença", max_digits=18, decimal_places=2, null=True, blank=True)
     percentual = models.DecimalField("Percentual", max_digits=10, decimal_places=6, null=True, blank=True)
+    categoria = models.CharField(
+        "Categoria", max_length=80, blank=True, default="", db_default="",
+        choices=[(categoria, categoria) for categoria in CATEGORIAS_INFRA],
+    )
 
     class Meta:
         ordering = ["acompanhamento", "origem", "pilar__ordem", "sequencia", "nome"]

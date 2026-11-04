@@ -10,7 +10,13 @@ from .templatetags.core_extras import _numero_brl, numero_curto, numero_ptbr
 
 
 ZERO = Decimal(0)
-NOMES = {"PDI": "PDI", "FORMACAO": "Formação FCRH", "STARTUPS": "ACS", "AT": "AT e Outras Fontes"}
+NOMES = {
+    "PDI": "PDI",
+    "FORMACAO": "Formação FCRH",
+    "STARTUPS": "ACS",
+    "INFRA": "Infraestrutura",
+    "AT": "AT e Outras Fontes",
+}
 
 
 def dinheiro(valor, compacto=False):
@@ -46,9 +52,39 @@ def progresso(valor, status=None):
 
 
 def _projetos(pp):
+    registros = pp.get("registros_projetos", [])
+    if pp["codigo"] == "INFRA":
+        grupos = {}
+        for registro in registros:
+            linha = dict(registro)
+            titulo = linha.get("categoria") or "Sem categoria"
+            grupo = grupos.setdefault(
+                titulo, {"codigo": titulo, "titulo": titulo, "rotulo": titulo, "linhas": []})
+            pct = taxa(linha.get("realizado"), linha.get("orcado"))
+            linha.update(status_grupo="infra", pct_rotulo=taxa_texto(pct, 1),
+                         **progresso(pct))
+            grupo["linhas"].append(linha)
+        presentes = []
+        for grupo in grupos.values():
+            grupo["quantidade"] = len(grupo["linhas"])
+            for campo in ("orcado", "realizado", "projetado_2026", "projetado_2027",
+                          "realizado_mais_projetado"):
+                valores = [linha.get(campo) for linha in grupo["linhas"]
+                           if linha.get(campo) is not None]
+                grupo[campo] = sum(valores, ZERO) if valores else None
+            presentes.append(grupo)
+        total = {}
+        for campo in ("orcado", "realizado", "projetado_2026", "projetado_2027",
+                      "realizado_mais_projetado", "diferenca"):
+            valores = [r.get(campo) for r in registros if r.get(campo) is not None]
+            total[campo] = sum(valores, ZERO) if valores else None
+        pct = taxa(total["realizado"], total["orcado"])
+        total.update(total=True, nome="Total", pct_rotulo=taxa_texto(pct, 1),
+                     **progresso(pct))
+        pp.update(grupos_projetos=presentes, total_projetos=total)
+        return
     grupos = {c: {"codigo": c, "titulo": t, "rotulo": r, "linhas": []} for c, t, r in (
         ("encerrado", "Encerrados", "Encerrado"), ("andamento", "Em andamento", "Em andamento"), ("futuros", "Futuros projetos", "Futuros projetos"))}
-    registros = pp.get("registros_projetos", [])
     for registro in registros:
         linha = dict(registro)
         etapa = linha.get("etapa") or etapa_do_status(linha["status"])
@@ -77,24 +113,33 @@ def _projetos(pp):
 
 
 
-def grafico_carteira(grupos):
+def grafico_carteira(
+        grupos, *,
+        titulo="Carteira de projetos por etapa",
+        subtitulo="Compare os valores orçados com o realizado e as projeções."):
     campos = (("realizado", "Realizado"), ("projetado_2026", "Projetado 2026"), ("projetado_2027", "Projetado 2027"))
-    teto = max((max(g["orcado"] or ZERO, sum((g[c] or ZERO for c, _ in campos), ZERO)) for g in grupos), default=ZERO)
+    teto = max((
+        max(g.get("orcado") or ZERO, g.get("combinado") or ZERO,
+            sum((g.get(c) or ZERO for c, _ in campos), ZERO))
+        for g in grupos), default=ZERO)
     linhas = []
     for grupo in grupos:
-        valores = [grupo[c] for c, _ in campos if grupo[c] is not None]
-        combinado = sum(valores, ZERO) if valores else None
+        valores = [grupo.get(c) for c, _ in campos if grupo.get(c) is not None]
+        combinado = grupo.get("combinado")
+        if combinado is None:
+            combinado = sum(valores, ZERO) if valores else None
         linhas.append({
-            "titulo": grupo["titulo"], "quantidade": grupo["quantidade"],
-            "orcado": grupo["orcado"], "combinado": combinado,
-            "largura_orcado": grupo["orcado"] / teto * 100 if teto and grupo["orcado"] is not None else ZERO,
+            "titulo": grupo["titulo"], "quantidade": grupo.get("quantidade"),
+            "orcado": grupo.get("orcado"), "combinado": combinado,
+            "largura_orcado": grupo.get("orcado") / teto * 100 if teto and grupo.get("orcado") is not None else ZERO,
             "segmentos": [
-                {"chave": campo, "titulo": titulo, "valor": grupo[campo],
-                 "largura": grupo[campo] / teto * 100 if teto and grupo[campo] is not None else ZERO}
+                {"chave": campo, "titulo": titulo, "valor": grupo.get(campo),
+                 "largura": grupo.get(campo) / teto * 100 if teto and grupo.get(campo) is not None else ZERO}
                 for campo, titulo in campos
             ],
         })
-    return {"linhas": linhas, "sem_dados": not grupos, "teto": teto or None}
+    return {"linhas": linhas, "sem_dados": not grupos, "teto": teto or None,
+            "titulo": titulo, "subtitulo": subtitulo}
 
 def _anual(pp, percentual=False):
     for linha in pp.get("tabela", []):
@@ -184,7 +229,17 @@ def apresentar_pilar(contexto, periodo):
     cards = []
     if financeiro:
         _projetos(pp)
-        cards.append({"titulo": "Realizado total" if pp.get("visao_captacao") else f"Realizado · {nome_card}", "valor": dinheiro(pp.get("executado"), True), "referencia": "de " + dinheiro(pp.get("previsto"), True) + (" captados" if pp.get("visao_captacao") else " do PPI"), "descricao": "realizado em relação ao captado" if pp.get("visao_captacao") else "taxa de execução no período", "hero": True, **pp["progresso"]})
+        if codigo == "INFRA" and pp.get("nao_detalhado"):
+            residual = pp["nao_detalhado"]
+            pp["grupos_projetos"].append({
+                "codigo": "nao-detalhado", "titulo": "Não detalhado",
+                "rotulo": "Não detalhado", "linhas": [], "quantidade": None,
+                "orcado": residual.get("orcado"),
+                "realizado": residual.get("realizado"),
+                "projetado_2026": None, "projetado_2027": None,
+                "combinado": residual.get("realizado_mais_projetado"),
+            })
+        cards.append({"titulo": "Realizado total" if pp.get("visao_captacao") else f"Realizado · {nome_card}", "valor": dinheiro(pp.get("executado"), True), "referencia": "de " + dinheiro(pp.get("previsto"), True) + (" captados" if pp.get("visao_captacao") else " do recurso" if codigo == "INFRA" else " do PPI"), "descricao": "realizado em relação ao captado" if pp.get("visao_captacao") else "taxa de execução no período", "hero": True, **pp["progresso"]})
         if pp.get("visao_captacao"):
             fontes = pp.get("registros_captacao", [])
             meta = pp.get("total_captacao", {}).get("recurso_ou_meta")
@@ -232,7 +287,7 @@ def apresentar_pilar(contexto, periodo):
             cards.append({"titulo": pp["rotulo_previsto"], "valor": dinheiro(pp.get("previsto"), True), "referencia": "recurso total do pilar no PPI"})
         if not pp.get("visao_captacao"):
             saldo_pct = taxa(pp.get("saldo"), pp.get("previsto"))
-            cards.append({"titulo": "Diferença rel. PPI", "valor": dinheiro(pp.get("saldo"), True), "referencia": "de " + dinheiro(pp.get("previsto"), True) + " · saldo a executar", "mostrar_barra": True, "cinza": True, "rotulo_barra": numero_curto(pct_inteiro(pp.get("saldo"), pp.get("previsto"))) + "%" if saldo_pct is not None else "—", **progresso(saldo_pct, "neutra")})
+            cards.append({"titulo": "Diferença rel. PPI" if codigo != "INFRA" else "DIFERENÇA", "valor": dinheiro(pp.get("saldo"), True), "referencia": "de " + dinheiro(pp.get("previsto"), True) + " · saldo a executar", "mostrar_barra": True, "cinza": True, "rotulo_barra": numero_curto(pct_inteiro(pp.get("saldo"), pp.get("previsto"))) + "%" if saldo_pct is not None else "—", **progresso(saldo_pct, "neutra")})
     else:
         _anual(pp)
         grupos = pp.get("tabela_gerencial_fisica", {}).get("grupos", [])
@@ -268,8 +323,18 @@ def apresentar_pilar(contexto, periodo):
     if financeiro and not pp.get("visao_captacao"):
         cards[0]["titulo"] = "Recurso PPI realizado"
         cards[1]["titulo"] = {"PDI": "Recurso PPI AFCCT total", "FORMACAO": "Recurso PPI FCRH total", "STARTUPS": "Recurso PPI ACS total"}.get(codigo, pp["rotulo_previsto"])
+        if codigo == "INFRA":
+            cards[0]["titulo"] = "Realizado · Infraestrutura"
+            cards[1]["titulo"] = "RECURSO INFRA"
         cards = [cards[1], cards[0], cards[2]]
-        pp["grafico_financeiro"] = grafico_carteira(pp["grupos_projetos"])
+        if codigo == "INFRA":
+            pp["grafico_financeiro"] = grafico_carteira(
+                pp["grupos_projetos"],
+                titulo="Carteira de projetos por categoria",
+                subtitulo=("Compare os valores orçados com o realizado e as "
+                           "projeções por categoria."))
+        else:
+            pp["grafico_financeiro"] = grafico_carteira(pp["grupos_projetos"])
     pp["cards_overview"] = cards
     if financeiro and not pp.get("visao_captacao"):
         pp["progresso"]["pct_exibicao"] = taxa(pp.get("executado"), pp.get("previsto")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP) if taxa(pp.get("executado"), pp.get("previsto")) is not None else None

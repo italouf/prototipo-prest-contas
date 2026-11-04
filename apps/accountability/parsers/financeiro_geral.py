@@ -19,6 +19,13 @@ from .comum import (
     abrir_workbook, normalizar, novo_payload,
     para_decimal, para_dinheiro, texto_limpo,
 )
+from ..infra import (
+    CATEGORIAS_INFRA,
+    NOME_TABELA_PROJETOS_INFRA,
+    NOME_TABELA_VISAO_INFRA,
+    ORIGEM_PROJETOS_INFRA,
+    ORIGEM_VISAO_INFRA,
+)
 from ..project_status import etapa_do_status, farol_financeiro
 
 
@@ -68,6 +75,33 @@ _RECONCILIACAO = {
     "projetado": _PROJETADO_TOTAL,
     "realizado_mais_projetado": _COMBINADO,
     "diferenca": _campo("DIFERENÇA PPI", "DIF. REL. AO PPI"),
+}
+_PROJETOS_INFRA = {
+    "codigo_projeto_embrapii": _campo(
+        "CÓDIGO", "CÓDIGO DO PROJETO", "CÓDIGO DO PROJETO EMBRAPII",
+        tipo="texto", opcional=True),
+    "nome": _campo("PROJETO", tipo="texto"),
+    "categoria": _campo("CATEGORIA", tipo="texto"),
+    "status": _campo("STATUS", tipo="texto"),
+    "sequencia": _campo("ITEM", tipo="inteiro", opcional=True),
+    "inicio": _campo(
+        "INÍCIO", "INICIO", "ASSINATURA DA SÍNTESE", tipo="data", opcional=True),
+    "fim": _campo(
+        "FINAL PREVISTO", "FINAL PREVISTO NA SÍNTESE", tipo="data", opcional=True),
+    "orcado": _campo(
+        "ORÇADO", "ORÇADO SÍNTESE", "ORÇADO ORIGINAL", "VALOR ORÇADO",
+        opcional=True),
+    "realizado": _campo("REALIZADO", "REALIZADO TOTAL", opcional=True),
+    "projetado_2026": _campo("PROJETADO 2026", opcional=True),
+    "projetado_2027": _campo("PROJETADO 2027", opcional=True),
+    "realizado_mais_projetado": _campo("REALIZADO + PROJETADO", opcional=True),
+    "diferenca": _campo("DIFERENÇA ORÇADO", "DIFERENÇA", opcional=True),
+    "percentual": _campo(
+        "% REALIZADO", "% REALIZADO ORÇADO", tipo="percentual", opcional=True),
+}
+_RECONCILIACAO_INFRA = {
+    **_RECONCILIACAO,
+    "diferenca": _campo("DIFERENÇA", "DIFERENÇA PPI", "DIF. REL. AO PPI"),
 }
 TABELAS_FINANCEIRO = {
     "tbl_ConsolidadoPrograma": TabelaFinanceira("TAB. 1", {
@@ -123,8 +157,16 @@ TABELAS_FINANCEIRO = {
         "percentual_meta": _campo("% CAPTADO META", tipo="percentual"),
         "percentual_captado": _campo("% REALIZADO CAPTADO", tipo="percentual"),
     }),
+    NOME_TABELA_PROJETOS_INFRA: TabelaFinanceira(
+        ORIGEM_PROJETOS_INFRA, _PROJETOS_INFRA, True, "INFRA"),
+    NOME_TABELA_VISAO_INFRA: TabelaFinanceira(ORIGEM_VISAO_INFRA, {
+        **_RECONCILIACAO_INFRA,
+        "recurso_ou_meta": _campo("RECURSO INFRA", "RECURSO PPI INFRA"),
+    }, pilar="INFRA"),
 }
-TABELAS_OBRIGATORIAS = tuple(TABELAS_FINANCEIRO)
+TABELAS_OPCIONAIS = (NOME_TABELA_PROJETOS_INFRA, NOME_TABELA_VISAO_INFRA)
+TABELAS_OBRIGATORIAS = tuple(
+    nome for nome in TABELAS_FINANCEIRO if nome not in TABELAS_OPCIONAIS)
 _PILARES = {
     "afcct/pd&i": "PDI", "afcct/pdi": "PDI", "fcrh": "FORMACAO",
     "acs": "STARTUPS", "infraestrutura": "INFRA",
@@ -137,12 +179,12 @@ _CAMPOS_RESUMO = (
     "percentual", "percentual_meta", "percentual_captado", "farol",
 )
 _CAMPOS_PROJETO = (
-    "sequencia", "codigo_projeto_embrapii", "nome", "status", "inicio", "fim", "orcado", "realizado",
+    "sequencia", "codigo_projeto_embrapii", "nome", "categoria", "status", "inicio", "fim", "orcado", "realizado",
     "data_kickoff", "fim_previsto_real", "etapa", "farol",
     "projetado_2026", "projetado_2027", "realizado_mais_projetado",
     "diferenca", "percentual",
 )
-_LIMITES_TEXTO = {"nome": 255, "status": 120, "farol": 20, "etapa": 40,
+_LIMITES_TEXTO = {"nome": 255, "categoria": 80, "status": 120, "farol": 20, "etapa": 40,
                   "codigo_projeto_embrapii": 100}
 
 
@@ -187,6 +229,10 @@ def parse_financeiro_geral(caminho: Path | str) -> dict:
             if nome not in catalogo:
                 payload["erros"].append(
                     f'Tabela obrigatória "{nome}" não encontrada. Envie o modelo FINANCEIRO GERAL - REFAT - v2.xlsx.')
+        presentes_infra = [nome for nome in TABELAS_OPCIONAIS if nome in catalogo]
+        if presentes_infra and len(presentes_infra) != len(TABELAS_OPCIONAIS):
+            payload["erros"].append(
+                "As tabelas tbl_ProjetosINFRA e tbl_VisaoINFRA devem ser enviadas juntas.")
         formulas = abrir_workbook(caminho, data_only=False)
         recursos.callback(formulas.close)
         chaves = set()
@@ -196,7 +242,59 @@ def parse_financeiro_geral(caminho: Path | str) -> dict:
                 _ler_tabela(payload, ws, tabela, formulas[ws.title], especificacao, wb.epoch, chaves)
     if "tbl_VisaoGeral" in catalogo and not any(r["ano"] is not None for r in payload["resumos"]):
         payload["avisos"].append("tbl_VisaoGeral sem valores anuais por pilar; a visão anual exibirá —.")
+    _validar_infra(payload)
     return payload
+
+
+def _soma_disponivel(valores):
+    presentes = [valor for valor in valores if valor is not None]
+    return sum(presentes, Decimal(0)) if presentes else None
+
+
+def _validar_infra(payload):
+    """Avisos de conciliação entre projetos, resumo INFRA e consolidados."""
+    resumo = next((r for r in payload["resumos"]
+                   if r["origem"] == ORIGEM_VISAO_INFRA and r["pilar"] == "INFRA"), None)
+    if resumo is None:
+        return
+    projetos = [p for p in payload["projetos"] if p["origem"] == ORIGEM_PROJETOS_INFRA]
+    totais = {
+        "ORÇADO": resumo.get("recurso_ou_meta"),
+        "REALIZADO": resumo.get("realizado"),
+        "REALIZADO + PROJETADO": resumo.get("realizado_mais_projetado"),
+    }
+    somas = {
+        "ORÇADO": _soma_disponivel(p.get("orcado") for p in projetos),
+        "REALIZADO": _soma_disponivel(p.get("realizado") for p in projetos),
+        "REALIZADO + PROJETADO": _soma_disponivel(
+            p.get("realizado_mais_projetado") for p in projetos),
+    }
+    for rotulo, total in totais.items():
+        soma = somas[rotulo]
+        if soma is not None and total is not None and soma > total:
+            payload["avisos"].append(
+                f"A soma dos projetos de Infraestrutura em {rotulo} excede o total "
+                "da tbl_VisaoINFRA; o residual ficará negativo.")
+    consolidado = next((
+        r for r in payload["resumos"]
+        if r["origem"] == "TAB. 1" and r["pilar"] == "INFRA" and r["ano"] is None
+    ), None)
+    if consolidado:
+        for campo, rotulo in (("recurso_ou_meta", "RECURSO INFRA"), ("realizado", "REALIZADO")):
+            if (consolidado.get(campo) is not None and resumo.get(campo) is not None
+                    and consolidado[campo] != resumo[campo]):
+                payload["avisos"].append(
+                    f"O {rotulo} da tbl_VisaoINFRA difere da linha de Infraestrutura "
+                    "do consolidado; confira a planilha.")
+    visao_geral = next((
+        r for r in payload["resumos"]
+        if r["origem"] == "TAB. 1.1" and r["pilar"] == "INFRA" and r["ano"] is None
+    ), None)
+    if (visao_geral and visao_geral.get("recurso_ou_meta") is not None
+            and resumo.get("recurso_ou_meta") is not None
+            and visao_geral["recurso_ou_meta"] != resumo["recurso_ou_meta"]):
+        payload["avisos"].append(
+            "O RECURSO INFRA da tbl_VisaoINFRA difere da tbl_VisaoGeral; confira a planilha.")
 
 
 def _mapear_colunas(payload, ws, tabela, especificacao, limites):
@@ -261,6 +359,12 @@ def _ler_tabela(payload, ws, tabela, formulas, especificacao, epoch, chaves):
                               aba=ws.title, tabela=tabela.displayName, epoch=epoch)
             for campo, indice in mapa.items()
         }
+        if especificacao.projetos and not valores.get("nome") and all(
+                valores.get(campo) is None for campo in (
+                    "codigo_projeto_embrapii", "orcado", "realizado",
+                    "projetado_2026", "projetado_2027")):
+            # Linha de template: só as colunas calculadas têm fórmula/valor.
+            continue
         if especificacao.projetos and not valores.get("codigo_projeto_embrapii"):
             sequencia_legada = valores.get("sequencia")
             if sequencia_legada is not None:
@@ -270,6 +374,13 @@ def _ler_tabela(payload, ws, tabela, formulas, especificacao, epoch, chaves):
         coluna_identidade = "nome" if especificacao.projetos else "rotulo"
         coordenada = linha[mapa.get(coluna_identidade, 0)].coordinate
         contexto = f'Aba "{ws.title}", tabela "{tabela.displayName}", célula {coordenada}'
+        if especificacao.projetos and pilar == "INFRA":
+            categoria = valores.get("categoria")
+            if categoria not in CATEGORIAS_INFRA:
+                payload["erros"].append(
+                    f'{contexto}: Categoria "{categoria or ""}" inválida. '
+                    f'Use: {"; ".join(CATEGORIAS_INFRA)}.')
+                continue
         if not identidade:
             problema = "nome do projeto vazio" if especificacao.projetos else f'pilar desconhecido "{valores.get("rotulo") or ""}"'
             payload["erros"].append(f"{contexto}: {problema}.")

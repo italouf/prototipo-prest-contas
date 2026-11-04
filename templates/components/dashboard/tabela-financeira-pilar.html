@@ -12,7 +12,7 @@
     </thead>
     <tbody>
       {% for linha in tabela.linhas %}
-      <tr class="border-b border-border/60 {% if linha.total %}bg-quiin-mist/30 font-bold{% endif %}">
+      <tr class="border-b border-border/60 {% if linha.total %}bg-quiin-mist/30 font-bold{% elif linha.nao_detalhado %}bg-quiin-mist/20 italic text-text-muted{% endif %}">
         {% for celula in linha.celulas %}
         {% if forloop.first %}
         <th scope="row" class="min-w-48 px-3 py-3 text-left font-semibold">{{ celula.valor|default_if_none:'—' }}</th>

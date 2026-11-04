@@ -40,6 +40,16 @@ python manage.py seed_demo
 
 Idempotente — pode rodar quantas vezes quiser.
 
+## 4.1 Gerar o REFAT v3 de Infraestrutura (opcional)
+
+```text
+python manage.py gerar_refat_infra
+```
+
+Cria `mockup/exemplos_arquivos/FINANCEIRO GERAL - REFAT - v3 - INFRA.xlsx`
+a partir do v2, sem alterar o original. O v3 acrescenta `tbl_ProjetosINFRA`
+e `tbl_VisaoINFRA`; o v2 continua válido para importação.
+
 ## 5. Rodar o servidor local
 
 ```text

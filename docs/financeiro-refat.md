@@ -18,6 +18,13 @@ a ordem das abas, a posição das tabelas e a ordem das colunas podem mudar.
 | `tbl_VisaoACS` | Reconciliação STARTUPS | TAB. 8 |
 | `tbl_CaptaoATeOutros` | Captação AT e OUTRASFONTES | TAB. 9 |
 
+As tabelas `tbl_ProjetosINFRA` e `tbl_VisaoINFRA` são **opcionais** e
+devem ser enviadas juntas. A primeira guarda o detalhamento por projeto
+(`TAB. 10`); a segunda, a reconciliação oficial de Infraestrutura
+(`TAB. 11`). O arquivo v2 sem essas tabelas continua válido; o arquivo
+v3 as acrescenta. O comando `python manage.py gerar_refat_infra` gera o
+v3 a partir do v2 sem alterar o original.
+
 As colunas de identificação das tabelas de projetos podem se chamar
 `CÓDIGO DO PROJETO EMBRAPII`. Na FCRH e na ACS esse cabeçalho substitui `ITEM`;
 no PDI foi acrescentado à tabela. O campo é armazenado como texto para aceitar
@@ -121,11 +128,33 @@ indicadores físicos das fontes autorizadas.
 
 ## Infraestrutura
 
-O dashboard individual de Infraestrutura é ocultado na navegação e bloqueado
-no acesso direto e nas exportações por pilar. O pilar permanece ativo: valores,
-linhas e totais continuam no Dashboard Geral, e suas permissões operacionais
-continuam disponíveis. Essas mudanças de apresentação não exigem migração
-nem reimportação dos acompanhamentos existentes.
+O pilar tem dashboard financeiro próprio, acessível pela sidebar para usuários
+vinculados ao INFRA e Master/Admin. A visão financeira usa `TAB. 11`
+(`tbl_VisaoINFRA`) como total oficial e `TAB. 10` (`tbl_ProjetosINFRA`) como
+detalhamento por projeto. A tabela de projetos acrescenta a coluna `CATEGORIA`
+e uma linha **Não detalhado** com a diferença entre o total oficial e a soma
+dos projetos. O gráfico agrupa a carteira por categoria.
+
+Categorias válidas: `Obras civis`, `Laboratórios e salas técnicas`,
+`Equipamentos e instrumentação`, `TI, Data Center e HPC`,
+`Serviços e manutenção` e `Outros`. A coluna é validada na importação; o
+template v3 traz um dropdown.
+
+`tbl_VisaoINFRA` usa os cabeçalhos `RECURSO INFRA`, `REALIZADO`,
+`PROJETADO TOTAL`, `REALIZADO + PROJETADO` e `DIFERENÇA`; os nomes
+`RECURSO PPI INFRA` e `DIFERENÇA PPI` continuam aceitos como aliases.
+
+O importador avisa, sem bloquear, quando a soma dos projetos excede o total
+oficial ou quando `TAB. 11` diverge da linha INFRA da `TAB. 1`/`TAB. 1.1`.
+Acompanhamentos antigos sem `TAB. 11` usam `TAB. 1` como fallback nos cards;
+a tabela de projetos fica vazia e o detalhamento é sinalizado como não
+importado até o envio do v3.
+
+A base física do pilar exibe **Seção em construção** nesta etapa. O indicador
+operacional `INFRA-EXECUCAO` continua no Dashboard Geral, na prestação mensal
+e nos fluxos operacionais. O novo dashboard não exige migração de dados; o
+campo `ProjetoFinanceiro.categoria` é aditivo e começa vazio nos snapshots
+antigos.
 
 ## Atualização do arquivo e reimportação
 
@@ -139,9 +168,11 @@ Reenvios não duplicam fatos; projetos removidos do objeto saem do snapshot.
 Outras fontes e overrides são preservados. Falhas de gravação restauram os fatos
 anteriores e registram o erro no histórico.
 
-O modelo corrigido de referência produz 13 resumos e 33 projetos: 18 PDI,
-8 FCRH e 7 ACS. O recurso PPI soma R$ 60.000.000,00; o realizado PPI soma
-R$ 34.975.229,95. Campos anuais vazios geram aviso de indisponibilidade.
+O modelo corrigido de referência (v2) produz 13 resumos e 33 projetos: 18 PDI,
+8 FCRH e 7 ACS. O v3 acrescenta o resumo de Infraestrutura (`TAB. 11`) e a
+tabela `tbl_ProjetosINFRA`, inicialmente com 10 linhas em branco. O recurso PPI
+soma R$ 60.000.000,00; o realizado PPI soma R$ 34.975.229,95. Campos anuais
+vazios geram aviso de indisponibilidade.
 
 ## Validação
 
@@ -149,6 +180,10 @@ Executar `python manage.py test apps.accountability --noinput`. A suíte inclui 
 arquivo real, mudanças de aba e posição, inversão de colunas, expansão de tabelas,
 inclusão/remoção de projetos, lacunas e fórmulas inválidas, rejeição do formato
 antigo, valores anuais de 2027, HTML exportado, isolamento, overrides e rollback.
+O detalhamento de Infraestrutura é coberto por
+`apps.accountability.tests.test_infra` (contrato do parser e geração do v3) e
+`apps.accountability.tests.test_dashboard_infra` (DTO, residual, fallback,
+navegação e telas).
 
 
 ## Visão Geral: metas financeiras e acompanhamento anual

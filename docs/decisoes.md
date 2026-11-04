@@ -264,3 +264,23 @@
     segue opcional, fora do padrão); números dourados operacionais em
     `SeedReconciliaTestes`; `manage.py auditar_dashboards` (read-only,
     sai 1 em divergência); matriz em `docs/auditoria-numeros.md`.
+
+## Decisão — Dashboard financeiro de Infraestrutura (2026-11-04)
+
+1. **INFRA ganha dashboard financeiro próprio**, com o mesmo layout acumulado
+   de PDI/FCRH/ACS: cards, tabela de reconciliação, tabela de projetos e
+   gráfico por categoria.
+2. **Detalhamento por projeto + categoria**: `tbl_ProjetosINFRA` (`TAB. 10`) e
+   `tbl_VisaoINFRA` (`TAB. 11`), opcionais e enviados juntos. O v2 continua
+   válido; o v3 é gerado por `python manage.py gerar_refat_infra`.
+3. **Residual “Não detalhado”**: o total oficial permanece em `TAB. 11` (ou
+   `TAB. 1` no fallback); a soma dos projetos pode ser menor e a diferença
+   aparece explicitamente. Somas acima do total geram aviso, não bloqueio.
+4. **Categoria é lista canônica** compartilhada entre parser, modelo, dashboard
+   e gerador do Excel; valores fora da lista rejeitam a importação.
+5. **Projetos de INFRA não entram no catálogo `projects.Projeto`**: ficam
+   apenas em `ProjetoFinanceiro`, com `projeto=None`, para não misturar
+   infraestrutura com entregáveis de PDI/FCRH/ACS.
+6. **Base física em construção**: a página mantém o seletor Financeiro/Físico,
+   mas o físico exibe a mensagem de seção em construção; o indicador
+   `INFRA-EXECUCAO` continua no Geral e nos fluxos operacionais.
