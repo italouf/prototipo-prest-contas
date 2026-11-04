@@ -1,5 +1,7 @@
 # Como rodar (Windows / Linux / macOS)
 
+> Para o guia de produção, consulte o `README.md` na raiz do projeto.
+
 ## 1. Criar ambiente virtual
 
 ```text
@@ -24,7 +26,7 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-(Somente Django; SQLite e a lib `csv` são nativos do Python.)
+(Inclui Django, Gunicorn, `django-storages`/S3, `boto3` e `python-dotenv`. SQLite e a lib `csv` são nativos do Python.)
 
 ## 3. Migrar o banco
 
