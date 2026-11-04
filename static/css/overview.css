@@ -106,7 +106,7 @@ body .nav-secao-clara { padding: 10px 7px 5px; font-size: 8px; letter-spacing: 1
 .overview-context-source { margin-left: auto; max-width: 270px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #c9c9ef; font-size: 8px; }
 .overview-cards { display: grid; grid-template-columns: 1.3fr 1fr 1fr 1fr; gap: 11px; margin-top: 12px; }
 .overview-card { display: flex; min-height: 138px; padding: 16px; border: 1px solid var(--color-border); border-radius: 10px; background: var(--color-surface-2); }
-.overview-card-total { align-items: center; gap: 14px; border-top: 3px solid #04047e; padding: 13px 16px; }
+.overview-card-total { align-items: center; gap: 14px; padding: 13px 16px; }
 .overview-card-content { display: flex; min-width: 0; flex: 1; flex-direction: column; }
 .overview-card-title { display: flex; align-items: center; gap: 2px; min-height: 12px; }
 .overview-card-title h3 { color: var(--color-text-muted); font-size: 8px; line-height: 1.3; font-weight: 700; letter-spacing: .65px; text-transform: uppercase; }
@@ -291,7 +291,7 @@ body:has(.overview-dashboard) #main { max-width: none; flex: none; padding: 24px
 .overview-dashboard[data-base="fis"] .overview-context-source { flex-basis: 100%; max-width: none; margin-left: 0; }
 .overview-cards { grid-template-columns: 1.3fr 1fr 1fr 1fr; gap: 14px; margin-top: 16px; }
 .overview-card { min-height: 178px; padding: 20px; border-radius: 13px; }
-.overview-card-total { gap: 20px; border-top-width: 4px; }
+.overview-card-total { gap: 20px; }
 .overview-card-title h3 { font-size: 10px; letter-spacing: .65px; }
 .overview-card-title button { width: 14px; height: 14px; margin-left: 3px; border: 1px solid #b7b6c7; color: #8a889f; background: transparent; font-size: 10px; font-style: normal; }
 .overview-card-value { font-size: 28px; line-height: 1.2; margin-top: 7px; }
