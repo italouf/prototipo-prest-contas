@@ -19,6 +19,11 @@ GIF_1PX = (
     b"\x01\x00\x01\x00\x00\x02\x02\x44\x01\x00\x3b"
 )
 
+TEST_STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+}
+
 
 def _request(path="/", usuario=None, dados=None):
     fabrica = RequestFactory()
@@ -224,7 +229,7 @@ class ColaboradorModeloTestes(TalentosBaseTestes):
         with self.assertRaises(ValidationError):
             aloc.full_clean()
 
-    @override_settings(MEDIA_ROOT=tempfile.mkdtemp())
+    @override_settings(MEDIA_ROOT=tempfile.mkdtemp(), STORAGES=TEST_STORAGES)
     def test_upload_de_foto_aceito(self):
         from apps.talentos.models import Colaborador
 
@@ -298,7 +303,7 @@ class CadastroTalentosTestes(TestCase):
                 self.assertEqual(resposta.status_code, 403)
                 mock_render.assert_not_called()
 
-    @override_settings(MEDIA_ROOT=tempfile.mkdtemp())
+    @override_settings(MEDIA_ROOT=tempfile.mkdtemp(), STORAGES=TEST_STORAGES)
     def test_colaborador_post_valido_cria_com_foto_redireciona_e_audita(self):
         from apps.audit.models import AuditLog
         from apps.talentos.models import Colaborador

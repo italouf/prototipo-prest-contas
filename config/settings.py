@@ -3,8 +3,11 @@ import os
 from pathlib import Path
 
 import dj_database_url
+from django.core.exceptions import ImproperlyConfigured
+from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(BASE_DIR / ".env")
 
 SECRET_KEY = os.environ.get("SECRET_KEY", "django-insecure-quiin-demo-local-only-7f3c9a2e")
 
@@ -130,6 +133,44 @@ STORAGES = {
     "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
 }
 WHITENOISE_MANIFEST_STRICT = False
+
+# ---------- Mídia em produção (Cloudflare R2 / S3 compatível) ----------
+# Sem as variáveis abaixo, o desenvolvimento local continua usando
+# FileSystemStorage e MEDIA_ROOT. Com elas, o Django grava e lê as fotos no R2.
+_R2_BUCKET = os.environ.get("AWS_STORAGE_BUCKET_NAME", "").strip()
+if _R2_BUCKET:
+    _R2_ENDPOINT = os.environ.get("AWS_S3_ENDPOINT_URL", "").strip().rstrip("/")
+    _R2_ACCESS_KEY = os.environ.get("AWS_ACCESS_KEY_ID", "").strip()
+    _R2_SECRET_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY", "").strip()
+    _faltando = [
+        nome
+        for nome, valor in (
+            ("AWS_S3_ENDPOINT_URL", _R2_ENDPOINT),
+            ("AWS_ACCESS_KEY_ID", _R2_ACCESS_KEY),
+            ("AWS_SECRET_ACCESS_KEY", _R2_SECRET_KEY),
+        )
+        if not valor
+    ]
+    if _faltando:
+        raise ImproperlyConfigured(
+            "Cloudflare R2 configurado parcialmente; defina: " + ", ".join(_faltando)
+        )
+    STORAGES["default"] = {
+        "BACKEND": "storages.backends.s3.S3Storage",
+        "OPTIONS": {
+            "bucket_name": _R2_BUCKET,
+            "endpoint_url": _R2_ENDPOINT,
+            "access_key": _R2_ACCESS_KEY,
+            "secret_key": _R2_SECRET_KEY,
+            "region_name": os.environ.get("AWS_S3_REGION_NAME", "auto"),
+            "signature_version": "s3v4",
+            # Bucket privado: as URLs de <img> são assinadas e expiram.
+            "querystring_auth": os.environ.get("AWS_QUERYSTRING_AUTH", "True").lower() == "true",
+            "querystring_expire": int(os.environ.get("AWS_QUERYSTRING_EXPIRE", "3600")),
+            "file_overwrite": False,
+            "default_acl": None,
+        },
+    }
 
 _csrf_origins = os.environ.get("CSRF_TRUSTED_ORIGINS", "")
 if _csrf_origins:

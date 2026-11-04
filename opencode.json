@@ -9,6 +9,12 @@
         "run-test-mcp-server"
       ],
       "enabled": true
+    },
+    "servers": {
+      "cloudflare-api": {
+        "type": "remote",
+        "url": "https://mcp.cloudflare.com/mcp"
+      }
     }
   },
   "tools": {

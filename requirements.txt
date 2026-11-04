@@ -1,8 +1,10 @@
 asgiref==3.12.1
+boto3==1.43.123
 dj-database-url==2.3.0
 Django==5.2.17
 django-cotton==2.7.2
 django-htmx==1.29.0
+django-storages[s3]==1.14.6
 django-tailwind-cli==4.8.0
 django-template-partials==25.3
 gunicorn==23.0.0
@@ -11,6 +13,7 @@ packaging==26.3
 pillow==12.3.0
 psycopg==3.3.5
 psycopg-binary==3.3.5
+python-dotenv==1.2.4
 sqlparse==0.5.5
 typing_extensions==4.16.0
 tzdata==2026.3
