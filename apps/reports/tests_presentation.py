@@ -113,8 +113,52 @@ class ApresentacaoTestes(TestCase):
         ppi = next(s for s in resposta.context["slides"] if s["tipo"] == "ppi")
         pdi = next(s for s in resposta.context["slides"] if s["chave"] == "pdi")
         self.assertEqual(ppi["total"], painel_fin["tabela_tab1"]["total"])
-        self.assertEqual(pdi["indicadores"], painel_fis["tabela"]["grupos"][0]["linhas"])
+        campos = ("codigo", "previsto", "executado", "pct")
+        self.assertEqual(
+            [tuple(i[c] for c in campos) for i in pdi["indicadores"]],
+            [tuple(i[c] for c in campos) for i in painel_fis["tabela"]["grupos"][0]["linhas"]],
+        )
         self.assertContains(resposta, "R$ 400.000,02")
+
+    def test_slides_nao_exibem_unidade_no_titulo_do_indicador(self):
+        KpiAcompanhamento.objects.create(
+            acompanhamento=self.acomp, codigo="PE-02", sequencia=2, pilar=self.pilares["PDI"],
+            nome="Indicador percentual", unidade="Percentual", meta_total=100, acumulado=50,
+        )
+        KpiAcompanhamento.objects.create(
+            acompanhamento=self.acomp, codigo="PE-09", sequencia=3, pilar=self.pilares["PDI"],
+            nome="Publicações em periódicos", unidade="Percentual", meta_total=100, acumulado=50,
+        )
+        KpiAcompanhamento.objects.create(
+            acompanhamento=self.acomp, codigo="PE-04", sequencia=4, pilar=self.pilares["OUTRASFONTES"],
+            nome="Indicador de outras fontes", unidade="Percentual", meta_total=100, acumulado=50,
+        )
+        KpiAcompanhamento.objects.create(
+            acompanhamento=self.acomp, codigo="PE-10", sequencia=5, pilar=self.pilares["INFRA"],
+            nome="Indicador de infraestrutura", unidade="Percentual", meta_total=100, acumulado=50,
+        )
+        slides = compor_apresentacao(self.apresentacao, self.master)["slides"]
+        pdi = next(s for s in slides if s["chave"] == "pdi")
+        fontes = next(s for s in slides if s["tipo"] == "fontes")
+        ppi = next(s for s in slides if s["tipo"] == "ppi")
+        self.assertEqual(
+            [i["rotulo"] for i in pdi["indicadores"]],
+            ["Projetos de pesquisa", "Indicador percentual", "Publicações em periódicos"],
+        )
+        self.assertEqual(
+            [i["rotulo"] for i in fontes["indicadores"]],
+            ["Indicador de outras fontes"],
+        )
+        self.assertEqual(
+            [i["rotulo"] for i in ppi["infra"]],
+            ["Indicador de infraestrutura"],
+        )
+        self.assertFalse(any(
+            "(Número absoluto)" in i["rotulo"] or "(Percentual)" in i["rotulo"] or "(publicações)" in i["rotulo"]
+            for slide in slides
+            for chave in ("indicadores", "infra")
+            for i in slide.get(chave, [])
+        ))
 
     def test_reimportacao_atualiza_e_novo_acompanhamento_nao_troca_vinculo(self):
         ResumoFinanceiro.objects.filter(acompanhamento=self.acomp, pilar=self.pilares["PDI"]).update(realizado=123456)

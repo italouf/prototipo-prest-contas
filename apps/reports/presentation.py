@@ -3,6 +3,7 @@
 O mês é editorial: valores anuais não são distribuídos pelos meses.
 O filtro de pilares precede os totais e a seleção dos gráficos.
 """
+import re
 import textwrap
 from decimal import Decimal
 
@@ -20,6 +21,16 @@ PILARES = (
     ("AT", "Associação Tecnológica", "AT"),
 )
 PILARES_PPI = {"PDI", "FORMACAO", "STARTUPS", "INFRA"}
+
+_UNIDADE_NO_ROTULO = re.compile(
+    r"(?:\s*\((?:n[úu]mero\s+absoluto|percentual(?:is)?|publica[cç][õo]es)\))+\s*$",
+    re.IGNORECASE,
+)
+
+
+def _sem_unidade(rotulo):
+    """Remove a unidade entre parênteses do fim do título do indicador."""
+    return _UNIDADE_NO_ROTULO.sub("", rotulo or "").strip()
 
 
 def _partes(texto, limite_linhas=11):
@@ -61,7 +72,13 @@ def compor_apresentacao(apresentacao, usuario):
     if "graficos_ciclo" not in financeiro:
         financeiro.update(resumo_financeiro_ciclo(apresentacao.acompanhamento, codigos))
     fisico = painel_acompanhamento(None, "fis", apresentacao.acompanhamento, codigos)
-    grupos = {grupo["codigo"]: grupo["linhas"] for grupo in fisico["tabela"]["grupos"]}
+    grupos = {
+        grupo["codigo"]: [
+            {**linha, "rotulo": _sem_unidade(linha.get("rotulo", ""))}
+            for linha in grupo["linhas"]
+        ]
+        for grupo in fisico["tabela"]["grupos"]
+    }
     conteudos = list(
         apresentacao.conteudos.filter(Q(pilar__isnull=True) | Q(pilar_id__in=ids))
         .select_related("pilar").defer("imagem")
