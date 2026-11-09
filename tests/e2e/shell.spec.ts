@@ -65,7 +65,7 @@ test('navega entre 5 paginas pela sidebar com boost', async ({ page }) => {
     await expect(page).toHaveTitle(/Portal QuIIN/);
   }
 
-  await page.getByTestId('sidebar').getByRole('link', { name: /^Geral/ }).click();
+  await page.getByTestId('sidebar').getByRole('link', { name: /^Visão geral/ }).click();
   await expect(page.getByRole('heading', { name: /gestão do quiin/i })).toBeVisible();
 });
 
@@ -256,7 +256,7 @@ test('L17 navegacao com boost mantem o header coerente com a pagina', async ({ p
   await expect(page.getByTestId('painel-pilar')).toContainText('Captado');
 
   // Pilar 4 -> Geral: o toggle de base deve voltar ao escopo do dashboard.
-  await page.getByTestId('sidebar').getByRole('link', { name: /^Geral/ }).click();
+  await page.getByTestId('sidebar').getByRole('link', { name: /^Visão geral/ }).click();
   await expect(page).toHaveURL(/127\.0\.0\.1:8000\/$/);
   const fisicoGeral = page.getByTestId('base-toggle').getByRole('link', { name: 'Físico' });
   await expect(fisicoGeral).toHaveAttribute('href', /^\/?\?ano=todos&base=fis$/);

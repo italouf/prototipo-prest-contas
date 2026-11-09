@@ -47,7 +47,7 @@ body .sidebar { padding-bottom: 12px; }
 body .sidebar > div { padding: 12px 12px 8px; gap: 4px; }
 body .sidebar > div > a { gap: 5px; }
 body .sidebar [data-testid="sidebar-collapse"] { position: absolute; top: 57px; right: 6px; padding: 2px; }
-body .sidebar nav { padding: 0 10px; }
+body .sidebar nav { padding: 12px 10px 0; }
 body .nav-clara { gap: 7px; padding: 6px 7px; font-size: 10.5px; font-weight: 400; }
 body .nav-clara svg { width: 13px; height: 13px; color: #a2a1b3; }
 body .nav-ativo { background: #04047e; color: white; }

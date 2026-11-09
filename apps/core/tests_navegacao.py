@@ -29,7 +29,7 @@ class SidebarNavegacaoTestes(TestCase):
     def test_grupos_e_itens_do_mockup_mais_operacao_e_gestao(self):
         self.client.force_login(self.master)
         resposta = self.client.get(reverse("core:dashboard"))
-        for rotulo in ["Geral", "Pilares", "PDI", "Formação FCRH", "ACS", "Infraestrutura",
+        for rotulo in ["Visão geral", "Pilares", "PDI", "Formação FCRH", "ACS", "Infraestrutura",
                        "Associação Tecnológica", "Talentos", "Prestação de contas",
                        "Mensal", "Semestral", "Relatórios", "Operação", "Lançamentos",
                        "Aprovação", "Financeiro", "Gestão", "Auditoria", "Admin"]:
@@ -38,6 +38,7 @@ class SidebarNavegacaoTestes(TestCase):
         self.assertContains(resposta, 'id="grp-pilares"')
         self.assertContains(resposta, 'id="grp-contas"')
         sidebar = resposta.content.decode().split('data-testid="sidebar"')[1].split("</aside>")[0]
+        self.assertNotIn('nav-secao-clara', sidebar)
         self.assertNotIn("OUTRASFONTES", sidebar)
         pilares = sidebar.split('id="grp-pilares"')[1].split("</ul>")[0]
         for rotulo in ["PDI", "Formação FCRH", "ACS", "Infraestrutura",
