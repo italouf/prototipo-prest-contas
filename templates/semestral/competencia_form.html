@@ -1,0 +1,263 @@
+{% extends 'features/base.html' %}
+{% block title %}{{ cfg.codigo }} · {{ comp.competencia_mm_aaaa }} · Prestação Semestral{% endblock %}
+
+{% block feature_content %}
+<p class="feature-crumb">
+  Início / <a href="{% url 'core:semestral' %}?ano={{ ciclo.ano }}&semestre={{ ciclo.semestre }}">Semestral ({{ ciclo.rotulo_painel }})</a> /
+  {{ cfg.codigo }} · {{ comp.competencia_mm_aaaa }}
+</p>
+
+<div class="feature-heading">
+  <div>
+    <h1>{{ cfg.nome }} — Competência {{ comp.competencia_mm_aaaa }}</h1>
+    <p class="feature-description">
+      Planilha EMBRAPII: <strong>{{ cfg.arquivo_embrapii }}</strong> ·
+      Responsável: <strong>{{ cfg.responsavel_nome }}</strong> ({{ cfg.responsavel_email }}) ·
+      Prazo limite (deadline): <strong>{{ comp.prazo_limite|date:'d/m/Y H:i' }}</strong>
+    </p>
+  </div>
+  <div class="flex flex-wrap items-center gap-2">
+    <span class="feature-badge {{ ciclo.status_badge_variant }}">Ciclo: {{ ciclo.get_status_display }}</span>
+    <span class="feature-badge {{ comp.badge_variant }}">{{ comp.get_status_display }}</span>
+    {% if comp.status_aprovacao != 'NAO_ENVIADO' %}
+    <span class="feature-badge {{ comp.aprovacao_badge_variant }}" data-testid="badge-aprovacao-semestral">
+      {{ comp.get_status_aprovacao_display }}
+    </span>
+    {% endif %}
+    {% if eh_gestor and periodo_aprovacao %}
+    <a href="{% url 'entries:aprovacao' periodo_aprovacao.pk %}#semestral-board" class="feature-button">
+      Painel de aprovação
+    </a>
+    {% endif %}
+    <a href="{% url 'core:semestral' %}?ano={{ ciclo.ano }}&semestre={{ ciclo.semestre }}" class="feature-button">
+      Voltar ao painel semestral
+    </a>
+  </div>
+</div>
+
+{% if bloqueada_por_ciclo %}
+  {% if eh_gestor %}
+  <div class="feature-notice" data-testid="banner-excecao-gestor-ciclo" style="border-color:#2563eb; background:#eff6ff;">
+    <strong>Ciclo em status "{{ ciclo.get_status_display }}" (bloqueado para Pontos Focais):</strong>
+    Como <strong>Master/Admin</strong>, você mantém permissão excepcional para incluir, editar, excluir ou submeter registros neste ciclo. Toda modificação é registrada na trilha de <strong>Auditoria</strong>.
+  </div>
+  {% else %}
+  <div class="feature-notice" data-testid="banner-bloqueio-ciclo-focal" style="border-color:#d97706; background:#fffbeb;">
+    <strong>Edição e envio bloqueados — Ciclo "{{ ciclo.get_status_display }}":</strong>
+    Como o ciclo <strong>{{ ciclo.rotulo_painel }}</strong> está com status <strong>{{ ciclo.get_status_display }}</strong>, não é permitido editar ou enviar novas informações para aprovação. Caso seja necessário algum ajuste excepcional, acione a Coordenação (Master/Admin).
+  </div>
+  {% endif %}
+{% endif %}
+
+{% if comp.status_aprovacao == 'DEVOLVIDO' %}
+<div class="feature-notice" data-testid="banner-devolvido-semestral" style="border-color:#d97706; background:#fffbeb;">
+  <strong>Devolvida para correção pela Coordenação</strong>
+  {% if comp.revisado_por %} por {{ comp.revisado_por.nome_exibicao }}{% endif %}
+  {% if comp.revisado_em %} em {{ comp.revisado_em|date:'d/m/Y H:i' }}{% endif %}:
+  <div style="margin-top:6px;">{{ comp.comentario_revisao }}</div>
+  {% if not bloqueada_por_ciclo or eh_gestor %}
+  <div class="feature-muted" style="margin-top:6px;">Ajuste os registros nas abas necessárias e clique novamente em <strong>Reenviar para aprovação</strong>.</div>
+  {% endif %}
+</div>
+{% elif comp.status_aprovacao == 'APROVADO' %}
+<div class="feature-notice" data-testid="banner-aprovado-semestral" style="border-color:#15803d; background:#f0fdf4; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px;">
+  <div>
+    <strong>Competência aprovada pela Coordenação</strong>
+    {% if comp.revisado_por %} ({{ comp.revisado_por.nome_exibicao }}{% if comp.revisado_em %} em {{ comp.revisado_em|date:'d/m/Y H:i' }}{% endif %}){% endif %}.
+    {% if comp.comentario_revisao %}
+    <div style="margin-top:6px;">Comentário: {{ comp.comentario_revisao }}</div>
+    {% endif %}
+    {% if bloqueada_aprovacao %}
+    <div class="feature-muted" style="margin-top:6px;">Edições bloqueadas para o Ponto Focal após aprovação. Caso precise ajustar algum dado, solicite a devolução à Coordenação.</div>
+    {% endif %}
+  </div>
+  {% if eh_gestor and periodo_aprovacao %}
+  <a href="{% url 'entries:aprovacao' periodo_aprovacao.pk %}#semestral-board" class="feature-button">
+    Gerenciar no Painel de aprovação
+  </a>
+  {% endif %}
+</div>
+{% elif comp.status_aprovacao == 'EM_ANALISE' %}
+<div class="feature-notice" data-testid="banner-em-analise-semestral" style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px;">
+  <div>
+    <strong>Submetida para análise da Coordenação</strong>
+    {% if comp.submetido_por %} por {{ comp.submetido_por.nome_exibicao }}{% endif %}
+    {% if comp.submetido_em %} em {{ comp.submetido_em|date:'d/m/Y H:i' }}{% endif %}.
+    {% if comp.observacao_submissao %}
+    <div style="margin-top:6px;">Observação enviada: <em>{{ comp.observacao_submissao }}</em></div>
+    {% endif %}
+    {% if eh_gestor %}
+    <div class="feature-muted" style="margin-top:6px;">Aprovação e devolução com justificativa são realizadas exclusivamente no <strong>Painel de aprovação</strong>.</div>
+    {% endif %}
+  </div>
+  {% if eh_gestor and periodo_aprovacao %}
+  <a href="{% url 'entries:aprovacao' periodo_aprovacao.pk %}#semestral-board" class="feature-button primary" data-testid="btn-revisar-no-painel-aprovacao">
+    Revisar no Painel de aprovação
+  </a>
+  {% endif %}
+</div>
+{% endif %}
+
+<div class="feature-notice" style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px;">
+  <div>
+    <strong>Link direto desta aba:</strong>
+    <code>{{ link_direto }}</code>
+  </div>
+  <a href="{% url 'semestral:exportar_xlsx' cfg.arquivo_embrapii %}?ano={{ ciclo.ano }}&semestre={{ ciclo.semestre }}" class="feature-button">
+    Baixar planilha {{ cfg.arquivo_embrapii }} (.xlsx)
+  </a>
+</div>
+
+<div class="feature-tabs" role="tablist" aria-label="Abas do pilar {{ cfg.codigo }}">
+  {% for item in tabs_nav %}
+  <a href="{% url 'semestral:competencia_form' comp.pk %}?aba={{ item.spec.slug }}"
+     class="{% if item.ativa %}active{% endif %}"
+     role="tab" aria-selected="{% if item.ativa %}true{% else %}false{% endif %}">
+    {{ item.spec.titulo_curto }} ({{ item.count }})
+  </a>
+  {% endfor %}
+</div>
+
+{% if spec.notes %}
+<p class="feature-muted" style="margin:6px 0 12px;">{{ spec.notes }}</p>
+{% endif %}
+
+<div class="feature-panel">
+  <div class="feature-panel-title">
+    <h2>Registros lançados em "{{ spec.aba }}" ({{ comp.competencia_mm_aaaa }})</h2>
+    <span class="feature-muted">{{ linhas_tabela|length }} registro(s) neste mês</span>
+  </div>
+  <div class="feature-table-wrap">
+    <table class="feature-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          {% if spec.has_code_preview %}<th>Código EMBRAPII (Prévia)</th>{% endif %}
+          {% for lbl in colunas_labels %}
+          <th>{{ lbl }}</th>
+          {% endfor %}
+          {% if pode_editar %}<th>Ações</th>{% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for linha in linhas_tabela %}
+        <tr>
+          <td>{{ forloop.counter }}</td>
+          {% if spec.has_code_preview %}
+          <td><code>{{ linha.codigo_preview|default:"—" }}</code></td>
+          {% endif %}
+          {% for val in linha.celulas %}
+          <td>{{ val }}</td>
+          {% endfor %}
+          {% if pode_editar %}
+          <td style="white-space:nowrap;">
+            <a href="{% url 'semestral:competencia_form' comp.pk %}?aba={{ spec.slug }}&editar={{ linha.obj.pk }}" class="feature-button" style="padding:4px 9px;">Editar</a>
+            <form method="post" action="{% url 'semestral:excluir_registro' comp.pk spec.slug linha.obj.pk %}" style="display:inline;" onsubmit="return confirm('Confirma excluir este registro?');">
+              {% csrf_token %}
+              <button type="submit" class="feature-button" style="padding:4px 9px; color:#a9520a;">Excluir</button>
+            </form>
+          </td>
+          {% endif %}
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="12" class="feature-empty">Nenhum registro lançado nesta aba para {{ comp.competencia_mm_aaaa }}.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if pode_editar %}
+<div class="feature-panel">
+  <div class="feature-panel-title">
+    <h2>{% if instancia %}Editar registro #{{ instancia.pk }}{% else %}Novo registro em "{{ spec.aba }}"{% endif %}</h2>
+    {% if instancia %}
+    <a href="{% url 'semestral:competencia_form' comp.pk %}?aba={{ spec.slug }}" class="feature-button">Cancelar edição</a>
+    {% endif %}
+  </div>
+  <form method="post" action="{% url 'semestral:competencia_form' comp.pk %}?aba={{ spec.slug }}{% if instancia %}&editar={{ instancia.pk }}{% endif %}" class="feature-form" style="max-width:100%;">
+    {% csrf_token %}
+    {% if form.non_field_errors %}
+    <div class="feature-error">{{ form.non_field_errors }}</div>
+    {% endif %}
+    <div class="feature-fields">
+      {% for field in form %}
+      <div class="{% if field.field.widget.attrs.rows or spec.is_comment_sheet %}wide{% endif %}">
+        <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} *{% endif %}</label>
+        {{ field }}
+        {% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}
+        {% for erro in field.errors %}<div class="feature-error" style="margin-top:4px;">{{ erro }}</div>{% endfor %}
+      </div>
+      {% endfor %}
+    </div>
+    {% if sugestoes_projetos %}
+    <datalist id="dl-{{ spec.slug }}-projetos">
+      {% for cod in sugestoes_projetos %}
+      <option value="{{ cod }}"></option>
+      {% endfor %}
+    </datalist>
+    {% endif %}
+    <div class="feature-actions">
+      <button type="submit" class="feature-button primary" data-testid="btn-salvar-registro">
+        {% if instancia %}Salvar alterações{% else %}Adicionar registro em {{ comp.competencia_mm_aaaa }}{% endif %}
+      </button>
+    </div>
+  </form>
+</div>
+
+<div class="feature-panel">
+  <div class="feature-panel-title">
+    <h2>Conclusão e Submissão Mensal — {{ cfg.codigo }} ({{ comp.competencia_mm_aaaa }})</h2>
+    <span class="feature-badge {{ comp.badge_variant }}">{{ comp.get_status_display }}</span>
+  </div>
+  <form method="post" action="{% url 'semestral:submeter_competencia' comp.pk %}" class="feature-pad">
+    {% csrf_token %}
+    <div class="feature-fields">
+      <div class="wide">
+        <label for="{{ submissao_form.observacao_submissao.id_for_label }}">{{ submissao_form.observacao_submissao.label }}</label>
+        {{ submissao_form.observacao_submissao }}
+      </div>
+    </div>
+    <div class="feature-actions" style="justify-content:space-between; align-items:center;">
+      <span class="feature-muted">
+        {% if comp.status == 'ATRASADO_ITS1_EMITIDA' %}
+        Esta competência recebeu Advertência <strong>ITS1</strong>. Ao submeter, o status será alterado para <strong>Regularizado após ITS1</strong> e enviado para análise da Coordenação.
+        {% elif comp.status_aprovacao == 'DEVOLVIDO' %}
+        Após corrigir os pontos solicitados pela Coordenação, reenvie para nova análise no Painel de aprovação.
+        {% elif comp.concluida %}
+        Competência enviada em {{ comp.submetido_em|date:'d/m/Y H:i' }}. Você ainda pode complementar registros e reenviar para análise.
+        {% else %}
+        Confirme após lançar todos os registros do mês em todas as abas aplicáveis do pilar. A entrega seguirá para análise no Painel de aprovação.
+        {% endif %}
+      </span>
+      <button type="submit" class="feature-button primary" data-testid="btn-submeter-competencia">
+        {% if comp.status == 'ATRASADO_ITS1_EMITIDA' %}Submeter e regularizar ITS1{% elif comp.status_aprovacao == 'DEVOLVIDO' %}Reenviar para aprovação{% else %}Concluir e submeter competência{% endif %}
+      </button>
+    </div>
+  </form>
+</div>
+{% endif %}
+
+{% if logs_comp %}
+<div class="feature-panel">
+  <div class="feature-panel-title">
+    <h2>Histórico SLA / Revisões e Notificações desta Competência</h2>
+  </div>
+  <div class="feature-pad">
+    <ul class="feature-timeline">
+      {% for log in logs_comp %}
+      <li>
+        <strong>{% if log.codigo_ocorrencia %}[{{ log.codigo_ocorrencia }}] {% endif %}{{ log.get_tipo_evento_display }}</strong>
+        — {{ log.destinatario_nome }} ({{ log.destinatario_email }})
+        {% if log.cc_emails %}<span class="feature-muted"> · CC: {{ log.cc_emails }}</span>{% endif %}
+        <div class="feature-muted">{{ log.assunto }}</div>
+        <time>{{ log.enviado_em|date:'d/m/Y H:i' }}</time>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

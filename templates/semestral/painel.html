@@ -1,0 +1,301 @@
+{% extends 'features/base.html' %}
+{% block title %}Prestação de Contas Semestral · SIG QuIIN{% endblock %}
+
+{% block feature_content %}
+<p class="feature-crumb">Início / Prestação de contas / Semestral</p>
+
+<div class="feature-heading">
+  <div>
+    <h1>
+      Prestação de Contas Semestral (EMBRAPII v3.1)
+      <span class="feature-badge {{ ciclo.status_badge_variant }}" data-testid="badge-status-ciclo" style="vertical-align:middle; margin-left:6px;">
+        {{ ciclo.get_status_display }}
+      </span>
+    </h1>
+    <p class="feature-description">
+      {{ ciclo.rotulo_painel }} · {{ ciclo.centro_competencia }} ({{ ciclo.abreviacao_cc }}) ·
+      Termo de Cooperação <strong>{{ ciclo.termo_cooperacao }}</strong> ·
+      Coordenação: <strong>{{ ciclo.coordenacao_nome }}</strong> ({{ ciclo.coordenacao_email }})
+    </p>
+  </div>
+  <div class="flex flex-wrap gap-2">
+    {% if eh_gestor and periodo_aprovacao and totais.em_analise %}
+    <a href="{% url 'entries:aprovacao' periodo_aprovacao.pk %}#semestral-board" class="feature-button primary" data-testid="btn-ir-painel-aprovacao">
+      Revisar entregas ({{ totais.em_analise }})
+    </a>
+    {% endif %}
+    {% if eh_gestor %}
+    <a href="{% url 'semestral:configurar_ciclo' %}?ano={{ ano }}&semestre={{ semestre }}" class="feature-button">
+      Configurar ciclo e responsáveis
+    </a>
+    {% endif %}
+    {% if pode_exportar_pacote %}
+    <a href="{% url 'semestral:exportar_pacote' %}?ano={{ ano }}&semestre={{ semestre }}" class="feature-button primary" data-testid="btn-exportar-pacote">
+      Baixar 5 planilhas EMBRAPII (.zip)
+    </a>
+    {% endif %}
+    <a href="{% url 'core:semestral_csv' %}?ano={{ ano }}&semestre={{ semestre }}" class="feature-button">
+      Exportar resumo (.csv)
+    </a>
+  </div>
+</div>
+
+{% if ciclo.bloqueado_para_edicao_focal %}
+<div class="feature-notice" data-testid="banner-ciclo-bloqueado" style="border-color:#d97706; background:#fffbeb;">
+  <strong>Ciclo em status "{{ ciclo.get_status_display }}":</strong>
+  {% if eh_gestor %}
+  Edições e novos envios estão bloqueados para Pontos Focais e demais usuários. Como <strong>Master/Admin</strong>, você mantém permissão excepcional para editar registros a qualquer momento (todas as alterações ficam registradas na Auditoria).
+  {% else %}
+  Este ciclo semestral foi encerrado para edição. Não é possível incluir, alterar, excluir ou enviar novos dados para aprovação (modo somente leitura).
+  {% endif %}
+</div>
+{% endif %}
+
+<form method="get" action="{% url 'core:semestral' %}" class="feature-filters" data-testid="filtro-semestral">
+  <div>
+    <label for="id_ano">Ano</label>
+    <select id="id_ano" name="ano">
+      {% for a in anos_disponiveis %}
+      <option value="{{ a }}" {% if a == ano %}selected{% endif %}>{{ a }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div>
+    <label for="id_semestre">Semestre</label>
+    <select id="id_semestre" name="semestre">
+      <option value="1" {% if semestre == 1 %}selected{% endif %}>1º semestre</option>
+      <option value="2" {% if semestre == 2 %}selected{% endif %}>2º semestre</option>
+    </select>
+  </div>
+  <div>
+    <button type="submit" class="feature-button primary">Aplicar ciclo</button>
+  </div>
+</form>
+
+<div class="feature-kpis five">
+  <div class="feature-kpi">
+    <div class="feature-label">AprovadasAprovadas / Em análise/ Em análise</div>
+    <div class="feature-value">{{ totais.aprovadoaprovado }} <small>/ {{ totais.em_analiseem_analise }} em análise</small></div>
+  </div>
+  <div class="feature-kpi">
+    <div class="feature-label">SubmetidasSubmetidas (Prazo / PósPrazo / Pós-ITS1)</div>
+    <div class="feature-value">{{ totais.no_prazo|add:totais.regularizado }} <small>/ {{ totais.total }}</small></div>
+  </div>
+  <div class="feature-kpi">
+    <div class="feature-label">Atrasadas / ITS1 · Devolvidas· Devolvidas</div>
+    <div class="feature-value {% if totais.atrasado_its1 or totais.devolvido %}feature-overdue{% endif %}">
+      {{ totais.atrasado_its1 }} <small>ITS1 · {{ totais.devolvido }} dev.</small>
+    </div>
+  </div>
+  <div class="feature-kpi">
+    <div class="feature-label">Aguardando entrega</div>
+    <div class="feature-value">{{ totais.alerta_enviado|add:totais.pendente }}</div>
+  </div>
+  <div class="feature-kpi">
+    <div class="feature-label">Registros consolidados</div>
+    <div class="feature-value">{{ totais.registros }}</div>
+  </div>
+</div>
+
+<div class="feature-notice">
+  <strong>Escopo QuIIN (EMBRAPII v3.1):</strong> A coleta é mensal (<code>mm/aaaa</code>) por pilar e acumulada automaticamente no semestre para exportação lossless sobre os templates oficiais.
+  Na Planilha Financeira, estão habilitadas exclusivamente a aba verde <strong>10. Conta Ação - Outras Fontes</strong> e as abas azuis <strong>11 a 18</strong> (abas <code>0..9.1</code> e <code>19. Versões</code> pertencem ao PFO institucional).
+</div>
+
+<div class="feature-panel" data-testid="semaforo-semestral">
+  <div class="feature-panel-title">
+    <h2>Semáforo Mensal por Pilar / Responsável — {{ ciclo.rotulo_painel }}</h2>
+    <span class="feature-muted">Clique em qualquer competência mensal para preencher formulários, submeter ou revisarrevisar entrega</span>
+  </div>
+  <div class="feature-table-wrap">
+    <table class="feature-table">
+      <thead>
+        <tr>
+          <th>Pilar / Planilha EMBRAPII</th>
+          <th>Responsável e Prazo</th>
+          {% for m in meses_header %}
+          <th>{{ m.nome }}<span class="code">{{ m.mm_aaaa }}</span></th>
+          {% endfor %}
+          <th class="numeric">Total Regs</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in matriz %}
+        <tr>
+          <td>
+            <strong>{{ row.config.codigo }}</strong>
+            <span class="code">{{ row.config.nome }} · Planilha {{ row.config.arquivo_embrapii }}</span>
+          </td>
+          <td>
+            <div>{{ row.config.responsavel_nome }}</div>
+            <span class="code">{{ row.config.responsavel_email }} · dia {{ row.config.dia_limite_mensal }}</span>
+          </td>
+          {% for cel in row.celulas %}
+          <td>
+            {% if cel.competencia %}
+            <a href="{% url 'semestral:competencia_form' cel.competencia.pk %}" title="Abrir coleta {{ cel.competencia.competencia_mm_aaaa }} ({{ cel.competencia.get_status_display }} / {{ cel.competencia.get_status_aprovacao_display }})" style="text-decoration:none;">
+              <span class="feature-badge {{ cel.competencia.painel_badge_variant }}">
+                {{ cel.competencia.rotulo_badge_painel }}
+            <a href="{% url 'semestral:competencia_form' cel.competencia.pk %}" title="Abrir coleta {{ cel.competencia.competencia_mm_aaaa }} ({{ cel.competencia.get_status_display }} / {{ cel.competencia.get_status_aprovacao_display }})" style="text-decoration:none;">
+              <span class="feature-badge {{ cel.competencia.painel_badge_variant }}">
+                {{ cel.competencia.rotulo_badge_painel }}
+              </span>
+              <span class="code">{{ cel.qtd_registros }} reg. · prazo {{ cel.competencia.prazo_limite|date:'d/m' }}</span>
+            </a>
+            {% else %}—{% endif %}
+          </td>
+          {% endfor %}
+          <td class="numeric"><strong>{{ row.total_registros }}</strong></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="9" class="feature-empty">Nenhum pilar configurado para o seu perfil.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="feature-two">
+  <div class="feature-panel">
+    <div class="feature-panel-title">
+      <h2>Exportação Oficial EMBRAPII v3.1 (.xlsx Lossless)</h2>
+      <span class="feature-badge purple">SHA-512 + Fórmulas + Listas</span>
+    </div>
+    <div class="feature-pad">
+      <p class="feature-muted" style="margin-bottom:12px;">
+        Os arquivos são clonados dos templates oficiais v3.1 com preenchimento exclusivo nas células desbloqueadas e preservação integral de senhas SHA-512, fórmulas nativas e dropdowns cross-sheet.
+      </p>
+      {% for exp in export_arquivos %}
+      <div class="feature-contract">
+        <div>
+          <strong>{{ exp.tag }}</strong>
+          <div class="feature-muted">{{ exp.rotulo }}</div>
+        </div>
+        {% if exp.disponivel %}
+        <a href="{% url 'semestral:exportar_xlsx' exp.tag %}?ano={{ ano }}&semestre={{ semestre }}" class="feature-button">
+          Baixar .xlsx
+        </a>
+        {% else %}
+        <span class="feature-badge">Restrito ao pilar</span>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="feature-panel">
+    <div class="feature-panel-title">
+      <h2>Governança de Prazos, Links Diretos e Régua ITS1</h2>
+      <span class="feature-badge orange">CC: {{ ciclo.coordenacao_nome }}</span>
+    </div>
+    <div class="feature-pad">
+      {% if eh_gestor %}
+      <form method="post" action="{% url 'semestral:sla_disparar_alertas' %}" style="margin-bottom:16px; padding-bottom:14px; border-bottom:1px solid var(--fp-border);">
+        {% csrf_token %}
+        <input type="hidden" name="ano" value="{{ ano }}">
+        <input type="hidden" name="semestre" value="{{ semestre }}">
+        <div class="feature-filters" style="margin:0 0 8px 0;">
+          <div>
+            <label for="id_comp_alerta">Competência alvo (Alertas)</label>
+            <select id="id_comp_alerta" name="competencia">
+              <option value="">Todas pendentes do ciclo</option>
+              {% for m in meses_header %}
+              <option value="{{ m.iso }}">{{ m.nome }} ({{ m.mm_aaaa }})</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div style="display:flex; align-items:center; gap:6px; padding-bottom:6px;">
+            <input type="checkbox" id="id_reenviar" name="reenviar" value="1">
+            <label for="id_reenviar" style="margin:0; text-transform:none; font-weight:500;">Reenviar já alertadas</label>
+          </div>
+          <div>
+            <button type="submit" class="feature-button primary" data-testid="btn-disparar-alertas">
+              Disparar alertas mensais
+            </button>
+          </div>
+        </div>
+        <p class="feature-muted">Envia e-mail + notificação in-app com link direto tokenizado e prazo limite para cada responsável.</p>
+      </form>
+
+      <form method="post" action="{% url 'semestral:sla_verificar_its1' %}">
+        {% csrf_token %}
+        <input type="hidden" name="ano" value="{{ ano }}">
+        <input type="hidden" name="semestre" value="{{ semestre }}">
+        <div class="feature-filters" style="margin:0 0 8px 0;">
+          <div>
+            <label for="id_ref_dt">Data/hora de referência (opcional / simulação)</label>
+            <input type="datetime-local" id="id_ref_dt" name="referencia_dt">
+          </div>
+          <div>
+            <button type="submit" class="feature-button" data-testid="btn-verificar-its1">
+              Verificar SLA e emitir ITS1
+            </button>
+          </div>
+        </div>
+        <p class="feature-muted">Detecta competências vencidas sem submissão, altera status para <strong>ATRASADO / ADVERTÊNCIA ITS1</strong> e envia alerta automático com cópia para <strong>{{ ciclo.coordenacao_nome }}</strong> ({{ ciclo.coordenacao_email }}).</p>
+      </form>
+      {% else %}
+      <p class="feature-muted">O disparo em lote de alertas e a verificação da régua ITS1 são gerenciados pela Coordenação (Master/Admin).</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="feature-panel">
+  <div class="feature-panel-title">
+    <h2>Trilha de Notificações Mensais, Revisões, Advertências ITS1 e Comunicados</h2>
+    <span class="feature-muted">Últimos 25 eventos registrados no ciclo</span>
+  </div>
+  <div class="feature-table-wrap">
+    <table class="feature-table">
+      <thead>
+        <tr>
+          <th>Data/Hora</th>
+          <th>Pilar · Competência</th>
+          <th>Evento / Código</th>
+          <th>Destinatário (CC)</th>
+          <th>Assunto e Link Direto</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for log in logs_sla %}
+        <tr>
+          <td>{{ log.enviado_em|date:'d/m/Y H:i' }}</td>
+          <td><strong>{{ log.competencia.configuracao_pilar.codigo }}</strong> · {{ log.competencia.competencia_mm_aaaa }}</td>
+          <td>
+            <span class="feature-badge {% if log.tipo_evento == 'DEVOLUCAO_SEMESTRAL' or log.codigo_ocorrencia == 'ITS1' and log.tipo_evento != 'REGULARIZACAO' %}orange{% elif log.tipo_evento == 'REGULARIZACAO' or log.tipo_evento == 'APROVACAO_SEMESTRAL' %}green{% else %}blue{% endif %}">
+              {% if log.codigo_ocorrencia %}[{{ log.codigo_ocorrencia }}] {% endif %}{{ log.get_tipo_evento_display }}
+            </span>
+          </td>
+          <td>
+            <div>{{ log.destinatario_nome }} ({{ log.destinatario_email }})</div>
+            {% if log.cc_emails %}<span class="code">CC: {{ log.cc_emails }}</span>{% endif %}
+          </td>
+          <td>
+            <div>{{ log.assunto }}</div>
+            {% if log.link_direto %}<a href="{{ log.link_direto }}" class="code" style="color:var(--fp-blue);">Abrir link direto contextualizado</a>{% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" class="feature-empty">Nenhum alerta mensal ou advertência ITS1 registrada neste ciclo ainda.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if periodos_portal %}
+<div class="feature-panel">
+  <div class="feature-panel-title">
+    <h2>Apresentações Mensais do Portal no Semestre ({{ ciclo.rotulo_painel }})</h2>
+  </div>
+  <div class="feature-pad" style="display:flex; flex-wrap:wrap; gap:10px;">
+    {% for p in periodos_portal %}
+    <a href="/prestacao/mensal/?periodo={{ p.competencia|date:'Y-m-d' }}" class="feature-button">
+      {{ p.competencia|date:'Y-m' }} · {{ p.get_status_display }}
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+{% endblock %}

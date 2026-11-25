@@ -199,9 +199,30 @@ def aprovacao(request, periodo_pk):
         colunas.append(dict(status=status, titulo=titulo, total=contagens.get(status, 0), pagina=pagina,
             anterior=query_url(request, **{"page_" + status: pagina.previous_page_number()}) if pagina and pagina.has_previous() else None,
             proxima=query_url(request, **{"page_" + status: pagina.next_page_number()}) if pagina and pagina.has_next() else None))
+    from apps.semestral.views import listar_aprovacoes_semestrais_por_competencia
+
+    semestral_escopo = "mes" if request.GET.get("semestral_escopo") == "mes" else "todos"
+    semestral_data = listar_aprovacoes_semestrais_por_competencia(
+        periodo.competencia,
+        filtro_pilar=c["filtro_pilar"],
+        busca=c["busca"],
+        apenas_competencia_selecionada=(semestral_escopo == "mes"),
+    )
     c.update(colunas=colunas, aprovados_abertos=aberto,
              toggle_url=query_url(request, aprovados_abertos="0" if aberto else "1"),
-             mobile_status=request.GET.get("mobile_status", "ENVIADO"))
+             mobile_status=request.GET.get("mobile_status", "ENVIADO"),
+             semestral_colunas=semestral_data["colunas"],
+             semestral_arquivados=semestral_data["arquivados"],
+             semestral_total_arquivados=semestral_data["total_arquivados"],
+             semestral_total_analise=semestral_data["total_em_analise"],
+             semestral_total_geral=semestral_data["total_geral"],
+             semestral_escopo=semestral_escopo,
+             semestral_escopo_toggle_url=query_url(
+                 request,
+                 semestral_escopo="todos" if semestral_escopo == "mes" else "mes",
+             ),
+             semestral_ano=periodo.competencia.year,
+             semestral_semestre=1 if periodo.competencia.month <= 6 else 2)
     return render(request, "entries/operational_board.html", c)
 
 

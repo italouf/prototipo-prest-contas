@@ -2,7 +2,7 @@
 {% block title %}Aprovação de resultados · SIG QuIIN{% endblock %}
 {% block extra_head %}<link rel="stylesheet" href="{% static 'css/operation.css' %}"><script src="{% static 'js/operation.js' %}" defer></script>{% endblock %}
 {% block feature_content %}
-<p class="feature-crumb">Operação / Aprovação</p><h1>Painel de aprovação</h1><p class="feature-description">Revise os acumulados propostos. Aprovar publica o resultado nos dashboards; devolver exige justificativa.</p>
+<p class="feature-crumb">Operação / Aprovação</p><h1>Painel de aprovação</h1><p class="feature-description">Revise os acumulados propostos e as coletas mensais da Prestação Semestral (EMBRAPII v3.1). Aprovar valida o resultado; devolver exige justificativa.</p>
 {% include 'entries/_operational_filters.html' %}
 <div id="operation-board" data-testid="operation-board" data-user="{{ request.user.pk }}" data-period="{{ periodo.pk }}" data-mobile-status="{{ mobile_status }}">
 <nav class="op-mobile-tabs" aria-label="Status das propostas">{% for c in colunas %}<button type="button" data-mobile-status="{{ c.status }}">{{ c.titulo }} ({{ c.total }})</button>{% endfor %}</nav>
@@ -10,5 +10,205 @@
 <header class="op-column-header"><h2>{{ c.titulo }} <span class="feature-badge">{{ c.total }}</span></h2>{% if c.status == 'APROVADO' %}<button class="feature-button" type="button" data-approved-toggle data-open="{% if aprovados_abertos %}1{% else %}0{% endif %}" data-url="{{ toggle_url }}" aria-expanded="{% if aprovados_abertos %}true{% else %}false{% endif %}" hx-get="{{ toggle_url }}" hx-target="#operation-board" hx-select="#operation-board" hx-swap="outerHTML">{% if aprovados_abertos %}Recolher{% else %}Expandir{% endif %}</button>{% endif %}</header>
 {% if c.pagina %}<div class="op-column-body">{% for item in c.pagina %}<article class="op-card" data-testid="operational-card"><small>{{ item.indicador.pilar.nome }} · {{ item.indicador.get_base_display }}</small><h3>{{ item.indicador.nome }}</h3><strong class="op-card-value">{{ item.valor_formatado }}</strong><p>{{ item.periodo.competencia|date:'m/Y' }} · {{ item.criado_por.nome_exibicao }}</p>{% if item.status == 'DEVOLVIDO' %}<p>{{ item.comentario_revisao|truncatechars:110 }}</p>{% endif %}<a class="feature-button" href="{{ item.detalhe_url }}" hx-get="{{ item.detalhe_url }}" hx-target="#operation-detail" hx-swap="innerHTML">{% if item.status == 'ENVIADO' %}Revisar proposta{% else %}Ver detalhes{% endif %}</a></article>{% empty %}<p class="feature-muted">Nenhuma proposta neste status.</p>{% endfor %}</div><nav class="op-pagination" aria-label="Páginas de {{ c.titulo }}">{% if c.anterior %}<a href="{{ c.anterior }}" hx-get="{{ c.anterior }}" hx-target="#operation-board" hx-select="#operation-board" hx-swap="outerHTML">Anterior</a>{% endif %}<span>{{ c.pagina.start_index }}–{{ c.pagina.end_index }} / {{ c.total }}</span>{% if c.proxima %}<a href="{{ c.proxima }}" hx-get="{{ c.proxima }}" hx-target="#operation-board" hx-select="#operation-board" hx-swap="outerHTML">Próxima</a>{% endif %}</nav>
 {% elif c.status == 'APROVADO' %}<p class="op-collapsed">{{ c.total }} resultados aprovados. Expanda para consultar.</p>{% else %}<p class="op-collapsed">Nenhuma proposta neste status.</p>{% endif %}</section>{% endfor %}</div></div>
+
+<section id="semestral-board" data-testid="semestral-board" style="margin-top:28px;">
+  <div class="feature-heading" style="margin-bottom:12px;">
+    <div>
+      <h2 style="font-size:18px; font-weight:700; margin:0;">
+        Prestação de Contas Semestral — Coletas Mensais
+        {% if semestral_escopo == 'mes' %}({{ periodo.competencia|date:'m/Y' }}){% else %}(Todas as competências){% endif %}
+        <span class="feature-badge {% if semestral_total_analise %}purple{% else %}neutral{% endif %}" style="margin-left:6px;">
+          {{ semestral_total_analise }} em análise
+        </span>
+      </h2>
+      <p class="feature-description" style="margin:4px 0 0;">
+        Entregas submetidas pelos Pontos Focais nas planilhas oficiais EMBRAPII v3.1. Aprovação e devolução são centralizadas exclusivamente neste painel.
+      </p>
+    </div>
+    <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
+      <a href="{{ semestral_escopo_toggle_url }}#semestral-board" class="feature-button" data-testid="btn-semestral-escopo">
+        {% if semestral_escopo == 'mes' %}Mostrar todas as competências{% else %}Filtrar apenas {{ periodo.competencia|date:'m/Y' }}{% endif %}
+      </a>
+      <a href="{% url 'core:semestral' %}?ano={{ semestral_ano }}&semestre={{ semestral_semestre }}" class="feature-button">
+        Abrir painel semestral
+      </a>
+    </div>
+  </div>
+  <div class="op-columns" style="grid-template-columns:repeat(3,minmax(0,1fr));">
+    {% for col in semestral_colunas %}
+    <section class="op-column" data-semestral-status="{{ col.status }}" aria-label="Semestral — {{ col.titulo }}">
+      <header class="op-column-header">
+        <h2>{{ col.titulo }} <span class="feature-badge">{{ col.total }}</span></h2>
+        {% if col.status == 'APROVADO' and col.total %}
+        <form method="post" action="{% url 'semestral:arquivar_aprovados_lote' %}" style="margin:0;">
+          {% csrf_token %}
+          <input type="hidden" name="next" value="{{ request.get_full_path }}#semestral-board">
+          <button type="submit" class="feature-button" style="padding:4px 9px; font-size:11px;" data-testid="btn-arquivar-todos-semestral">
+            Arquivar todos
+          </button>
+        </form>
+        {% endif %}
+      </header>
+      <div class="op-column-body">
+        {% if col.status == 'APROVADO' %}
+          {% for entry in col.itens %}
+          <article class="op-card" data-testid="semestral-approval-card" style="padding:10px 12px;">
+            <details>
+              <summary style="cursor:pointer; list-style:none; display:flex; align-items:center; justify-content:space-between; gap:8px;">
+                <div style="min-width:0;">
+                  <strong style="font-size:12px;">{{ entry.cfg.codigo }}</strong>
+                  <span class="feature-badge blue" style="margin-left:4px;">{{ entry.comp.competencia_mm_aaaa }}</span>
+                  <span style="font-size:11px; color:var(--color-text-muted,#62667e); margin-left:4px;">{{ entry.total_registros }} reg.</span>
+                </div>
+                <span style="font-size:11px; color:var(--color-text-muted,#62667e); white-space:nowrap;">Detalhes ▾</span>
+              </summary>
+              <div style="margin-top:10px; padding-top:10px; border-top:1px solid var(--color-border,#dce1ed);">
+                <div style="display:flex; justify-content:space-between; align-items:center; gap:6px; flex-wrap:wrap;">
+                  <small>Planilha {{ entry.cfg.arquivo_embrapii }}</small>
+                  <span class="feature-badge {{ entry.comp.badge_variant }}">{{ entry.comp.get_status_display }}</span>
+                </div>
+                <h3 style="margin:6px 0;">{{ entry.cfg.nome }}</h3>
+                {% if entry.resumo_abas %}
+                <p style="margin:6px 0;">
+                  {% for aba in entry.resumo_abas %}
+                  <span class="feature-badge neutral" style="margin:2px 4px 2px 0;">{{ aba.titulo }}: {{ aba.count }}</span>
+                  {% endfor %}
+                </p>
+                {% endif %}
+                <p>
+                  Enviado por {% if entry.comp.submetido_por %}{{ entry.comp.submetido_por.nome_exibicao }}{% else %}{{ entry.cfg.responsavel_nome }}{% endif %}
+                  {% if entry.comp.submetido_em %} em {{ entry.comp.submetido_em|date:'d/m/Y H:i' }}{% endif %}
+                </p>
+                {% if entry.comp.revisado_por %}
+                <p>
+                  Aprovado por {{ entry.comp.revisado_por.nome_exibicao }}
+                  {% if entry.comp.revisado_em %} em {{ entry.comp.revisado_em|date:'d/m/Y H:i' }}{% endif %}
+                </p>
+                {% endif %}
+                {% if entry.comp.observacao_submissao %}
+                <p><em>"{{ entry.comp.observacao_submissao|truncatechars:140 }}"</em></p>
+                {% endif %}
+                {% if entry.comp.comentario_revisao %}
+                <p><strong>Revisão:</strong> {{ entry.comp.comentario_revisao|truncatechars:140 }}</p>
+                {% endif %}
+                <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; align-items:center;">
+                  <a class="feature-button" style="padding:5px 10px; font-size:11px;" href="{{ entry.inspecionar_url }}">Inspecionar registros</a>
+                  <form method="post" action="{% url 'semestral:arquivar_competencia' entry.comp.pk %}" style="display:inline; margin:0;">
+                    {% csrf_token %}
+                    <input type="hidden" name="acao" value="arquivar">
+                    <input type="hidden" name="next" value="{{ request.get_full_path }}#semestral-board">
+                    <button type="submit" class="feature-button" style="padding:5px 10px; font-size:11px;" data-testid="btn-arquivar-semestral-{{ entry.comp.pk }}">Arquivar</button>
+                  </form>
+                </div>
+                <details style="margin-top:8px;">
+                  <summary style="cursor:pointer; font-size:11px; color:#a9520a; font-weight:600;">
+                    Reabrir / Devolver para correção
+                  </summary>
+                  <form method="post" action="{% url 'semestral:devolver_competencia' entry.comp.pk %}" style="margin-top:8px;">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ request.get_full_path }}#semestral-board">
+                    <textarea name="justificativa" rows="2" required placeholder="Descreva o ajuste necessário para o Ponto Focal..." style="width:100%; border:1px solid var(--color-border,#dce1ed); border-radius:6px; padding:6px; font-size:11px;"></textarea>
+                    <button type="submit" class="feature-button" style="margin-top:6px; color:#a9520a;" data-testid="btn-devolver-semestral-{{ entry.comp.pk }}">Confirmar devolução</button>
+                  </form>
+                </details>
+              </div>
+            </details>
+          </article>
+          {% empty %}
+          <p class="feature-muted" style="padding:10px 4px;">
+            {% if semestral_total_arquivados %}Todos os aprovados estão arquivados abaixo.{% else %}Nenhuma entrega semestral aprovada.{% endif %}
+          </p>
+          {% endfor %}
+
+          {% if semestral_arquivados %}
+          <details data-testid="semestral-arquivados-drawer" style="margin:8px 0 12px; padding:8px 10px; border:1px dashed var(--color-border,#dce1ed); border-radius:8px; background:rgba(255,255,255,0.65);">
+            <summary style="cursor:pointer; font-size:11px; font-weight:600; color:var(--color-text-muted,#62667e);">
+              Arquivados ({{ semestral_total_arquivados }})
+            </summary>
+            <div style="margin-top:8px; display:flex; flex-direction:column; gap:6px;">
+              {% for entry in semestral_arquivados %}
+              <div data-testid="semestral-archived-item" style="display:flex; align-items:center; justify-content:space-between; gap:6px; padding:6px 8px; background:#fff; border:1px solid var(--color-border,#dce1ed); border-radius:6px; font-size:11px;">
+                <div>
+                  <strong>{{ entry.cfg.codigo }}</strong> · {{ entry.comp.competencia_mm_aaaa }}
+                  <span style="color:var(--color-text-muted,#62667e);">({{ entry.total_registros }} reg.)</span>
+                </div>
+                <div style="display:flex; gap:6px; align-items:center;">
+                  <a href="{{ entry.inspecionar_url }}" style="font-size:11px; text-decoration:underline;">Ver</a>
+                  <form method="post" action="{% url 'semestral:arquivar_competencia' entry.comp.pk %}" style="display:inline; margin:0;">
+                    {% csrf_token %}
+                    <input type="hidden" name="acao" value="desarquivar">
+                    <input type="hidden" name="next" value="{{ request.get_full_path }}#semestral-board">
+                    <button type="submit" class="feature-button" style="padding:2px 7px; font-size:10px;" data-testid="btn-desarquivar-semestral-{{ entry.comp.pk }}">Restaurar</button>
+                  </form>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          </details>
+          {% endif %}
+        {% else %}
+          {% for entry in col.itens %}
+          <article class="op-card" data-testid="semestral-approval-card">
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:6px; flex-wrap:wrap;">
+              <div>
+                <span class="feature-badge {% if entry.mesma_competencia_painel %}blue{% else %}purple{% endif %}">{{ entry.comp.competencia_mm_aaaa }}</span>
+                <small style="margin-left:4px;">{{ entry.cfg.codigo }} · Planilha {{ entry.cfg.arquivo_embrapii }}</small>
+              </div>
+              <span class="feature-badge {{ entry.comp.badge_variant }}">{{ entry.comp.get_status_display }}</span>
+            </div>
+            <h3>{{ entry.cfg.nome }}</h3>
+            <strong class="op-card-value" style="font-size:15px;">{{ entry.total_registros }} registro(s)</strong>
+            {% if entry.resumo_abas %}
+            <p style="margin:6px 0;">
+              {% for aba in entry.resumo_abas %}
+              <span class="feature-badge neutral" style="margin:2px 4px 2px 0;">{{ aba.titulo }}: {{ aba.count }}</span>
+              {% endfor %}
+            </p>
+            {% endif %}
+            <p>
+              {{ entry.comp.competencia_mm_aaaa }} ·
+              {% if entry.comp.submetido_por %}{{ entry.comp.submetido_por.nome_exibicao }}{% else %}{{ entry.cfg.responsavel_nome }}{% endif %}
+              {% if entry.comp.submetido_em %} · {{ entry.comp.submetido_em|date:'d/m/Y H:i' }}{% endif %}
+            </p>
+            {% if entry.comp.observacao_submissao %}
+            <p><em>"{{ entry.comp.observacao_submissao|truncatechars:140 }}"</em></p>
+            {% endif %}
+            {% if entry.comp.comentario_revisao %}
+            <p style="color:#a9520a;"><strong>Revisão:</strong> {{ entry.comp.comentario_revisao|truncatechars:140 }}</p>
+            {% endif %}
+            <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; align-items:center;">
+              <a class="feature-button" href="{{ entry.inspecionar_url }}">Inspecionar registros</a>
+              {% if entry.comp.status_aprovacao == 'EM_ANALISE' %}
+              <form method="post" action="{% url 'semestral:aprovar_competencia' entry.comp.pk %}" style="display:inline;">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.get_full_path }}#semestral-board">
+                <button type="submit" class="feature-button primary" data-testid="btn-aprovar-semestral-{{ entry.comp.pk }}">Aprovar</button>
+              </form>
+              {% endif %}
+            </div>
+            {% if entry.comp.status_aprovacao == 'EM_ANALISE' %}
+            <details style="margin-top:8px;">
+              <summary style="cursor:pointer; font-size:11px; color:#a9520a; font-weight:600;">
+                Devolver com justificativa
+              </summary>
+              <form method="post" action="{% url 'semestral:devolver_competencia' entry.comp.pk %}" style="margin-top:8px;">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.get_full_path }}#semestral-board">
+                <textarea name="justificativa" rows="2" required placeholder="Descreva o ajuste necessário para o Ponto Focal..." style="width:100%; border:1px solid var(--color-border,#dce1ed); border-radius:6px; padding:6px; font-size:11px;"></textarea>
+                <button type="submit" class="feature-button" style="margin-top:6px; color:#a9520a;" data-testid="btn-devolver-semestral-{{ entry.comp.pk }}">Confirmar devolução</button>
+              </form>
+            </details>
+            {% endif %}
+          </article>
+          {% empty %}
+          <p class="feature-muted" style="padding:10px 4px;">Nenhuma entrega semestral neste status.</p>
+          {% endfor %}
+        {% endif %}
+      </div>
+    </section>
+    {% endfor %}
+  </div>
+</section>
+
 <dialog id="operation-dialog" aria-label="Revisão do resultado"><button type="button" class="feature-button op-close" data-close-operation>Fechar</button><div id="operation-detail"></div></dialog>
 {% endblock %}

@@ -55,7 +55,7 @@
           </a>
         </li>
         <li>
-          <a href="{% url 'core:semestral' %}" data-nav-link class="nav-clara {% if request.resolver_match.url_name == 'semestral' %}nav-ativo{% endif %}" {% if request.resolver_match.url_name == 'semestral' %}aria-current="page"{% endif %}>
+          <a href="{% url 'core:semestral' %}" data-nav-link class="nav-clara {% if request.resolver_match.url_name == 'semestral' or request.resolver_match.namespace == 'semestral' %}nav-ativo{% endif %}" {% if request.resolver_match.url_name == 'semestral' or request.resolver_match.namespace == 'semestral' %}aria-current="page"{% endif %}>
             <c-ui.icon name="calendar" size="18" /><span class="nav-rotulo">Semestral</span>
           </a>
         </li>

@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     "apps.talentos",
     "apps.gestao_at",
     "apps.planning",
+    "apps.semestral",
     "apps.seed",
 ]
 

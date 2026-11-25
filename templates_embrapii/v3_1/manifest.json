@@ -1,0 +1,32 @@
+{
+  "FIN": {
+    "original_filename": "Cópia de PPI - Acompanhamento Financeiro - Semestral (v3.1).xlsx",
+    "managed_filename": "fin_v3_1.xlsx",
+    "sha256": "4d8de8392c5d1bca9e7bcce615e8697ca63ff6a809418b8d3a8154487e0053fa",
+    "size_bytes": 2107110
+  },
+  "FCRH": {
+    "original_filename": "PPI - Acompanhamento Técnico - FCRH - Semestral (v3.1).xlsx",
+    "managed_filename": "fcrh_v3_1.xlsx",
+    "sha256": "49f4d5b8477108aba5e9acd41dfd9385ca39a627c56f7475f80858499e8bf85e",
+    "size_bytes": 367941
+  },
+  "ACS": {
+    "original_filename": "PPI - Acompanhamento Técnico - ACS - Semestral (v3.1) (2).xlsx",
+    "managed_filename": "acs_v3_1.xlsx",
+    "sha256": "2839631b0fc06db306af0560cca3bf84158a4d9187458f2591ace7ea6e370053",
+    "size_bytes": 534965
+  },
+  "AFCCT": {
+    "original_filename": "PPI - Acompanhamento Técnico - AFCCT - Semestral (v3.1) (1).xlsx",
+    "managed_filename": "afcct_v3_1.xlsx",
+    "sha256": "108a682cc28bb5a66ce57e9eb29b9f59474ea8e8521a1cdd28232d678dac2b12",
+    "size_bytes": 446376
+  },
+  "AT": {
+    "original_filename": "PPI - Acompanhamento Técnico - AT - Semestral (v3.1) (1).xlsx",
+    "managed_filename": "at_v3_1.xlsx",
+    "sha256": "b3f5249faa226e769f92abb933fb11d63335fdafc91dd10471e2c17de7b5f905",
+    "size_bytes": 211680
+  }
+}

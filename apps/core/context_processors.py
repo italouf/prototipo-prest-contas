@@ -69,6 +69,17 @@ def nav(request):
             pendencias_nav = {item["indicador__pilar"]: item["total"] for item in linhas}
             total_pendencias = sum(pendencias_nav.values())
 
+    if pode_aprovar(request.user):
+        try:
+            from apps.semestral.models import CompetenciaMensalPilar
+
+            pendencias_aprovacao += CompetenciaMensalPilar.objects.filter(
+                status_aprovacao="EM_ANALISE",
+                configuracao_pilar__ativo=True,
+            ).count()
+        except Exception:
+            pass
+
     return {
         "pode_ver_associados_at": pilares.filter(codigo="AT").exists(),
         "papel": papel_do_usuario(request.user),

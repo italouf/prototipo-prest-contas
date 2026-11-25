@@ -146,7 +146,7 @@ def _semestral_csv_legado(request):
     linhas = linhas_csv_semestre(ano, semestre, request.user)
     hoje = date.today().isoformat()
     resposta = HttpResponse(
-        "﻿" + "\n".join(linhas) + "\n", content_type="text/csv; charset=utf-8")
+        "\ufeff" + "\n".join(linhas) + "\n", content_type="text/csv; charset=utf-8")
     resposta["Content-Disposition"] = (
         f"attachment; filename=dados_quiin_semestre_{ano}_s{semestre}_{hoje}.csv"
     )
@@ -230,17 +230,19 @@ def pilar_drawer(request, pk):
     )
 
 
-
-
 @login_required
 def mensal(request):
     from apps.reports.presentation_views import apresentacao_mensal
     return apresentacao_mensal(request)
 
+
 @login_required
 def semestral(request):
-    return render(request, "features/construcao.html", {"titulo": "Prestação semestral", "grupo": "Prestação de contas"})
+    from apps.semestral.views import painel_semestral as _painel_semestral_v31
+    return _painel_semestral_v31(request)
+
 
 @login_required
 def semestral_csv(request):
-    return semestral(request)
+    from apps.semestral.views import exportar_csv_semestral
+    return exportar_csv_semestral(request)

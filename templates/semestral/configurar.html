@@ -1,0 +1,66 @@
+{% extends 'features/base.html' %}
+{% block title %}Configurar Ciclo Semestral · SIG QuIIN{% endblock %}
+
+{% block feature_content %}
+<p class="feature-crumb">
+  Início / <a href="{% url 'core:semestral' %}?ano={{ ano }}&semestre={{ semestre }}">Semestral</a> / Configurar
+</p>
+
+<div class="feature-heading">
+  <div>
+    <h1>Configuração do Ciclo Semestral e Responsáveis ({{ ciclo.rotulo_painel }})</h1>
+    <p class="feature-description">Parâmetros preenchidos automaticamente nos Sumários EMBRAPII v3.1 e destinatários da régua ITS1.</p>
+  </div>
+  <a href="{% url 'core:semestral' %}?ano={{ ano }}&semestre={{ semestre }}" class="feature-button">Voltar</a>
+</div>
+
+<form method="post" class="feature-panel">
+  {% csrf_token %}
+  <div class="feature-panel-title"><h2>Parâmetros Gerais do Ciclo e Coordenação (CC em ITS1)</h2></div>
+  <div class="feature-pad">
+    <div class="feature-fields">
+      {% for field in ciclo_form %}
+      <div>
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% for erro in field.errors %}<div class="feature-error">{{ erro }}</div>{% endfor %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="feature-panel-title" style="border-top:1px solid var(--fp-border);">
+    <h2>Responsáveis e Prazos Mensais por Pilar QuIIN</h2>
+  </div>
+  <div class="feature-table-wrap">
+    <table class="feature-table">
+      <thead>
+        <tr>
+          <th>Pilar / Planilha</th>
+          <th>Usuário Portal</th>
+          <th>Nome do Responsável</th>
+          <th>E-mail de Notificação / ITS1</th>
+          <th>Dia Limite (mês seguinte)</th>
+          <th>Ativo</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for cfg, pf in pilar_forms %}
+        <tr>
+          <td><strong>{{ cfg.codigo }}</strong><span class="code">{{ cfg.arquivo_embrapii }}</span></td>
+          <td>{{ pf.responsavel }}</td>
+          <td>{{ pf.responsavel_nome }}</td>
+          <td>{{ pf.responsavel_email }}</td>
+          <td>{{ pf.dia_limite_mensal }}</td>
+          <td>{{ pf.ativo }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="feature-pad feature-actions">
+    <button type="submit" class="feature-button primary">Salvar configurações</button>
+  </div>
+</form>
+{% endblock %}
