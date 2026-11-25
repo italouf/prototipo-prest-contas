@@ -1304,7 +1304,7 @@ def _campos_kpi(kpi, referencia):
     from apps.entries.effective import estado
     operacional = estado(kpi.acompanhamento_id)
     if operacional:
-        executado = operacional.kpi(kpi.codigo, referencia)
+        executado = operacional.kpi(kpi.codigo, referencia, fallback=executado)
     return previsto, executado
 
 

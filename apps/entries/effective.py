@@ -70,6 +70,17 @@ class Estado:
         self.aprovados = list(LancamentoOperacional.objects.filter(
             indicador__acompanhamento_id=base.acompanhamento_id, status="APROVADO"
         ).select_related("indicador", "periodo").order_by("-periodo__competencia", "-versao"))
+        self._kpis_pendentes_cache = None
+
+    def kpis_pendentes_conciliacao(self) -> int:
+        """Conta KPIs importados no acompanhamento ainda ausentes no snapshot da base."""
+        if self._kpis_pendentes_cache is None:
+            from apps.accountability.models import KpiAcompanhamento
+            codigos = KpiAcompanhamento.objects.filter(
+                acompanhamento_id=self.base.acompanhamento_id
+            ).values_list("codigo", flat=True)
+            self._kpis_pendentes_cache = sum(1 for c in codigos if f"kpi:{c}" not in self.alvos)
+        return self._kpis_pendentes_cache
 
     def valor(self, chave, limite=None):
         limite = limite or _limite.get()
@@ -119,10 +130,15 @@ class Estado:
         inicial = d(self.base.snapshot["totais"].get(codigo, {}).get("realizado"))
         return original + total - inicial if original is not None and total is not None and inicial is not None and ano == self.base.competencia_corte.year else None
 
-    def kpi(self, codigo, ano):
+    def kpi(self, codigo, ano, fallback=None):
         chave = f"kpi:{codigo}"
         if chave not in self.alvos:
-            return None
+            # KPI importado após a confirmação da base operacional: preserva o valor importado
+            # (exceto em recorte mensal anterior à competência de corte) até que a base seja conciliada.
+            limite = _limite.get()
+            if ano is None and limite is not None and limite < self.base.competencia_corte:
+                return None
+            return fallback
         if ano is None:
             return self.valor(chave)
         dados = self.alvos[chave].get("anos", {})

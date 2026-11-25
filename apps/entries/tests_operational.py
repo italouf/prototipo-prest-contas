@@ -140,6 +140,50 @@ class OperacaoTestes(TestCase):
         self.assertEqual(op.valor_atual(item), D(18))
         self.assertEqual(self.pilar(base="fis")["executado"], D(22))
 
+    def test_kpi_importado_apos_base_confirmada_usa_fallback_e_sinaliza_conciliacao(self):
+        from .effective import estado, invalidar
+
+        # Cria acompanhamento somente com financeiro e confirma a base ANTES dos KPIs físicos
+        ingestion.ingestar("FINANCEIRO_GERAL", FINANCEIRO, "Operação Fallback", "10/2026", self.user)
+        acomp_fb = Acompanhamento.objects.get(centro__nome="Operação Fallback")
+        op.confirmar_base(acomp_fb, date(2026, 1, 1), self.user)
+
+        # Importa INDICADORES_PE posteriormente (base já confirmada sem chaves kpi:*)
+        ingestion.ingestar(
+            "INDICADORES_PE",
+            FINANCEIRO.with_name("Indicadores Gerais do Termo de Retificação do PE.xlsx"),
+            "Operação Fallback",
+            "10/2026",
+            self.user,
+        )
+        invalidar()
+
+        e = estado(acomp_fb)
+        self.assertEqual(e.kpis_pendentes_conciliacao(), 10)
+        self.assertIsNone(e.kpi("PE-01", None))
+        self.assertEqual(e.kpi("PE-01", None, fallback=D(15)), D(15))
+        self.assertEqual(e.kpi("PE-01", 2024, fallback=D(5)), D(5))
+
+        # Visão geral e pilar exibem os executados reais via fallback e exibem o aviso de conciliação
+        ctx_geral = contexto_painel("todos", "fis", self.user, acomp_fb)
+        self.assertEqual(ctx_geral["painel"]["cards"][-1]["executado"], D(878))
+        self.assertEqual(ctx_geral["painel"]["status_fisico"]["neutra"], 0)
+        self.assertEqual(ctx_geral["painel"]["status_fisico"]["com_dados"], 10)
+        self.assertIn("10 indicador(es) físico(s)", ctx_geral["nota_operacional"])
+        self.assertIn("Conciliar base", ctx_geral["nota_operacional"])
+
+        ctx_pilar = contexto_pilar(self.pilares["PDI"], "todos", "fis", self.user, acomp_fb)
+        self.assertEqual(ctx_pilar["painel_pilar"]["executado"], D(19))
+        self.assertIn("10 indicador(es) físico(s)", ctx_pilar["nota_operacional"])
+
+        # Após conciliar a base, pendências zeram e o aviso desaparece
+        op.confirmar_base(acomp_fb, date(2026, 1, 1), self.user, "Incorporar KPIs físicos", reconciliar=True)
+        invalidar()
+        self.assertEqual(estado(acomp_fb).kpis_pendentes_conciliacao(), 0)
+        ctx_apos = contexto_painel("todos", "fis", self.user, acomp_fb)
+        self.assertEqual(ctx_apos["painel"]["cards"][-1]["executado"], D(878))
+        self.assertNotIn("ainda não foram conciliados", ctx_apos["nota_operacional"])
+
     def test_carteira_at_preserva_abertura_e_aprovacao_atualiza_fonte(self):
         base = self.base()
         antes = self.pilar("AT")["total_captacao"]["captado"]

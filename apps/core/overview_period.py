@@ -48,11 +48,21 @@ def posicao_operacional(contexto, periodo):
     oficial = estado(contexto.get("acompanhamento"))
     disponivel = bool(oficial and periodo["valido"] and periodo["fim"] >= oficial.base.competencia_corte)
     if disponivel:
+        aviso_conciliacao = ""
+        if contexto.get("base_param") == "fis":
+            pendentes = oficial.kpis_pendentes_conciliacao()
+            if pendentes:
+                aviso_conciliacao = (
+                    f" Atenção: {pendentes} indicador(es) físico(s) importado(s) do PE ainda não "
+                    f"foram conciliados na base operacional (exibindo valores importados; "
+                    f"concilie em Operação → Lançamentos → Conciliar base)."
+                )
         contexto["nota_operacional"] = (
             f"Resultados homologados · base v{oficial.base.versao}, corte {oficial.base.competencia_corte:%m/%Y}. "
             + (f"Posição acumulada desde 2024 até {periodo['fim']:%m/%Y}; os acumulados mensais não são somados. "
                if not periodo["ciclo"] and (contexto["base_param"] == "fin" or not periodo["anos"]) else "")
             + "Detalhamentos anuais sem referência histórica permanecem indisponíveis."
+            + aviso_conciliacao
         )
     return disponivel
 
@@ -88,9 +98,16 @@ def aplicar_periodo(contexto, periodo):
                 for celula in linha.get("anos", []):
                     celula.update(meta=None, executado=None, saldo=None, projetado=None)
         for fonte in painel.get("fontes", []):
-            fonte.update(meta=None, captado=None, realizado=None)
-        for grupo in painel["tabela"]["grupos"]:
-            for linha in grupo["linhas"]:
+            fonte.update(captado=None, realizado=None, saldo=None, percentual=None)
+        if "total_captacao" in painel:
+            painel["total_captacao"].update(captado=None, realizado=None, saldo=None, percentual=None)
+        for bloco in painel.get("blocos_fisicos", []):
+            bloco.update(executado=None, previsto=None, saldo=None, pct=None, faixa="neutra")
+            for linha in bloco.get("tabela", []):
+                linha.update(previsto=None, executado=None, saldo=None, pct=None, faixa="neutra")
+        for linha in painel.get("tabela", []):
+            if isinstance(linha, dict):
+                linha.update(previsto=None, executado=None, saldo=None, pct=None, faixa="neutra")
+        for grupo in painel.get("tabela_gerencial_fisica", {}).get("grupos", []):
+            for linha in grupo.get("linhas", []):
                 linha.update(previsto=None, executado=None, saldo=None, pct=None, faixa="neutra", barra=0)
-        painel["status_fisico"] = None
-    return contexto
