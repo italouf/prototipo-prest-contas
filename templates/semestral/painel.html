@@ -74,15 +74,15 @@
 
 <div class="feature-kpis five">
   <div class="feature-kpi">
-    <div class="feature-label">AprovadasAprovadas / Em análise/ Em análise</div>
-    <div class="feature-value">{{ totais.aprovadoaprovado }} <small>/ {{ totais.em_analiseem_analise }} em análise</small></div>
+    <div class="feature-label">Aprovadas / Em análise</div>
+    <div class="feature-value">{{ totais.aprovado }} <small>/ {{ totais.em_analise }} em análise</small></div>
   </div>
   <div class="feature-kpi">
-    <div class="feature-label">SubmetidasSubmetidas (Prazo / PósPrazo / Pós-ITS1)</div>
+    <div class="feature-label">Submetidas (Prazo / Pós-ITS1)</div>
     <div class="feature-value">{{ totais.no_prazo|add:totais.regularizado }} <small>/ {{ totais.total }}</small></div>
   </div>
   <div class="feature-kpi">
-    <div class="feature-label">Atrasadas / ITS1 · Devolvidas· Devolvidas</div>
+    <div class="feature-label">Atrasadas / ITS1 · Devolvidas</div>
     <div class="feature-value {% if totais.atrasado_its1 or totais.devolvido %}feature-overdue{% endif %}">
       {{ totais.atrasado_its1 }} <small>ITS1 · {{ totais.devolvido }} dev.</small>
     </div>
@@ -105,7 +105,7 @@
 <div class="feature-panel" data-testid="semaforo-semestral">
   <div class="feature-panel-title">
     <h2>Semáforo Mensal por Pilar / Responsável — {{ ciclo.rotulo_painel }}</h2>
-    <span class="feature-muted">Clique em qualquer competência mensal para preencher formulários, submeter ou revisarrevisar entrega</span>
+    <span class="feature-muted">Clique em qualquer competência mensal para preencher formulários, submeter ou revisar entrega</span>
   </div>
   <div class="feature-table-wrap">
     <table class="feature-table">
@@ -136,9 +136,6 @@
             <a href="{% url 'semestral:competencia_form' cel.competencia.pk %}" title="Abrir coleta {{ cel.competencia.competencia_mm_aaaa }} ({{ cel.competencia.get_status_display }} / {{ cel.competencia.get_status_aprovacao_display }})" style="text-decoration:none;">
               <span class="feature-badge {{ cel.competencia.painel_badge_variant }}">
                 {{ cel.competencia.rotulo_badge_painel }}
-            <a href="{% url 'semestral:competencia_form' cel.competencia.pk %}" title="Abrir coleta {{ cel.competencia.competencia_mm_aaaa }} ({{ cel.competencia.get_status_display }} / {{ cel.competencia.get_status_aprovacao_display }})" style="text-decoration:none;">
-              <span class="feature-badge {{ cel.competencia.painel_badge_variant }}">
-                {{ cel.competencia.rotulo_badge_painel }}
               </span>
               <span class="code">{{ cel.qtd_registros }} reg. · prazo {{ cel.competencia.prazo_limite|date:'d/m' }}</span>
             </a>
@@ -154,6 +151,8 @@
     </table>
   </div>
 </div>
+
+{% include 'semestral/_semaforo_coerencia.html' %}
 
 <div class="feature-two">
   <div class="feature-panel">

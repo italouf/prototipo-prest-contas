@@ -67,6 +67,9 @@ def iniciar(request):
     pilar = c["pilares_operacao"].filter(pk=c["filtro_pilar"]).first() if c["filtro_pilar"] else c["pilares_operacao"].first()
     if periodo and pilar and c["base_operacional"]:
         return redirect(reverse("entries:formulario", args=[periodo.pk, pilar.pk]) + ("?" + request.GET.urlencode() if request.GET else ""))
+    if c["gestor"] and c["acompanhamento"]:
+        from apps.semestral.integracao import calcular_semaforo_coerencia
+        c["semaforo_coerencia"] = calcular_semaforo_coerencia(acompanhamento=c["acompanhamento"])
     return render(request, "entries/operational_setup.html", c)
 
 
@@ -94,6 +97,9 @@ def configurar(request):
             return redirect(reverse("entries:iniciar") + f"?acompanhamento={c['acompanhamento'].pk}")
         except (ValueError, ValidationError) as exc:
             messages.error(request, "; ".join(exc.messages) if isinstance(exc, ValidationError) else "Informe competências válidas em MM/AAAA.")
+    if c["acompanhamento"]:
+        from apps.semestral.integracao import calcular_semaforo_coerencia
+        c["semaforo_coerencia"] = calcular_semaforo_coerencia(acompanhamento=c["acompanhamento"])
     return render(request, "entries/operational_setup.html", c)
 
 
@@ -107,6 +113,9 @@ def formulario(request, periodo_pk, pilar_pk):
         return HttpResponseBadRequest("O lançamento legado foi desativado. Abra um indicador do catálogo atual.")
     c = contexto(request, periodo, pilar)
     if not c["base_operacional"]:
+        if c["gestor"] and c["acompanhamento"]:
+            from apps.semestral.integracao import calcular_semaforo_coerencia
+            c["semaforo_coerencia"] = calcular_semaforo_coerencia(acompanhamento=c["acompanhamento"])
         return render(request, "entries/operational_setup.html", c)
     itens = IndicadorOperacional.objects.filter(acompanhamento=c["acompanhamento"], ativo=True, pilar_id=c["filtro_pilar"])
     if c["filtro_base"]:

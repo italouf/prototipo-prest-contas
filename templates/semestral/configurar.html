@@ -14,7 +14,9 @@
   <a href="{% url 'core:semestral' %}?ano={{ ano }}&semestre={{ semestre }}" class="feature-button">Voltar</a>
 </div>
 
-<form method="post" class="feature-panel">
+{% include 'semestral/_semaforo_coerencia.html' %}
+
+<form method="post" class="feature-panel" style="margin-top:18px;">
   {% csrf_token %}
   <div class="feature-panel-title"><h2>Parâmetros Gerais do Ciclo e Coordenação (CC em ITS1)</h2></div>
   <div class="feature-pad">

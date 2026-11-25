@@ -4,6 +4,7 @@ from .models import (
     CicloSemestral,
     CompetenciaMensalPilar,
     ConfiguracaoPilarSemestral,
+    IntegracaoSemestralOperacional,
     ListaDominioEmbrapii,
     LogNotificacaoSLA,
 )
@@ -67,6 +68,22 @@ class LogNotificacaoSLAAdmin(admin.ModelAdmin):
     list_display = ("tipo_evento", "codigo_ocorrencia", "competencia", "destinatario_email", "cc_emails", "enviado_em")
     list_filter = ("tipo_evento", "codigo_ocorrencia")
     search_fields = ("destinatario_email", "assunto", "mensagem")
+
+
+@admin.register(IntegracaoSemestralOperacional)
+class IntegracaoSemestralOperacionalAdmin(admin.ModelAdmin):
+    list_display = (
+        "competencia_mensal",
+        "tipo_alvo",
+        "modo",
+        "status_execucao",
+        "incremento_calculado",
+        "valor_proposto",
+        "executado_por",
+        "executado_em",
+    )
+    list_filter = ("status_execucao", "modo", "tipo_alvo")
+    search_fields = ("tipo_alvo", "justificativa")
 
 
 for _model in (

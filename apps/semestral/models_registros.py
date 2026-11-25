@@ -233,6 +233,14 @@ class RegFinConselho(RegistroSemestralBase):
 class RegFcrhProjeto(RegistroSemestralBase):
     """Aba 2. Info projetos FCRH (FCRH)."""
 
+    projeto_oficial = models.ForeignKey(
+        "projects.Projeto",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="%(class)s_semestrais",
+        verbose_name="Projeto do portfólio oficial (FINANCEIRO_GERAL)",
+    )
     titulo = models.CharField("Título do Projeto de Formação e Capacitação de RH", max_length=255)
     objetivo = models.TextField("Objetivo")
     descricao_publica = models.TextField("Descrição Pública")
@@ -287,6 +295,14 @@ class RegFcrhProfissional(RegistroSemestralBase):
 class RegAcsProjetoPdi(RegistroSemestralBase):
     """Aba 2. Info projetos PD&I ACS (ACS)."""
 
+    projeto_oficial = models.ForeignKey(
+        "projects.Projeto",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="%(class)s_semestrais",
+        verbose_name="Projeto do portfólio oficial (FINANCEIRO_GERAL)",
+    )
     titulo = models.CharField("Título do Projeto PD&I ACS", max_length=255)
     ambiente_inovacao_aberta = models.CharField("Ambiente de inovação aberta?", max_length=10)
     forma_cooperada = models.CharField("Desenvolvido de forma cooperada?", max_length=10)
@@ -425,6 +441,14 @@ class RegAcsEmpresa(RegistroSemestralBase):
 class RegAfcctProjetoPdi(RegistroSemestralBase):
     """Aba 2. Info Projetos PD&I AFCCT (AFCCT)."""
 
+    projeto_oficial = models.ForeignKey(
+        "projects.Projeto",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="%(class)s_semestrais",
+        verbose_name="Projeto do portfólio oficial (FINANCEIRO_GERAL)",
+    )
     titulo = models.CharField("Título do Projeto PD&I AFCCT", max_length=255)
     resumo_projeto = models.TextField("Resumo do projeto")
     descricao_publica = models.TextField("Descrição Pública")

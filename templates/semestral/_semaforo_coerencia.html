@@ -1,0 +1,64 @@
+{% if semaforo_coerencia and semaforo_coerencia.disponivel %}
+<div class="feature-panel" data-testid="semaforo-coerencia" style="margin-top:18px;">
+  <div class="feature-panel-title" style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px;">
+    <div>
+      <h2>Semáforo de Coerência — Base Operacional (FINANCEIRO_GERAL) × Prestação Semestral v3.1</h2>
+      <div class="feature-muted" style="margin-top:2px;">
+        Acompanhamento: <strong>{{ semaforo_coerencia.acompanhamento }}</strong>
+        {% if semaforo_coerencia.base_operacional %}
+          · Base v{{ semaforo_coerencia.base_operacional.versao }} (corte {{ semaforo_coerencia.base_operacional.competencia_corte|date:'m/Y' }})
+        {% else %}
+          · Dados importados (sem base operacional confirmada)
+        {% endif %}
+        · Ciclo comparado: <strong>{{ semaforo_coerencia.ciclo.rotulo_painel }}</strong>
+      </div>
+    </div>
+    <div style="display:flex; flex-wrap:wrap; gap:6px; align-items:center;">
+      <span class="feature-badge green">{{ semaforo_coerencia.resumo.alinhados }} alinhado(s)</span>
+      <span class="feature-badge {% if semaforo_coerencia.resumo.divergentes %}orange{% else %}neutral{% endif %}">
+        {{ semaforo_coerencia.resumo.divergentes }} diferença(s)
+      </span>
+      <span class="feature-badge blue">
+        {{ semaforo_coerencia.resumo.projetos_vinculados }}/{{ semaforo_coerencia.resumo.projetos_semestral_total }} projetos vinculados
+      </span>
+      <span class="feature-badge purple">
+        {{ semaforo_coerencia.resumo.integracoes_aplicadas }} integração(ões) no ciclo
+      </span>
+    </div>
+  </div>
+  <div class="feature-pad" style="padding-bottom:0;">
+    <p class="feature-muted" style="margin:0 0 10px;">
+      Conferência visual não bloqueante: a <strong>Base Operacional</strong> guarda o saldo acumulado do programa desde 2024, enquanto a <strong>Prestação Semestral v3.1</strong> soma os registros do ciclo selecionado. Diferenças servem de alerta para a Coordenação decidir se concilia a base ou atualiza via ponte assistida.
+    </p>
+  </div>
+  <div class="feature-table-wrap">
+    <table class="feature-table">
+      <thead>
+        <tr>
+          <th>Frente / Comparativo</th>
+          <th class="numeric">Base Operacional / FINANCEIRO_GERAL</th>
+          <th class="numeric">Semestral v3.1 (Aprovado)</th>
+          <th class="numeric">Semestral v3.1 (Total ciclo)</th>
+          <th>Coerência</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in semaforo_coerencia.linhas %}
+        <tr data-coerencia-codigo="{{ item.codigo }}" data-coerencia-status="{{ item.status }}">
+          <td>
+            <strong>{{ item.titulo }}</strong>
+            <div class="code">{{ item.detalhe }}</div>
+          </td>
+          <td class="numeric"><strong>{{ item.valor_base_fmt }}</strong></td>
+          <td class="numeric">{{ item.valor_semestral_aprovado_fmt }}</td>
+          <td class="numeric">{{ item.valor_semestral_total_fmt }}</td>
+          <td>
+            <span class="feature-badge {{ item.badge_variant }}">{{ item.status_label }}</span>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}

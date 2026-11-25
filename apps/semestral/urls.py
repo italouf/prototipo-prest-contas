@@ -29,6 +29,11 @@ urlpatterns = [
         name="arquivar_competencia",
     ),
     path(
+        "competencia/<int:pk>/integrar-operacional/",
+        views.integrar_operacional_view,
+        name="integrar_operacional",
+    ),
+    path(
         "aprovados/arquivar-todos/",
         views.arquivar_aprovados_em_lote_view,
         name="arquivar_aprovados_lote",

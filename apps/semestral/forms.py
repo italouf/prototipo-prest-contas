@@ -1,12 +1,15 @@
 """Formulários dinâmicos baseados nas listas oficiais EMBRAPII v3.1."""
 from django import forms
 
+from apps.projects.models import Projeto
+
+from .integracao import listar_projetos_oficiais_para_pilar, validar_vinculo_projeto_oficial
 from .models import CicloSemestral, ConfiguracaoPilarSemestral
 from .registry import TabFormSpec, get_domain_choices, get_project_code_suggestions
 
 
 def build_tab_record_form(spec: TabFormSpec, ciclo=None, *args, **kwargs) -> forms.ModelForm:
-    """Constrói ModelForm com selects populados de ListaDominioEmbrapii."""
+    """Constrói ModelForm com selects populados de ListaDominioEmbrapii e portfólio oficial."""
 
     class _DynamicTabForm(forms.ModelForm):
         class Meta:
@@ -17,6 +20,26 @@ def build_tab_record_form(spec: TabFormSpec, ciclo=None, *args, **kwargs) -> for
             super().__init__(*f_args, **f_kwargs)
             sugestoes = get_project_code_suggestions(ciclo, spec) if ciclo else []
             for fname, field in self.fields.items():
+                # 0. Seletor de projeto do portfólio oficial (Fase 1: FINANCEIRO_GERAL -> Semestral)
+                if fname == "projeto_oficial" and spec.portfolio_pilar_codigo:
+                    projetos_qs = Projeto.objects.filter(
+                        ativo=True, pilar__codigo=spec.portfolio_pilar_codigo
+                    ).order_by("nome", "pk")
+                    meta_map = {
+                        item["id"]: item["rotulo"]
+                        for item in listar_projetos_oficiais_para_pilar(spec.portfolio_pilar_codigo)
+                    }
+                    field.queryset = projetos_qs
+                    field.required = False
+                    field.empty_label = "— Novo projeto (digitar manualmente) —"
+                    field.label_from_instance = lambda obj, _m=meta_map: _m.get(str(obj.pk), obj.nome)
+                    field.help_text = (
+                        "Opcional: selecione um projeto já importado no FINANCEIRO_GERAL para "
+                        "pré-preencher título, datas, status e valor planejado sem redigitar."
+                    )
+                    field.widget.attrs["data-portfolio-selector"] = "1"
+                    continue
+
                 # 1. Dropdown oficial EMBRAPII
                 if fname in spec.dropdowns:
                     cat = spec.dropdowns[fname]
@@ -50,6 +73,11 @@ def build_tab_record_form(spec: TabFormSpec, ciclo=None, *args, **kwargs) -> for
                     field.help_text = (
                         "Selecione um código de projeto gerado no ciclo ou informe o código EMBRAPII."
                     )
+
+        def clean_projeto_oficial(self):
+            proj = self.cleaned_data.get("projeto_oficial")
+            validar_vinculo_projeto_oficial(spec, proj)
+            return proj
 
         def clean(self):
             cleaned = super().clean()

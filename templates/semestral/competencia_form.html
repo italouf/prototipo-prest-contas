@@ -98,6 +98,108 @@
 </div>
 {% endif %}
 
+{% if eh_gestor and ponte_operacional and ponte_operacional.sugestoes %}
+<div id="ponte-operacional" data-testid="ponte-operacional" class="feature-panel" style="border-color:#2563eb;">
+  <div class="feature-panel-title" style="background:#eff6ff;">
+    <div>
+      <h2>Ponte Assistida — Atualizar Dashboards (Base Operacional)</h2>
+      <div class="feature-muted" style="margin-top:2px;">
+        Sugestões calculadas automaticamente a partir desta competência aprovada ({{ comp.competencia_mm_aaaa }}). Confirme com 1 clique para enviar ao Painel de aprovação ou publicar diretamente nos Dashboards.
+      </div>
+    </div>
+    <div style="display:flex; gap:6px; flex-wrap:wrap;">
+      <span class="feature-badge blue">{{ ponte_operacional.total_pendentes }} pendente(s)</span>
+      <span class="feature-badge green">{{ ponte_operacional.total_aplicadas }} integrada(s)</span>
+    </div>
+  </div>
+  <div class="feature-pad" style="display:flex; flex-direction:column; gap:12px;">
+    {% for s in ponte_operacional.sugestoes %}
+    <div data-testid="sugestao-operacional-{{ s.tipo_alvo }}" style="padding:12px 14px; border:1px solid var(--fp-border,#dce1ed); border-radius:10px; background:#fff;">
+      <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px;">
+        <div>
+          <span class="feature-badge {% if s.categoria == 'Financeiro' %}purple{% else %}blue{% endif %}">{{ s.categoria }}</span>
+          <strong style="margin-left:6px;">{{ s.titulo }}</strong>
+          <div class="feature-muted" style="margin-top:3px;">Origem: {{ s.detalhe_origem }}</div>
+        </div>
+        {% if s.ja_integrado %}
+        <span class="feature-badge green" data-testid="badge-integrado-{{ s.tipo_alvo }}">
+          Já integrado em {{ s.integracao.executado_em|date:'d/m/Y H:i' }} ({{ s.integracao.lancamento_operacional.get_status_display }})
+        </span>
+        {% elif not s.disponivel %}
+        <span class="feature-badge orange">Requer ação na Base Operacional</span>
+        {% else %}
+        <span class="feature-badge blue">Pronto para integrar</span>
+        {% endif %}
+      </div>
+
+      <div style="display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; padding:8px 10px; background:#f8fafc; border-radius:8px; margin-bottom:10px; font-size:13px;">
+        <div>
+          <div class="feature-muted" style="font-size:11px;">Acumulado vigente nos Dashboards</div>
+          <strong>{{ s.valor_vigente_fmt }}</strong>
+        </div>
+        <div>
+          <div class="feature-muted" style="font-size:11px;">Incremento aprovado em {{ comp.competencia_mm_aaaa }}</div>
+          <strong style="color:#15803d;">+ {{ s.incremento_fmt }}</strong>
+        </div>
+        <div>
+          <div class="feature-muted" style="font-size:11px;">Novo acumulado sugerido</div>
+          <strong style="color:#1d4ed8;">{{ s.novo_total_sugerido_fmt }}</strong>
+        </div>
+      </div>
+
+      {% if s.ja_integrado %}
+      <div class="feature-muted" style="font-size:12px;">
+        Integrado por <strong>{{ s.integracao.executado_por.nome_exibicao }}</strong> · Valor aplicado: <strong>{{ s.integracao.valor_proposto }}</strong> · Protegido contra dupla contagem.
+      </div>
+      <details style="margin-top:8px;">
+        <summary style="cursor:pointer; font-size:12px; color:#2563eb; font-weight:600;">Reaplicar com ajuste manual</summary>
+        <form method="post" action="{% url 'semestral:integrar_operacional' comp.pk %}" style="margin-top:8px; display:flex; flex-wrap:wrap; gap:8px; align-items:flex-end;">
+          {% csrf_token %}
+          <input type="hidden" name="tipo_alvo" value="{{ s.tipo_alvo }}">
+          <input type="hidden" name="reaplicar" value="1">
+          <div>
+            <label style="display:block; font-size:11px; font-weight:600;">Novo total nos Dashboards</label>
+            <input type="text" name="valor_alvo_final" value="{{ s.valor_input }}" required style="padding:6px 8px; border:1px solid var(--fp-border,#dce1ed); border-radius:6px;">
+          </div>
+          <div style="flex:1; min-width:200px;">
+            <label style="display:block; font-size:11px; font-weight:600;">Justificativa do ajuste</label>
+            <input type="text" name="justificativa" required placeholder="Descreva o motivo do reajuste..." style="width:100%; padding:6px 8px; border:1px solid var(--fp-border,#dce1ed); border-radius:6px;">
+          </div>
+          <button type="submit" name="modo" value="PROPOSTA" class="feature-button">Reenviar proposta</button>
+          <button type="submit" name="modo" value="DIRETO" class="feature-button primary">Republicar direto</button>
+        </form>
+      </details>
+      {% elif not s.disponivel %}
+      <div class="feature-muted" style="font-size:12px; color:#b45309;">
+        {{ s.motivo_indisponivel }}
+        <a href="{% url 'entries:configurar' %}" style="margin-left:6px; text-decoration:underline; font-weight:600;">Ir para Conciliar base</a>
+      </div>
+      {% else %}
+      <form method="post" action="{% url 'semestral:integrar_operacional' comp.pk %}" style="display:flex; flex-wrap:wrap; gap:8px; align-items:flex-end;">
+        {% csrf_token %}
+        <input type="hidden" name="tipo_alvo" value="{{ s.tipo_alvo }}">
+        <div>
+          <label for="val-{{ s.tipo_alvo }}" style="display:block; font-size:11px; font-weight:600;">Novo acumulado nos Dashboards (editável)</label>
+          <input id="val-{{ s.tipo_alvo }}" type="text" name="valor_alvo_final" value="{{ s.valor_input }}" required style="padding:6px 8px; border:1px solid var(--fp-border,#dce1ed); border-radius:6px;">
+        </div>
+        <div style="flex:1; min-width:220px;">
+          <label for="just-{{ s.tipo_alvo }}" style="display:block; font-size:11px; font-weight:600;">Observação adicional (opcional)</label>
+          <input id="just-{{ s.tipo_alvo }}" type="text" name="justificativa" placeholder="Ex.: Conferido com extrato / planilha PFO..." style="width:100%; padding:6px 8px; border:1px solid var(--fp-border,#dce1ed); border-radius:6px;">
+        </div>
+        <button type="submit" name="modo" value="PROPOSTA" class="feature-button" data-testid="btn-integrar-proposta-{{ s.tipo_alvo }}">
+          Enviar para Painel de aprovação
+        </button>
+        <button type="submit" name="modo" value="DIRETO" class="feature-button primary" data-testid="btn-integrar-direto-{{ s.tipo_alvo }}">
+          Publicar direto nos Dashboards
+        </button>
+      </form>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
 <div class="feature-notice" style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px;">
   <div>
     <strong>Link direto desta aba:</strong>
@@ -147,7 +249,12 @@
           <td><code>{{ linha.codigo_preview|default:"—" }}</code></td>
           {% endif %}
           {% for val in linha.celulas %}
-          <td>{{ val }}</td>
+          <td>
+            {{ val }}
+            {% if forloop.first and linha.projeto_oficial %}
+            <div><span class="feature-badge blue" style="margin-top:3px;" data-testid="badge-projeto-oficial">Portfólio oficial</span></div>
+            {% endif %}
+          </td>
           {% endfor %}
           {% if pode_editar %}
           <td style="white-space:nowrap;">
@@ -182,9 +289,12 @@
     {% if form.non_field_errors %}
     <div class="feature-error">{{ form.non_field_errors }}</div>
     {% endif %}
+    <div id="portfolio-prefill-notice" class="feature-notice" style="display:none; margin-bottom:12px; border-color:#2563eb; background:#eff6ff;">
+      <strong>Pré-preenchido com o Portfólio Oficial (FINANCEIRO_GERAL):</strong> título, datas, status e valor planejado foram carregados automaticamente. Você pode ajustar qualquer campo antes de salvar.
+    </div>
     <div class="feature-fields">
       {% for field in form %}
-      <div class="{% if field.field.widget.attrs.rows or spec.is_comment_sheet %}wide{% endif %}">
+      <div class="{% if field.field.widget.attrs.rows or spec.is_comment_sheet or field.name == 'projeto_oficial' %}wide{% endif %}">
         <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} *{% endif %}</label>
         {{ field }}
         {% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}
@@ -206,6 +316,53 @@
     </div>
   </form>
 </div>
+
+{% if projetos_oficiais %}
+{{ projetos_oficiais|json_script:"projetos-oficiais-json" }}
+<script>
+(function () {
+  var dataEl = document.getElementById("projetos-oficiais-json");
+  var selectEl = document.querySelector("[data-portfolio-selector='1']");
+  if (!dataEl || !selectEl) return;
+  var items = JSON.parse(dataEl.textContent || "[]");
+  var byId = {};
+  items.forEach(function (item) { byId[item.id] = item; });
+
+  function setIfPresent(id, val) {
+    if (!val) return;
+    var el = document.getElementById(id);
+    if (!el) return;
+    if (el.tagName === "SELECT") {
+      var target = String(val).trim().toLowerCase();
+      for (var i = 0; i < el.options.length; i++) {
+        if (el.options[i].value.trim().toLowerCase() === target) {
+          el.value = el.options[i].value;
+          break;
+        }
+      }
+    } else {
+      el.value = val;
+    }
+  }
+
+  selectEl.addEventListener("change", function () {
+    var chosen = byId[selectEl.value];
+    var notice = document.getElementById("portfolio-prefill-notice");
+    if (!chosen) {
+      if (notice) notice.style.display = "none";
+      return;
+    }
+    setIfPresent("id_titulo", chosen.nome);
+    setIfPresent("id_valor_total_planejado", chosen.valor_orcado);
+    setIfPresent("id_data_inicio", chosen.data_inicio);
+    setIfPresent("id_data_prevista_termino", chosen.data_termino);
+    setIfPresent("id_data_termino", chosen.data_termino);
+    setIfPresent("id_status_atual", chosen.status);
+    if (notice) notice.style.display = "block";
+  });
+})();
+</script>
+{% endif %}
 
 <div class="feature-panel">
   <div class="feature-panel-title">

@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.core.exceptions import ValidationError
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
 from django.db.models import Q
 from django.http import HttpResponse
@@ -35,6 +35,12 @@ from .forms import (
     PilarSemestralConfigForm,
     SubmissaoCompetenciaForm,
     build_tab_record_form,
+)
+from .integracao import (
+    aplicar_sugestao_operacional,
+    calcular_semaforo_coerencia,
+    calcular_sugestoes_competencia,
+    listar_projetos_oficiais_para_pilar,
 )
 from .models import (
     CicloSemestral,
@@ -291,12 +297,21 @@ def listar_aprovacoes_semestrais_por_competencia(
         inspecionar_url = reverse("semestral:competencia_form", args=[comp.pk])
         if resumo["primeira_aba_com_dados"]:
             inspecionar_url = f"{inspecionar_url}?aba={resumo['primeira_aba_com_dados']}"
+        sugestoes_pendentes = 0
+        ponte_url = ""
+        if comp.status_aprovacao == "APROVADO" and not comp.arquivado_painel and resumo["total_registros"] > 0:
+            pacote_ponte = calcular_sugestoes_competencia(comp)
+            sugestoes_pendentes = pacote_ponte["total_pendentes"]
+            if pacote_ponte["sugestoes"]:
+                ponte_url = f"{reverse('semestral:competencia_form', args=[comp.pk])}#ponte-operacional"
         entry = {
             "comp": comp,
             "cfg": comp.configuracao_pilar,
             "total_registros": resumo["total_registros"],
             "resumo_abas": resumo["resumo_abas"],
             "inspecionar_url": inspecionar_url,
+            "ponte_url": ponte_url,
+            "sugestoes_pendentes": sugestoes_pendentes,
             "mesma_competencia_painel": competencia_date is None or comp.competencia == competencia_date,
         }
         if comp.status_aprovacao == "APROVADO" and comp.arquivado_painel:
@@ -450,6 +465,12 @@ def painel_semestral(request):
         | set(CicloSemestral.objects.values_list("ano", flat=True))
     )
 
+    semaforo_coerencia = (
+        calcular_semaforo_coerencia(ciclo=ciclo)
+        if (eh_gestor(request.user) or eh_auditor(request.user))
+        else None
+    )
+
     return render(
         request,
         "semestral/painel.html",
@@ -465,6 +486,7 @@ def painel_semestral(request):
             "periodos_portal": periodos_portal,
             "periodo_aprovacao": periodo_aprovacao,
             "export_arquivos": export_arquivos,
+            "semaforo_coerencia": semaforo_coerencia,
             "eh_gestor": eh_gestor(request.user),
             "pode_exportar_pacote": eh_gestor(request.user)
             or eh_lideranca(request.user)
@@ -542,6 +564,10 @@ def competencia_form(request, pk: int):
                     obj.arquivo = spec.arquivo
                     obj.aba = spec.aba
                 obj.save()
+                nota_vinculo = ""
+                proj_of = getattr(obj, "projeto_oficial", None)
+                if proj_of is not None:
+                    nota_vinculo = f" [Portfólio oficial: {proj_of.nome} ({proj_of.pk})]"
                 registrar_auditoria(
                     usuario=request.user,
                     acao="SEMESTRAL_REGISTRO_ATUALIZADO" if instancia else "SEMESTRAL_REGISTRO_CRIADO",
@@ -551,7 +577,7 @@ def competencia_form(request, pk: int):
                     valor_novo=str(getattr(obj, spec.list_columns[0], obj.pk))[:200],
                     justificativa=(
                         f"{_prefixo_auditoria_ciclo(comp.ciclo)}"
-                        f"Coleta mensal {comp.competencia_mm_aaaa} ({cfg.codigo})."
+                        f"Coleta mensal {comp.competencia_mm_aaaa} ({cfg.codigo}).{nota_vinculo}"
                     ),
                     origem="Portal",
                 )
@@ -579,6 +605,8 @@ def competencia_form(request, pk: int):
 
     # Registros existentes na aba ativa
     qs_regs = spec.model.objects.filter(competencia_mensal=comp)
+    if spec.portfolio_pilar_codigo:
+        qs_regs = qs_regs.select_related("projeto_oficial")
     if spec.is_comment_sheet:
         qs_regs = qs_regs.filter(arquivo=spec.arquivo, aba=spec.aba)
     registros = list(qs_regs.order_by("id"))
@@ -614,11 +642,22 @@ def competencia_form(request, pk: int):
             {
                 "obj": r,
                 "codigo_preview": codigos_preview.get(r.pk, ""),
+                "projeto_oficial": getattr(r, "projeto_oficial", None),
                 "celulas": [_serialize_cell_display(r, c) for c in spec.list_columns],
             }
         )
 
     sugestoes_projetos = get_project_code_suggestions(comp.ciclo, spec)
+    projetos_oficiais = (
+        listar_projetos_oficiais_para_pilar(spec.portfolio_pilar_codigo)
+        if spec.portfolio_pilar_codigo
+        else []
+    )
+    ponte_operacional = (
+        calcular_sugestoes_competencia(comp)
+        if (gestor and comp.status_aprovacao == "APROVADO")
+        else None
+    )
     logs_comp = comp.logs_sla.order_by("-enviado_em", "-id")[:10]
     periodo_aprovacao = (
         Periodo.objects.filter(status__in=["ABERTO", "REABERTO"]).order_by("-competencia").first()
@@ -644,11 +683,59 @@ def competencia_form(request, pk: int):
             "colunas_labels": colunas_labels,
             "linhas_tabela": linhas_tabela,
             "sugestoes_projetos": sugestoes_projetos,
+            "projetos_oficiais": projetos_oficiais,
+            "ponte_operacional": ponte_operacional,
             "submissao_form": SubmissaoCompetenciaForm(),
             "logs_comp": logs_comp,
             "link_direto": request.build_absolute_uri(gerar_link_direto(comp, aba_codigo=spec.slug)),
         },
     )
+
+
+@login_required
+@require_POST
+def integrar_operacional_view(request, pk: int):
+    """Ponte assistida com 1 clique (Fase 2): gera ou publica LancamentoOperacional a partir do Semestral."""
+    if not eh_gestor(request.user):
+        return sem_permissao(request)
+    comp = get_object_or_404(
+        CompetenciaMensalPilar.objects.select_related("ciclo", "configuracao_pilar"),
+        pk=pk,
+    )
+    tipo_alvo = (request.POST.get("tipo_alvo") or "").strip()
+    valor_alvo_final = (request.POST.get("valor_alvo_final") or "").strip()
+    modo = (request.POST.get("modo") or "PROPOSTA").strip().upper()
+    justificativa = (request.POST.get("justificativa") or "").strip()
+    reaplicar = request.POST.get("reaplicar") == "1"
+
+    fallback_url = f"{reverse('semestral:competencia_form', args=[comp.pk])}#ponte-operacional"
+    try:
+        integracao = aplicar_sugestao_operacional(
+            comp=comp,
+            tipo_alvo=tipo_alvo,
+            usuario=request.user,
+            valor_alvo_final=valor_alvo_final or None,
+            modo=modo,
+            justificativa=justificativa,
+            reaplicar=reaplicar,
+        )
+        if modo == "DIRETO":
+            messages.success(
+                request,
+                f"Integração aplicada e publicada diretamente nos Dashboards ({integracao.tipo_alvo}). "
+                f"Lançamento operacional registrado e auditado.",
+            )
+        else:
+            messages.success(
+                request,
+                f"Proposta operacional enviada para o Painel de aprovação ({integracao.tipo_alvo}). "
+                f"Os Dashboards serão atualizados assim que a proposta for aprovada.",
+            )
+    except PermissionDenied:
+        return sem_permissao(request)
+    except ValidationError as exc:
+        messages.error(request, "; ".join(exc.messages))
+    return redirect(_safe_next_url(request, fallback_url))
 
 
 @login_required
@@ -933,6 +1020,7 @@ def configurar_ciclo_view(request):
     ano, semestre = _resolver_ano_semestre(request.GET or request.POST)
     ciclo = _garantir_ciclo(ano, semestre)
     pilares = list(ConfiguracaoPilarSemestral.objects.order_by("ordem", "codigo"))
+    semaforo_coerencia = calcular_semaforo_coerencia(ciclo=ciclo)
 
     if request.method == "POST":
         status_anterior = ciclo.status
@@ -946,6 +1034,17 @@ def configurar_ciclo_view(request):
                 ciclo_salvo = ciclo_form.save()
                 for pf in pilar_forms:
                     pf.save()
+                justificativa = f"Parâmetros e responsáveis atualizados ({ciclo_salvo.rotulo_painel})."
+                if (
+                    ciclo_salvo.status != status_anterior
+                    and ciclo_salvo.status in ("CONSOLIDADO", "ENVIADO")
+                    and semaforo_coerencia.get("disponivel")
+                ):
+                    r = semaforo_coerencia["resumo"]
+                    justificativa += (
+                        f" Semáforo de coerência no fechamento: {r['alinhados']} alinhado(s), "
+                        f"{r['divergentes']} divergente(s), {r['integracoes_aplicadas']} integração(ões) aplicada(s)."
+                    )
                 registrar_auditoria(
                     usuario=request.user,
                     acao="SEMESTRAL_CONFIG_ATUALIZADA",
@@ -954,7 +1053,7 @@ def configurar_ciclo_view(request):
                     campo="status" if ciclo_salvo.status != status_anterior else "",
                     valor_anterior=status_anterior if ciclo_salvo.status != status_anterior else "",
                     valor_novo=ciclo_salvo.status if ciclo_salvo.status != status_anterior else "",
-                    justificativa=f"Parâmetros e responsáveis atualizados ({ciclo_salvo.rotulo_painel}).",
+                    justificativa=justificativa,
                     origem="Portal",
                 )
             messages.success(request, "Configurações do ciclo semestral e responsáveis atualizadas.")
@@ -975,6 +1074,7 @@ def configurar_ciclo_view(request):
             "semestre": semestre,
             "ciclo_form": ciclo_form,
             "pilar_forms": list(zip(pilares, pilar_forms)),
+            "semaforo_coerencia": semaforo_coerencia,
         },
     )
 

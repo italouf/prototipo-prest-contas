@@ -48,6 +48,7 @@ class TabFormSpec:
     is_comment_sheet: bool = False
     has_code_preview: bool = False
     project_source_model: Optional[Type[models.Model]] = None
+    portfolio_pilar_codigo: Optional[str] = None
     notes: str = ""
 
 
@@ -299,6 +300,7 @@ TAB_FORM_SPECS: Tuple[TabFormSpec, ...] = (
         titulo_curto="2. Projetos FCRH",
         model=RegFcrhProjeto,
         fields=(
+            "projeto_oficial",
             "titulo",
             "objetivo",
             "descricao_publica",
@@ -324,6 +326,7 @@ TAB_FORM_SPECS: Tuple[TabFormSpec, ...] = (
             "onde_realizada": "ONDE_FORMACAO",
         },
         has_code_preview=True,
+        portfolio_pilar_codigo="FORMACAO",
         notes="O código oficial QIN-FCRH-... é calculado automaticamente na planilha por fórmula nativa na coluna D.",
     ),
     TabFormSpec(
@@ -372,6 +375,7 @@ TAB_FORM_SPECS: Tuple[TabFormSpec, ...] = (
         titulo_curto="2. Projetos PD&I ACS",
         model=RegAcsProjetoPdi,
         fields=(
+            "projeto_oficial",
             "titulo",
             "ambiente_inovacao_aberta",
             "forma_cooperada",
@@ -397,6 +401,7 @@ TAB_FORM_SPECS: Tuple[TabFormSpec, ...] = (
             "status_atual": "STATUS_PROJETO_PADRAO",
         },
         has_code_preview=True,
+        portfolio_pilar_codigo="STARTUPS",
     ),
     TabFormSpec(
         slug="acs-2-1",
@@ -551,6 +556,7 @@ TAB_FORM_SPECS: Tuple[TabFormSpec, ...] = (
         titulo_curto="2. Projetos PD&I AFCCT",
         model=RegAfcctProjetoPdi,
         fields=(
+            "projeto_oficial",
             "titulo",
             "resumo_projeto",
             "descricao_publica",
@@ -579,6 +585,7 @@ TAB_FORM_SPECS: Tuple[TabFormSpec, ...] = (
             "cooperacao_nacional_internacional": "COOP_NAC_INT",
         },
         has_code_preview=True,
+        portfolio_pilar_codigo="PDI",
     ),
     TabFormSpec(
         slug="afcct-2-1",

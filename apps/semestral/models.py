@@ -338,3 +338,80 @@ class LogNotificacaoSLA(models.Model):
     def __str__(self):
         tag = f"[{self.codigo_ocorrencia}] " if self.codigo_ocorrencia else ""
         return f"{tag}{self.get_tipo_evento_display()} -> {self.destinatario_email}"
+
+
+class IntegracaoSemestralOperacional(models.Model):
+    """Registro auditável da ponte assistida Semestral v3.1 -> Base Operacional."""
+
+    MODO_CHOICES = [
+        ("PROPOSTA", "Proposta enviada para o Painel de aprovação"),
+        ("DIRETO", "Publicado diretamente nos Dashboards pelo gestor"),
+    ]
+    STATUS_CHOICES = [
+        ("APLICADA", "Aplicada"),
+        ("SUPERADA", "Superada"),
+    ]
+
+    competencia_mensal = models.ForeignKey(
+        CompetenciaMensalPilar,
+        on_delete=models.CASCADE,
+        related_name="integracoes_operacionais",
+    )
+    acompanhamento = models.ForeignKey(
+        "accountability.Acompanhamento",
+        on_delete=models.PROTECT,
+        related_name="integracoes_semestrais",
+    )
+    indicador_operacional = models.ForeignKey(
+        "entries.IndicadorOperacional",
+        on_delete=models.PROTECT,
+        related_name="integracoes_semestrais",
+    )
+    lancamento_operacional = models.ForeignKey(
+        "entries.LancamentoOperacional",
+        on_delete=models.PROTECT,
+        related_name="integracoes_semestrais",
+    )
+    tipo_alvo = models.CharField("Tipo de alvo", max_length=40, db_index=True)
+    incremento_calculado = models.DecimalField(
+        "Incremento calculado no Semestral", max_digits=18, decimal_places=6
+    )
+    valor_vigente_anterior = models.DecimalField(
+        "Valor vigente anterior nos Dashboards",
+        max_digits=18,
+        decimal_places=6,
+        null=True,
+        blank=True,
+    )
+    valor_proposto = models.DecimalField(
+        "Novo total proposto nos Dashboards", max_digits=18, decimal_places=6
+    )
+    modo = models.CharField("Modo de aplicação", max_length=20, choices=MODO_CHOICES, default="PROPOSTA")
+    status_execucao = models.CharField(
+        "Status da execução", max_length=20, choices=STATUS_CHOICES, default="APLICADA", db_index=True
+    )
+    justificativa = models.TextField("Justificativa", blank=True)
+    executado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="integracoes_semestrais_executadas",
+    )
+    executado_em = models.DateTimeField("Executado em", auto_now_add=True)
+
+    class Meta:
+        ordering = ["-executado_em", "-id"]
+        verbose_name = "Integração Semestral -> Base Operacional"
+        verbose_name_plural = "Integrações Semestral -> Base Operacional"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["competencia_mensal", "acompanhamento", "tipo_alvo"],
+                condition=models.Q(status_execucao="APLICADA"),
+                name="uniq_integracao_semestral_aplicada",
+            ),
+        ]
+
+    def __str__(self):
+        return (
+            f"{self.competencia_mensal.configuracao_pilar.codigo} "
+            f"{self.competencia_mensal.competencia_mm_aaaa} · {self.tipo_alvo} ({self.status_execucao})"
+        )

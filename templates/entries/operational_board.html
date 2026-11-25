@@ -59,6 +59,9 @@
                   <strong style="font-size:12px;">{{ entry.cfg.codigo }}</strong>
                   <span class="feature-badge blue" style="margin-left:4px;">{{ entry.comp.competencia_mm_aaaa }}</span>
                   <span style="font-size:11px; color:var(--color-text-muted,#62667e); margin-left:4px;">{{ entry.total_registros }} reg.</span>
+                  {% if entry.sugestoes_pendentes %}
+                  <span class="feature-badge purple" style="margin-left:4px; font-size:10px;" title="Sugestões prontas para atualizar Dashboards">{{ entry.sugestoes_pendentes }} ponte</span>
+                  {% endif %}
                 </div>
                 <span style="font-size:11px; color:var(--color-text-muted,#62667e); white-space:nowrap;">Detalhes ▾</span>
               </summary>
@@ -93,6 +96,11 @@
                 {% endif %}
                 <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; align-items:center;">
                   <a class="feature-button" style="padding:5px 10px; font-size:11px;" href="{{ entry.inspecionar_url }}">Inspecionar registros</a>
+                  {% if entry.ponte_url and entry.sugestoes_pendentes %}
+                  <a class="feature-button primary" style="padding:5px 10px; font-size:11px;" href="{{ entry.ponte_url }}" data-testid="btn-ponte-operacional-{{ entry.comp.pk }}">Atualizar Dashboards ({{ entry.sugestoes_pendentes }})</a>
+                  {% elif entry.ponte_url %}
+                  <a class="feature-button" style="padding:5px 10px; font-size:11px;" href="{{ entry.ponte_url }}" data-testid="btn-ponte-operacional-{{ entry.comp.pk }}">Ponte Dashboards</a>
+                  {% endif %}
                   <form method="post" action="{% url 'semestral:arquivar_competencia' entry.comp.pk %}" style="display:inline; margin:0;">
                     {% csrf_token %}
                     <input type="hidden" name="acao" value="arquivar">
