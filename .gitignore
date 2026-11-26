@@ -11,6 +11,8 @@ test-results/
 playwright-report/
 # Arquivos excel
 *.xlsx
+!mockup/exemplos_arquivos/PREST_SEMESTRAL/*.xlsx
+~$*.xlsx
 *.xls
 *.ods
 # Scratch de workspace (briefs, reports e pacotes de review locais)
