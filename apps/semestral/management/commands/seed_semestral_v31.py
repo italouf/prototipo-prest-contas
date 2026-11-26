@@ -17,6 +17,7 @@ from apps.semestral.models import (
     ConfiguracaoPilarSemestral,
     ListaDominioEmbrapii,
 )
+from apps.semestral.xlsx_exporter import resolver_template_path
 
 TEMPLATES_DIR = Path(settings.BASE_DIR) / "templates_embrapii" / "v3_1"
 
@@ -260,7 +261,7 @@ def seed_listas_oficiais():
     specs = []
 
     #FIN
-    wb_fin = load_workbook(TEMPLATE_FILES["FIN"], read_only=True, data_only=True)
+    wb_fin = load_workbook(resolver_template_path("FIN"), read_only=True, data_only=True)
     ws_fin_listas = wb_fin["Listas"]
     specs.append(
         (
@@ -310,7 +311,7 @@ def seed_listas_oficiais():
     wb_fin.close()
 
     # FCRH
-    wb_fcrh = load_workbook(TEMPLATE_FILES["FCRH"], read_only=True, data_only=True)
+    wb_fcrh = load_workbook(resolver_template_path("FCRH"), read_only=True, data_only=True)
     ws_fcrh_listas = wb_fcrh["Listas"]
     specs.append(
         (
@@ -328,7 +329,7 @@ def seed_listas_oficiais():
     wb_fcrh.close()
 
     # AFCCT
-    wb_afcct = load_workbook(TEMPLATE_FILES["AFCCT"], read_only=True, data_only=True)
+    wb_afcct = load_workbook(resolver_template_path("AFCCT"), read_only=True, data_only=True)
     ws_afcct_listas = wb_afcct["Listas"]
     specs.append(
         (
@@ -360,7 +361,7 @@ def seed_listas_oficiais():
     wb_afcct.close()
 
     # AT
-    wb_at = load_workbook(TEMPLATE_FILES["AT"], read_only=True, data_only=True)
+    wb_at = load_workbook(resolver_template_path("AT"), read_only=True, data_only=True)
     ws_at_listas = wb_at["Listas"]
     specs.append(
         (

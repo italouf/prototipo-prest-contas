@@ -641,3 +641,20 @@ class RoundTripExcelIntegrityTestes(TestCase):
             self.assertTrue(orig.exists(), f"Original ausente: {orig}")
             digest = hashlib.sha256(orig.read_bytes()).hexdigest()
             self.assertEqual(digest, item["sha256"], f"Original alterado: {orig}")
+
+
+    def test_resolver_template_path_usa_fallback_mockup_quando_template_padrao_ausente(self):
+        from unittest.mock import patch
+        from apps.semestral import xlsx_exporter
+
+        fake_missing_map = {
+            tag: (Path("/caminho/inexistente") / path.name, pattern)
+            for tag, (path, pattern) in xlsx_exporter.TEMPLATE_MAP.items()
+        }
+        with patch.object(xlsx_exporter, "TEMPLATE_MAP", fake_missing_map):
+            for tag in ("FIN", "FCRH", "ACS", "AFCCT", "AT"):
+                resolved = xlsx_exporter.resolver_template_path(tag)
+                self.assertTrue(resolved.is_file(), f"Fallback não encontrado para {tag}: {resolved}")
+                self.assertEqual(resolved.parent, xlsx_exporter.FALLBACK_TEMPLATES_DIR)
+            _nome, dados = exportar_planilha_embrapii(self.ciclo, "AFCCT")
+            self.assertGreater(len(dados), 10000)

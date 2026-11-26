@@ -10,8 +10,10 @@ from collections import OrderedDict
 from datetime import date, datetime
 from decimal import Decimal
 from io import BytesIO
+import json
 import posixpath
 import re
+import unicodedata
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 import xml.etree.ElementTree as ET
@@ -25,6 +27,16 @@ from .models import CicloSemestral
 from .xlsx_schema import SHEET_EXPORT_SPECS, SUMMARY_SPECS
 
 TEMPLATES_DIR = Path(settings.BASE_DIR) / "templates_embrapii" / "v3_1"
+FALLBACK_TEMPLATES_DIR = Path(settings.BASE_DIR) / "mockup" / "exemplos_arquivos" / "PREST_SEMESTRAL"
+MANIFEST_PATH = TEMPLATES_DIR / "manifest.json"
+
+FALLBACK_ORIGINAL_FILENAMES = {
+    "FIN": "Cópia de PPI - Acompanhamento Financeiro - Semestral (v3.1).xlsx",
+    "FCRH": "PPI - Acompanhamento Técnico - FCRH - Semestral (v3.1).xlsx",
+    "ACS": "PPI - Acompanhamento Técnico - ACS - Semestral (v3.1) (2).xlsx",
+    "AFCCT": "PPI - Acompanhamento Técnico - AFCCT - Semestral (v3.1) (1).xlsx",
+    "AT": "PPI - Acompanhamento Técnico - AT - Semestral (v3.1) (1).xlsx",
+}
 
 TEMPLATE_MAP = {
     "FIN": (
@@ -48,6 +60,44 @@ TEMPLATE_MAP = {
         "Acompanhamento_Tecnico_AT_Semestral_v3_1_{abrev}_{ano}_S{sem}.xlsx",
     ),
 }
+
+
+def _carregar_manifest_templates() -> Dict[str, Dict[str, Any]]:
+    if not MANIFEST_PATH.is_file():
+        return {}
+    try:
+        return json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+
+
+def resolver_template_path(arquivo_tag: str) -> Path:
+    """Resolve o caminho do template .xlsx EMBRAPII v3.1 com fallback para mockup/exemplos_arquivos/PREST_SEMESTRAL."""
+    if arquivo_tag not in TEMPLATE_MAP:
+        raise ValueError(f"Arquivo EMBRAPII desconhecido: {arquivo_tag}")
+    primary_path, _filename_pattern = TEMPLATE_MAP[arquivo_tag]
+    if primary_path.is_file():
+        return primary_path
+
+    manifest = _carregar_manifest_templates()
+    original_name = (
+        (manifest.get(arquivo_tag) or {}).get("original_filename")
+        or FALLBACK_ORIGINAL_FILENAMES.get(arquivo_tag)
+        or ""
+    )
+    if original_name and FALLBACK_TEMPLATES_DIR.is_dir():
+        candidato_direto = FALLBACK_TEMPLATES_DIR / original_name
+        if candidato_direto.is_file():
+            return candidato_direto
+        alvo_norm = unicodedata.normalize("NFC", original_name)
+        for item in FALLBACK_TEMPLATES_DIR.iterdir():
+            if item.is_file() and unicodedata.normalize("NFC", item.name) == alvo_norm:
+                return item
+
+    raise FileNotFoundError(
+        f"Template EMBRAPII v3.1 '{arquivo_tag}' não encontrado em '{primary_path}' "
+        f"nem no fallback '{FALLBACK_TEMPLATES_DIR / original_name}'."
+    )
 
 NS_MAIN = "http://schemas.openxmlformats.org/spreadsheetml/2006/main"
 NS_REL = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
@@ -273,7 +323,8 @@ def exportar_planilha_embrapii(ciclo: CicloSemestral, arquivo_tag: str) -> Tuple
     """Gera uma das 5 planilhas EMBRAPII v3.1 preenchida de forma lossless."""
     if arquivo_tag not in TEMPLATE_MAP:
         raise ValueError(f"Arquivo EMBRAPII desconhecido: {arquivo_tag}")
-    template_path, filename_pattern = TEMPLATE_MAP[arquivo_tag]
+    _default_path, filename_pattern = TEMPLATE_MAP[arquivo_tag]
+    template_path = resolver_template_path(arquivo_tag)
     with ZipFile(template_path, "r") as zf:
         infos = zf.infolist()
         partes = OrderedDict((info.filename, zf.read(info.filename)) for info in infos)

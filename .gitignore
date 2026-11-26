@@ -12,6 +12,7 @@ playwright-report/
 # Arquivos excel
 *.xlsx
 !mockup/exemplos_arquivos/PREST_SEMESTRAL/*.xlsx
+!templates_embrapii/v3_1/*.xlsx
 ~$*.xlsx
 *.xls
 *.ods
