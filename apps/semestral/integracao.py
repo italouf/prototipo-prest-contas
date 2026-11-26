@@ -1,18 +1,19 @@
 """Integração assistida entre Prestação Semestral (EMBRAPII v3.1) e Base Operacional / FINANCEIRO_GERAL.
 
 Implementa as 3 fases de integração mantendo governança, idempotência e auditabilidade:
-- Fase 1: Lista única de projetos oficiais (FINANCEIRO_GERAL -> formulários semestrais).
+- Fase 1: Lista única de projetos oficiais (FINANCEIRO_GERAL <-> formulários semestrais).
 - Fase 2: Ponte assistida com 1 clique (competência semestral aprovada -> Base Operacional).
 - Fase 3: Semáforo de coerência na conciliação (FINANCEIRO_GERAL / Base Operacional vs Semestral v3.1).
 """
 from __future__ import annotations
 
+import json
 from decimal import Decimal, InvalidOperation
 from typing import Any, Dict, List, Optional
 
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
-from django.db.models import Sum
+from django.db.models import Max, Sum
 from django.urls import reverse
 
 from apps.accountability.models import (
@@ -35,6 +36,7 @@ from apps.periods.models import Periodo
 from apps.periods.services import abrir_periodo
 from apps.pillars.models import Pilar
 from apps.projects.models import Projeto
+from apps.projects.services import resolver_projeto_importado
 
 from .models import (
     CicloSemestral,
@@ -66,10 +68,22 @@ ABA_PARA_PILAR_OFICIAL: Dict[str, str] = {
     "acs-2": "STARTUPS",
 }
 
+PILAR_ORIGEM_TAB_PROJETOS: Dict[str, str] = {
+    "PDI": "TAB. 2",
+    "FORMACAO": "TAB. 4",
+    "STARTUPS": "TAB. 6",
+}
+
 PILAR_OFICIAL_PARA_MODELO_SEMESTRAL = {
     "PDI": ("AFCCT", "afcct-2", RegAfcctProjetoPdi),
     "FORMACAO": ("FCRH", "fcrh-2", RegFcrhProjeto),
     "STARTUPS": ("ACS", "acs-2", RegAcsProjetoPdi),
+}
+
+SEMESTRAL_CODIGO_PARA_MODELO_PROJETO = {
+    "AFCCT": ("afcct-2", "PDI", RegAfcctProjetoPdi),
+    "FCRH": ("fcrh-2", "FORMACAO", RegFcrhProjeto),
+    "ACS": ("acs-2", "STARTUPS", RegAcsProjetoPdi),
 }
 
 
@@ -114,7 +128,7 @@ def parse_decimal_integracao(bruto: Any, tipo: str) -> Decimal:
 
 
 # ---------------------------------------------------------------------------
-# FASE 1 — LISTA ÚNICA DE PROJETOS (FINANCEIRO_GERAL -> SEMESTRAL)
+# FASE 1 — LISTA ÚNICA DE PROJETOS (FINANCEIRO_GERAL <-> SEMESTRAL)
 # ---------------------------------------------------------------------------
 
 
@@ -196,6 +210,180 @@ def validar_vinculo_projeto_oficial(spec, projeto_oficial: Optional[Projeto]) ->
         )
 
 
+@transaction.atomic
+def sincronizar_projeto_para_catalogo_oficial(
+    comp: CompetenciaMensalPilar,
+    aba_slug: str,
+    reg_id: int,
+    usuario,
+    acompanhamento: Optional[Acompanhamento] = None,
+) -> Dict[str, Any]:
+    """Promove um projeto novo do Semestral aprovado para o Portfólio Oficial (Projeto + ProjetoFinanceiro + Base).
+
+    Preserva a separação contábil estrita: `valor_total_planejado` entra como `orcado`,
+    enquanto `realizado` inicia em R$ 0,00 (ou preserva o saldo já importado se o projeto já existir).
+    """
+    if not eh_gestor(usuario):
+        raise PermissionDenied("Apenas Master/Admin pode cadastrar projetos semestrais no Portfólio Oficial.")
+    if comp.status_aprovacao != "APROVADO":
+        raise ValidationError(
+            "Apenas projetos de competências semestrais aprovadas podem ser promovidos ao Portfólio Oficial."
+        )
+
+    codigo_sem = comp.configuracao_pilar.codigo
+    mapeamento = SEMESTRAL_CODIGO_PARA_MODELO_PROJETO.get(codigo_sem)
+    if mapeamento is None or mapeamento[0] != aba_slug:
+        raise ValidationError("Esta aba não suporta sincronização para o Portfólio Oficial de Projetos.")
+
+    _aba_esperada, pilar_codigo, model_cls = mapeamento
+    reg = (
+        model_cls.objects.select_related("projeto_oficial")
+        .filter(competencia_mensal=comp, pk=reg_id)
+        .first()
+    )
+    if reg is None:
+        raise ValidationError("Registro de projeto semestral não encontrado nesta competência.")
+
+    acomp = acompanhamento_vigente(acompanhamento)
+    if acomp is None:
+        raise ValidationError("Nenhum acompanhamento financeiro/físico importado para vincular o projeto.")
+
+    pilar = Pilar.objects.get(codigo=pilar_codigo)
+    origem_tab = PILAR_ORIGEM_TAB_PROJETOS[pilar_codigo]
+    titulo_limpo = (reg.titulo or "").strip()
+    if not titulo_limpo:
+        raise ValidationError("O projeto precisa de um título válido para ser cadastrado no Portfólio Oficial.")
+
+    abrev = comp.ciclo.abreviacao_cc or "QIN"
+    codigo_emb = reg.codigo_preview(abrev=abrev) if getattr(reg, "data_inicio", None) else ""
+
+    if reg.projeto_oficial is not None:
+        projeto = reg.projeto_oficial
+        criado_projeto = False
+    else:
+        qtd_antes = Projeto.objects.filter(centro=acomp.centro, pilar=pilar).count()
+        projeto = resolver_projeto_importado(
+            acomp.centro,
+            pilar,
+            origem_tab,
+            titulo_limpo,
+            codigo=codigo_emb,
+        )
+        criado_projeto = Projeto.objects.filter(centro=acomp.centro, pilar=pilar).count() > qtd_antes
+        if not projeto.ativo:
+            projeto.ativo = True
+            projeto.atualizado_por = usuario
+            projeto.save(update_fields=["ativo", "atualizado_por", "atualizado_em"])
+        if criado_projeto:
+            projeto.criado_por = usuario
+            projeto.atualizado_por = usuario
+            projeto.save(update_fields=["criado_por", "atualizado_por", "atualizado_em"])
+        reg.projeto_oficial = projeto
+        reg.save(update_fields=["projeto_oficial", "atualizado_em"])
+
+    pf = (
+        ProjetoFinanceiro.objects.filter(acompanhamento=acomp, projeto=projeto).first()
+        or ProjetoFinanceiro.objects.filter(
+            acompanhamento=acomp, origem=origem_tab, nome=projeto.nome
+        ).first()
+    )
+    criado_pf = False
+    if pf is None:
+        prox_seq = (
+            ProjetoFinanceiro.objects.filter(acompanhamento=acomp, origem=origem_tab).aggregate(
+                m=Max("sequencia")
+            )["m"]
+            or 0
+        ) + 1
+        orcado = reg.valor_total_planejado
+        realizado_abertura = Decimal("0.00")
+        fim_data = getattr(reg, "data_prevista_termino", None) or getattr(reg, "data_termino", None)
+        pf = ProjetoFinanceiro.objects.create(
+            projeto=projeto,
+            acompanhamento=acomp,
+            origem=origem_tab,
+            pilar=pilar,
+            sequencia=prox_seq,
+            codigo_projeto_embrapii=codigo_emb or None,
+            nome=projeto.nome,
+            status=(reg.status_atual or "")[:120],
+            inicio=getattr(reg, "data_inicio", None),
+            fim=fim_data,
+            orcado=orcado,
+            realizado=realizado_abertura,
+            realizado_mais_projetado=realizado_abertura,
+            diferenca=(realizado_abertura - orcado) if orcado is not None else None,
+            percentual=Decimal("0.000000"),
+        )
+        criado_pf = True
+    elif pf.projeto_id is None:
+        pf.projeto = projeto
+        pf.save(update_fields=["projeto"])
+
+    chave_op = f"projeto:{projeto.pk}:realizado"
+    base = BaseOperacional.objects.select_for_update().filter(acompanhamento=acomp).first()
+    if base is not None:
+        IndicadorOperacional.objects.update_or_create(
+            acompanhamento=acomp,
+            chave=chave_op,
+            defaults=dict(
+                pilar=pilar,
+                nome=f"{projeto.nome} · realizado",
+                base="financeiro",
+                tipo="MON",
+                unidade="R$",
+                alvo="PROJETO",
+                referencia=str(projeto.pk),
+                campo="realizado",
+                ativo=True,
+            ),
+        )
+        alvos = dict(base.snapshot.get("alvos", {}))
+        if chave_op not in alvos:
+            abertura = pf.realizado if pf.realizado is not None else Decimal("0.00")
+            alvos[chave_op] = {"valor": f"{abertura:.2f}", "anos": {}}
+            novo_snapshot = dict(base.snapshot)
+            novo_snapshot["alvos"] = alvos
+            base.snapshot = novo_snapshot
+            base.save(update_fields=["snapshot"])
+
+    registrar_auditoria(
+        usuario=usuario,
+        acao="SEMESTRAL_PROJETO_SINCRONIZADO_CATALOGO",
+        entidade="Projeto",
+        registro_id=str(projeto.pk),
+        campo=origem_tab,
+        valor_novo=json.dumps(
+            {
+                "titulo": projeto.nome,
+                "pilar": pilar_codigo,
+                "origem_tab": origem_tab,
+                "orcado": str(pf.orcado) if pf.orcado is not None else None,
+                "realizado_abertura": str(pf.realizado) if pf.realizado is not None else None,
+                "competencia_id": comp.pk,
+                "registro_semestral_id": reg.pk,
+                "criado_projeto": criado_projeto,
+                "criado_financeiro": criado_pf,
+            },
+            ensure_ascii=False,
+        ),
+        justificativa=(
+            f"[Sincronização Semestral -> Portfólio Oficial] {codigo_sem} {comp.competencia_mm_aaaa} "
+            f"(reg #{reg.pk}). Orçado={formatar_valor_integracao(pf.orcado, 'MON', 'R$')}; "
+            f"Realizado abertura={formatar_valor_integracao(pf.realizado, 'MON', 'R$')}."
+        ),
+        origem="Integração Semestral",
+    )
+    invalidar_cache_operacional()
+    return {
+        "projeto": projeto,
+        "projeto_financeiro": pf,
+        "criado_projeto": criado_projeto,
+        "criado_financeiro": criado_pf,
+        "chave_operacional": chave_op,
+    }
+
+
 # ---------------------------------------------------------------------------
 # FASE 2 — PONTE ASSISTIDA COM 1 CLIQUE (SEMESTRAL APROVADO -> BASE OPERACIONAL)
 # ---------------------------------------------------------------------------
@@ -241,6 +429,75 @@ def _garantir_indicador_fonte_semestral(
     if indicador is None:
         raise ValidationError("Não foi possível inicializar o indicador operacional da carteira semestral.")
     return indicador
+
+
+def _coletar_candidatos_projetos_financeiros(
+    comp: CompetenciaMensalPilar,
+) -> tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+    """Separa projetos vinculados (elegíveis para lançamento financeiro de Realizado) e novos sem vínculo."""
+    codigo = comp.configuracao_pilar.codigo
+    mapeamento = SEMESTRAL_CODIGO_PARA_MODELO_PROJETO.get(codigo)
+    if mapeamento is None:
+        return [], []
+
+    aba_slug, pilar_codigo, model_cls = mapeamento
+    origem_tab = PILAR_ORIGEM_TAB_PROJETOS[pilar_codigo]
+    abrev = comp.ciclo.abreviacao_cc or "QIN"
+
+    candidatos_fin: List[Dict[str, Any]] = []
+    sem_vinculo: List[Dict[str, Any]] = []
+    projetos_vistos = set()
+
+    regs = list(model_cls.objects.filter(competencia_mensal=comp).select_related("projeto_oficial").order_by("id"))
+    for reg in regs:
+        valor_plan = getattr(reg, "valor_total_planejado", None)
+        if reg.projeto_oficial is None:
+            sem_vinculo.append(
+                {
+                    "reg_id": reg.pk,
+                    "aba_slug": aba_slug,
+                    "titulo": reg.titulo,
+                    "codigo_preview": reg.codigo_preview(abrev=abrev) if getattr(reg, "data_inicio", None) else "",
+                    "status_atual": getattr(reg, "status_atual", ""),
+                    "valor_planejado": valor_plan,
+                    "valor_planejado_fmt": formatar_valor_integracao(valor_plan, "MON", "R$"),
+                    "pilar_codigo": pilar_codigo,
+                    "origem_tab": origem_tab,
+                }
+            )
+            continue
+
+        proj = reg.projeto_oficial
+        if proj.pk in projetos_vistos:
+            continue
+        projetos_vistos.add(proj.pk)
+
+        candidatos_fin.append(
+            {
+                "tipo_alvo": f"PROJ:{proj.pk.hex}",
+                "titulo": f"{proj.nome} — Executado Financeiro (R$)",
+                "categoria": "Financeiro",
+                "alvo": "PROJETO",
+                "pilar_codigo": pilar_codigo,
+                "campo": "realizado",
+                "kpi_codigo": None,
+                "projeto_id": str(proj.pk),
+                "projeto_nome": proj.nome,
+                "orcado_planejado": valor_plan,
+                "eh_orcado_manual": True,
+                "tipo": "MON",
+                "unidade": "R$",
+                "incremento": ZERO,
+                "qtd_registros_origem": 1,
+                "detalhe_origem": (
+                    f"Projeto vinculado na Aba 2 ({codigo}) · Orçado/Planejado: "
+                    f"{formatar_valor_integracao(valor_plan, 'MON', 'R$')} "
+                    f"(não é despesa executada; informe o Realizado acumulado se houver execução financeira)."
+                ),
+            }
+        )
+
+    return candidatos_fin, sem_vinculo
 
 
 def _coletar_candidatos_competencia(comp: CompetenciaMensalPilar) -> List[Dict[str, Any]]:
@@ -513,6 +770,8 @@ def _coletar_candidatos_competencia(comp: CompetenciaMensalPilar) -> List[Dict[s
                 }
             )
 
+    candidatos_proj_fin, _ = _coletar_candidatos_projetos_financeiros(comp)
+    candidatos.extend(candidatos_proj_fin)
     return candidatos
 
 
@@ -531,18 +790,28 @@ def calcular_sugestoes_competencia(
             competencia_mensal=comp,
             acompanhamento=acomp,
             status_execucao="APLICADA",
-        ).select_related("lancamento_operacional", "indicador_operacional", "executado_por"):
+        ).select_related(
+            "lancamento_operacional",
+            "lancamento_operacional__periodo",
+            "indicador_operacional",
+            "executado_por",
+        ):
             existentes_map[reg.tipo_alvo] = reg
 
     candidatos = _coletar_candidatos_competencia(comp)
+    _, projetos_novos_sem_vinculo = _coletar_candidatos_projetos_financeiros(comp)
+
     sugestoes: List[Dict[str, Any]] = []
     total_pendentes = 0
     total_aplicadas = 0
+    total_publicadas = 0
+    total_aguardando_aprovacao = 0
 
     for cand in candidatos:
         disponivel = True
         motivo_indisponivel = ""
         valor_vigente: Optional[Decimal] = None
+        orcado_referencia: Optional[Decimal] = cand.get("orcado_planejado")
 
         if acomp is None or base is None or oficial is None:
             disponivel = False
@@ -560,6 +829,24 @@ def calcular_sugestoes_competencia(
                 motivo_indisponivel = (
                     f"Sem saldo consolidado (TAB. 9) para {cand['pilar_codigo']} ({cand['campo']}) na Base Operacional."
                 )
+        elif cand["alvo"] == "PROJETO":
+            chave_proj = f"projeto:{cand['projeto_id']}:realizado"
+            pf_obj = ProjetoFinanceiro.objects.filter(
+                acompanhamento=acomp, projeto_id=cand["projeto_id"]
+            ).first()
+            if pf_obj and pf_obj.orcado is not None:
+                orcado_referencia = pf_obj.orcado
+            if chave_proj not in base.snapshot.get("alvos", {}) or base.snapshot["alvos"][chave_proj].get("valor") is None:
+                disponivel = False
+                motivo_indisponivel = (
+                    "Projeto vinculado ainda não possui abertura financeira na Base Operacional. "
+                    "Execute 'Conciliar base' ou sincronize o projeto para habilitar o lançamento de Realizado."
+                )
+                valor_vigente = pf_obj.realizado if pf_obj else None
+            else:
+                valor_vigente = oficial.valor(chave_proj)
+                if valor_vigente is None:
+                    valor_vigente = ZERO
         else:
             chave_kpi = f"kpi:{cand['kpi_codigo']}"
             if chave_kpi not in base.snapshot.get("alvos", {}):
@@ -587,9 +874,19 @@ def calcular_sugestoes_competencia(
 
         integracao_existente = existentes_map.get(cand["tipo_alvo"])
         ja_integrado = integracao_existente is not None
+        lanc = integracao_existente.lancamento_operacional if integracao_existente else None
+        lanc_status = lanc.status if lanc else ""
+        aguardando_aprovacao = ja_integrado and lanc_status == "ENVIADO"
+        publicado_dashboard = ja_integrado and lanc_status == "APROVADO"
+        devolvido = ja_integrado and lanc_status == "DEVOLVIDO"
+
         if ja_integrado:
             total_aplicadas += 1
-        elif disponivel:
+            if publicado_dashboard:
+                total_publicadas += 1
+            elif aguardando_aprovacao:
+                total_aguardando_aprovacao += 1
+        elif disponivel and not cand.get("eh_orcado_manual"):
             total_pendentes += 1
 
         valor_input = f"{novo_sugerido:.2f}" if cand["tipo"] == "MON" else str(int(novo_sugerido))
@@ -599,6 +896,12 @@ def calcular_sugestoes_competencia(
                 "valor_vigente": valor_vigente,
                 "valor_vigente_fmt": formatar_valor_integracao(valor_vigente, cand["tipo"], cand["unidade"]),
                 "incremento_fmt": formatar_valor_integracao(cand["incremento"], cand["tipo"], cand["unidade"]),
+                "orcado_referencia": orcado_referencia,
+                "orcado_referencia_fmt": (
+                    formatar_valor_integracao(orcado_referencia, "MON", "R$")
+                    if cand.get("eh_orcado_manual")
+                    else ""
+                ),
                 "novo_total_sugerido": novo_sugerido,
                 "novo_total_sugerido_fmt": formatar_valor_integracao(novo_sugerido, cand["tipo"], cand["unidade"]),
                 "valor_input": valor_input,
@@ -606,6 +909,17 @@ def calcular_sugestoes_competencia(
                 "motivo_indisponivel": motivo_indisponivel,
                 "ja_integrado": ja_integrado,
                 "integracao": integracao_existente,
+                "valor_proposto_fmt": (
+                    formatar_valor_integracao(integracao_existente.valor_proposto, cand["tipo"], cand["unidade"])
+                    if integracao_existente is not None
+                    else ""
+                ),
+                "lancamento_status": lanc_status,
+                "lancamento_periodo_pk": lanc.periodo_id if lanc is not None else None,
+                "lancamento_competencia_fmt": lanc.periodo.rotulo if lanc is not None else "",
+                "aguardando_aprovacao": aguardando_aprovacao,
+                "publicado_dashboard": publicado_dashboard,
+                "devolvido": devolvido,
             }
         )
 
@@ -613,9 +927,65 @@ def calcular_sugestoes_competencia(
         "acompanhamento": acomp,
         "base_operacional": base,
         "sugestoes": sugestoes,
+        "projetos_novos_sem_vinculo": projetos_novos_sem_vinculo,
+        "total_projetos_sem_vinculo": len(projetos_novos_sem_vinculo),
         "total_pendentes": total_pendentes,
         "total_aplicadas": total_aplicadas,
+        "total_publicadas": total_publicadas,
+        "total_aguardando_aprovacao": total_aguardando_aprovacao,
     }
+
+
+@transaction.atomic
+def aprovar_integracao_operacional(integracao_pk: int, usuario) -> IntegracaoSemestralOperacional:
+    """Aprova em 1 clique uma proposta operacional originada da Ponte Semestral e publica nos Dashboards."""
+    if not eh_gestor(usuario):
+        raise PermissionDenied("Apenas Master/Admin pode aprovar e publicar integrações operacionais.")
+
+    integ = (
+        IntegracaoSemestralOperacional.objects.select_for_update()
+        .select_related(
+            "lancamento_operacional",
+            "lancamento_operacional__indicador",
+            "lancamento_operacional__periodo",
+            "competencia_mensal",
+            "competencia_mensal__configuracao_pilar",
+        )
+        .filter(pk=integracao_pk)
+        .first()
+    )
+    if integ is None:
+        raise ValidationError("Registro de integração operacional não encontrado.")
+
+    lanc = integ.lancamento_operacional
+    if lanc.status == "APROVADO":
+        return integ
+    if lanc.status != "ENVIADO":
+        raise ValidationError(
+            f"Esta integração está com status '{lanc.get_status_display()}' e não pode ser aprovada."
+        )
+
+    op.aprovar(lanc, usuario)
+    lanc.origem = "Integração Semestral (Aprovada)"
+    lanc.save(update_fields=["origem"])
+
+    registrar_auditoria(
+        usuario=usuario,
+        acao="SEMESTRAL_INTEGRACAO_APROVADA",
+        entidade="IntegracaoSemestralOperacional",
+        registro_id=integ.pk,
+        campo=integ.tipo_alvo,
+        valor_anterior="ENVIADO",
+        valor_novo=str(lanc.valor),
+        justificativa=(
+            f"Proposta operacional #{lanc.pk} aprovada via Ponte Semestral "
+            f"({integ.competencia_mensal.configuracao_pilar.codigo} "
+            f"{integ.competencia_mensal.competencia_mm_aaaa}). Dashboards atualizados."
+        ),
+        origem="Integração Semestral",
+    )
+    invalidar_cache_operacional()
+    return integ
 
 
 @transaction.atomic
@@ -658,18 +1028,32 @@ def aplicar_sugestao_operacional(
     if not sugestao["disponivel"]:
         raise ValidationError(sugestao["motivo_indisponivel"] or "Alvo indisponível na Base Operacional.")
 
-    anterior_integracao = IntegracaoSemestralOperacional.objects.select_for_update().filter(
-        competencia_mensal=comp,
-        acompanhamento=acomp,
-        tipo_alvo=tipo_alvo,
-        status_execucao="APLICADA",
-    ).first()
+    anterior_integracao = (
+        IntegracaoSemestralOperacional.objects.select_for_update()
+        .select_related("lancamento_operacional")
+        .filter(
+            competencia_mensal=comp,
+            acompanhamento=acomp,
+            tipo_alvo=tipo_alvo,
+            status_execucao="APLICADA",
+        )
+        .first()
+    )
     if anterior_integracao is not None:
         if not reaplicar:
             raise ValidationError(
                 f"Esta sugestão ({tipo_alvo}) já foi integrada em "
                 f"{anterior_integracao.executado_em.strftime('%d/%m/%Y %H:%M')}. "
                 f"Para evitar dupla contagem, a integração é idempotente."
+            )
+        if anterior_integracao.lancamento_operacional.status == "ENVIADO":
+            op.devolver(
+                anterior_integracao.lancamento_operacional,
+                usuario,
+                (
+                    f"Substituída por reaplicação na Ponte Semestral "
+                    f"({comp.configuracao_pilar.codigo} {comp.competencia_mm_aaaa})."
+                ),
             )
         anterior_integracao.status_execucao = "SUPERADA"
         anterior_integracao.save(update_fields=["status_execucao"])
@@ -706,6 +1090,23 @@ def aplicar_sugestao_operacional(
                 "valor negativo na carteira de consolidação semestral. Use 'Conciliar base' para reduzir o saldo histórico."
             )
         bruto_operacional = f"{novo_valor_indicador:.2f}"
+    elif sugestao["alvo"] == "PROJETO":
+        chave_proj = f"projeto:{sugestao['projeto_id']}:realizado"
+        indicador = IndicadorOperacional.objects.filter(
+            acompanhamento=acomp, chave=chave_proj, ativo=True
+        ).first()
+        if indicador is None or chave_proj not in base.snapshot.get("alvos", {}):
+            raise ValidationError(
+                "Este projeto ainda não está disponível na Base Operacional. "
+                "Sincronize o projeto ou execute 'Conciliar base' antes de integrar."
+            )
+        if valor_alvo_final in (None, ""):
+            raise ValidationError(
+                "Informe explicitamente o acumulado financeiro já executado (Realizado em R$) deste projeto."
+            )
+        valor_vigente_dashboard = op.valor_atual(indicador, periodo.competencia) or ZERO
+        novo_total_dashboard = parse_decimal_integracao(valor_alvo_final, "MON")
+        bruto_operacional = f"{novo_total_dashboard:.2f}"
     else:
         chave_kpi = f"kpi:{sugestao['kpi_codigo']}"
         indicador = IndicadorOperacional.objects.filter(
@@ -724,10 +1125,17 @@ def aplicar_sugestao_operacional(
         bruto_operacional = str(int(novo_total_dashboard))
 
     justificativa_limpa = (justificativa or "").strip()
-    nota_origem = (
-        f"[Integração Semestral · {comp.configuracao_pilar.codigo} {comp.competencia_mm_aaaa}] "
-        f"{sugestao['detalhe_origem']} (+{sugestao['incremento_fmt']})."
-    )
+    if sugestao.get("eh_orcado_manual"):
+        nota_origem = (
+            f"[Integração Semestral · {comp.configuracao_pilar.codigo} {comp.competencia_mm_aaaa}] "
+            f"Realizado financeiro informado para '{sugestao['projeto_nome']}' "
+            f"({formatar_valor_integracao(novo_total_dashboard, 'MON', 'R$')})."
+        )
+    else:
+        nota_origem = (
+            f"[Integração Semestral · {comp.configuracao_pilar.codigo} {comp.competencia_mm_aaaa}] "
+            f"{sugestao['detalhe_origem']} (+{sugestao['incremento_fmt']})."
+        )
     if anterior_integracao is not None:
         nota_origem += f" Substitui integração anterior #{anterior_integracao.pk}."
     comentario_final = f"{nota_origem} {justificativa_limpa}".strip()
@@ -744,13 +1152,18 @@ def aplicar_sugestao_operacional(
     lancamento.origem = "Integração Semestral (Direto)" if modo == "DIRETO" else "Integração Semestral"
     lancamento.save(update_fields=["origem"])
 
+    incremento_gravado = (
+        (novo_total_dashboard - valor_vigente_dashboard)
+        if sugestao.get("eh_orcado_manual")
+        else sugestao["incremento"]
+    )
     integracao = IntegracaoSemestralOperacional.objects.create(
         competencia_mensal=comp,
         acompanhamento=acomp,
         indicador_operacional=indicador,
         lancamento_operacional=lancamento,
         tipo_alvo=tipo_alvo,
-        incremento_calculado=sugestao["incremento"],
+        incremento_calculado=incremento_gravado,
         valor_vigente_anterior=valor_vigente_dashboard,
         valor_proposto=novo_total_dashboard,
         modo=modo,

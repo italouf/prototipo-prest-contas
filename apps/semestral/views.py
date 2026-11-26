@@ -38,9 +38,11 @@ from .forms import (
 )
 from .integracao import (
     aplicar_sugestao_operacional,
+    aprovar_integracao_operacional,
     calcular_semaforo_coerencia,
     calcular_sugestoes_competencia,
     listar_projetos_oficiais_para_pilar,
+    sincronizar_projeto_para_catalogo_oficial,
 )
 from .models import (
     CicloSemestral,
@@ -301,8 +303,11 @@ def listar_aprovacoes_semestrais_por_competencia(
         ponte_url = ""
         if comp.status_aprovacao == "APROVADO" and not comp.arquivado_painel and resumo["total_registros"] > 0:
             pacote_ponte = calcular_sugestoes_competencia(comp)
-            sugestoes_pendentes = pacote_ponte["total_pendentes"]
-            if pacote_ponte["sugestoes"]:
+            sugestoes_pendentes = (
+                pacote_ponte["total_pendentes"]
+                + pacote_ponte.get("total_aguardando_aprovacao", 0)
+            )
+            if pacote_ponte["sugestoes"] or pacote_ponte.get("projetos_novos_sem_vinculo"):
                 ponte_url = f"{reverse('semestral:competencia_form', args=[comp.pk])}#ponte-operacional"
         entry = {
             "comp": comp,
@@ -731,6 +736,64 @@ def integrar_operacional_view(request, pk: int):
                 f"Proposta operacional enviada para o Painel de aprovação ({integracao.tipo_alvo}). "
                 f"Os Dashboards serão atualizados assim que a proposta for aprovada.",
             )
+    except PermissionDenied:
+        return sem_permissao(request)
+    except ValidationError as exc:
+        messages.error(request, "; ".join(exc.messages))
+    return redirect(_safe_next_url(request, fallback_url))
+
+
+@login_required
+@require_POST
+def aprovar_integracao_operacional_view(request, integracao_pk: int):
+    """Aprova em 1 clique uma proposta operacional da Ponte Semestral e publica nos Dashboards."""
+    if not eh_gestor(request.user):
+        return sem_permissao(request)
+    from .models import IntegracaoSemestralOperacional
+
+    integ_ref = get_object_or_404(
+        IntegracaoSemestralOperacional.objects.select_related("competencia_mensal"),
+        pk=integracao_pk,
+    )
+    fallback_url = f"{reverse('semestral:competencia_form', args=[integ_ref.competencia_mensal_id])}#ponte-operacional"
+    try:
+        integ = aprovar_integracao_operacional(integracao_pk, request.user)
+        messages.success(
+            request,
+            f"Proposta operacional aprovada e publicada nos Dashboards ({integ.tipo_alvo}).",
+        )
+    except PermissionDenied:
+        return sem_permissao(request)
+    except ValidationError as exc:
+        messages.error(request, "; ".join(exc.messages))
+    return redirect(_safe_next_url(request, fallback_url))
+
+
+@login_required
+@require_POST
+def sincronizar_projeto_oficial_view(request, pk: int, aba: str, reg_id: int):
+    """Promove projeto novo do Semestral aprovado ao Portfólio Oficial (Entregáveis + Financeiro + Base)."""
+    if not eh_gestor(request.user):
+        return sem_permissao(request)
+    comp = get_object_or_404(
+        CompetenciaMensalPilar.objects.select_related("ciclo", "configuracao_pilar"),
+        pk=pk,
+    )
+    fallback_url = f"{reverse('semestral:competencia_form', args=[comp.pk])}?aba={aba}#ponte-operacional"
+    try:
+        resultado = sincronizar_projeto_para_catalogo_oficial(
+            comp=comp,
+            aba_slug=aba,
+            reg_id=reg_id,
+            usuario=request.user,
+        )
+        proj = resultado["projeto"]
+        messages.success(
+            request,
+            f"Projeto '{proj.nome}' cadastrado no Portfólio Oficial e na tabela financeira do pilar "
+            f"(com Realizado inicial R$ 0,00). Ele já aparece em Entregáveis dos projetos e está pronto "
+            f"para receber lançamentos financeiros de Realizado.",
+        )
     except PermissionDenied:
         return sem_permissao(request)
     except ValidationError as exc:

@@ -98,40 +98,111 @@
 </div>
 {% endif %}
 
-{% if eh_gestor and ponte_operacional and ponte_operacional.sugestoes %}
+{% if eh_gestor and ponte_operacional and ponte_operacional.sugestoes or eh_gestor and ponte_operacional and ponte_operacional.projetos_novos_sem_vinculo %}
 <div id="ponte-operacional" data-testid="ponte-operacional" class="feature-panel" style="border-color:#2563eb;">
   <div class="feature-panel-title" style="background:#eff6ff;">
     <div>
       <h2>Ponte Assistida — Atualizar Dashboards (Base Operacional)</h2>
       <div class="feature-muted" style="margin-top:2px;">
-        Sugestões calculadas automaticamente a partir desta competência aprovada ({{ comp.competencia_mm_aaaa }}). Confirme com 1 clique para enviar ao Painel de aprovação ou publicar diretamente nos Dashboards.
+        Sugestões calculadas a partir desta competência aprovada ({{ comp.competencia_mm_aaaa }}).
+        <strong>Publicar direto</strong> atualiza os Dashboards imediatamente; <strong>Enviar como proposta</strong> exige 2ª aprovação no Painel de aprovação.
       </div>
     </div>
     <div style="display:flex; gap:6px; flex-wrap:wrap;">
+      {% if ponte_operacional.total_pendentes %}
       <span class="feature-badge blue">{{ ponte_operacional.total_pendentes }} pendente(s)</span>
-      <span class="feature-badge green">{{ ponte_operacional.total_aplicadas }} integrada(s)</span>
+      {% endif %}
+      {% if ponte_operacional.total_aguardando_aprovacao %}
+      <span class="feature-badge orange" data-testid="badge-total-aguardando-aprovacao">{{ ponte_operacional.total_aguardando_aprovacao }} aguardando aprovação</span>
+      {% endif %}
+      {% if ponte_operacional.total_publicadas %}
+      <span class="feature-badge green" data-testid="badge-total-publicadas">{{ ponte_operacional.total_publicadas }} publicada(s)</span>
+      {% endif %}
+      {% if ponte_operacional.total_projetos_sem_vinculo %}
+      <span class="feature-badge purple">{{ ponte_operacional.total_projetos_sem_vinculo }} projeto(s) p/ portfólio</span>
+      {% endif %}
     </div>
   </div>
   <div class="feature-pad" style="display:flex; flex-direction:column; gap:12px;">
+    {% if ponte_operacional.projetos_novos_sem_vinculo %}
+    <div data-testid="bloco-projetos-sem-vinculo" style="padding:12px 14px; border:1px solid #c4b5fd; border-radius:10px; background:#f5f3ff;">
+      <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px;">
+        <div>
+          <span class="feature-badge purple">Portfólio Oficial · Financeiro &amp; Entregáveis</span>
+          <strong style="margin-left:6px;">Novos projetos ainda não cadastrados no Portfólio Oficial</strong>
+        </div>
+      </div>
+      <p class="feature-muted" style="font-size:12px; margin:0 0 10px;">
+        O <strong>Valor Total Planejado</strong> informado no Semestral corresponde ao <strong>Orçado</strong> do projeto (e não a despesa executada/Realizado).
+        Cadastre o projeto no Portfólio Oficial com 1 clique para exibi-lo imediatamente em <strong>Entregáveis dos projetos</strong> e na tabela financeira do pilar (com <strong>Orçado</strong> preenchido e <strong>Realizado</strong> inicial de R$ 0,00) e habilitar o lançamento do Realizado financeiro abaixo.
+      </p>
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        {% for p in ponte_operacional.projetos_novos_sem_vinculo %}
+        <div data-testid="projeto-sem-vinculo-{{ p.reg_id }}" style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:10px; padding:10px 12px; background:#fff; border:1px solid #ddd6fe; border-radius:8px;">
+          <div>
+            <strong>{{ p.titulo }}</strong>
+            {% if p.codigo_preview %}<code style="margin-left:6px; font-size:11px;">{{ p.codigo_preview }}</code>{% endif %}
+            <div class="feature-muted" style="font-size:12px; margin-top:2px;">
+              Orçado / Planejado: <strong>{{ p.valor_planejado_fmt }}</strong> · Realizado inicial: <strong>R$ 0,00</strong> · Destino: {{ p.origem_tab }} ({{ p.pilar_codigo }})
+            </div>
+          </div>
+          <form method="post" action="{% url 'semestral:sincronizar_projeto_oficial' comp.pk p.aba_slug p.reg_id %}">
+            {% csrf_token %}
+            <button type="submit" class="feature-button primary" data-testid="btn-sincronizar-projeto-{{ p.reg_id }}">
+              Cadastrar no Portfólio Oficial e Financeiro
+            </button>
+          </form>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
     {% for s in ponte_operacional.sugestoes %}
-    <div data-testid="sugestao-operacional-{{ s.tipo_alvo }}" style="padding:12px 14px; border:1px solid var(--fp-border,#dce1ed); border-radius:10px; background:#fff;">
+    <div data-testid="sugestao-operacional-{{ s.tipo_alvo }}" style="padding:12px 14px; border:1px solid {% if s.aguardando_aprovacao %}#f59e0b{% elif s.publicado_dashboard %}#86efac{% else %}var(--fp-border,#dce1ed){% endif %}; border-radius:10px; background:#fff;">
       <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px;">
         <div>
           <span class="feature-badge {% if s.categoria == 'Financeiro' %}purple{% else %}blue{% endif %}">{{ s.categoria }}</span>
           <strong style="margin-left:6px;">{{ s.titulo }}</strong>
           <div class="feature-muted" style="margin-top:3px;">Origem: {{ s.detalhe_origem }}</div>
         </div>
-        {% if s.ja_integrado %}
+        {% if s.publicado_dashboard %}
         <span class="feature-badge green" data-testid="badge-integrado-{{ s.tipo_alvo }}">
-          Já integrado em {{ s.integracao.executado_em|date:'d/m/Y H:i' }} ({{ s.integracao.lancamento_operacional.get_status_display }})
+          Publicado nos Dashboards em {{ s.integracao.executado_em|date:'d/m/Y H:i' }}
+        </span>
+        {% elif s.aguardando_aprovacao %}
+        <span class="feature-badge orange" data-testid="badge-aguardando-{{ s.tipo_alvo }}">
+          Aguardando aprovação ({{ s.lancamento_competencia_fmt }}) · Ainda não reflete nos Dashboards
+        </span>
+        {% elif s.devolvido %}
+        <span class="feature-badge orange" data-testid="badge-devolvido-{{ s.tipo_alvo }}">
+          Proposta devolvida · Não publicada
         </span>
         {% elif not s.disponivel %}
         <span class="feature-badge orange">Requer ação na Base Operacional</span>
+        {% elif s.eh_orcado_manual %}
+        <span class="feature-badge purple">Lançamento financeiro opcional (Realizado)</span>
         {% else %}
         <span class="feature-badge blue">Pronto para integrar</span>
         {% endif %}
       </div>
 
+      {% if s.eh_orcado_manual %}
+      <div style="display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; padding:8px 10px; background:#f8fafc; border-radius:8px; margin-bottom:10px; font-size:13px;">
+        <div>
+          <div class="feature-muted" style="font-size:11px;">Realizado vigente nos Dashboards</div>
+          <strong>{{ s.valor_vigente_fmt }}</strong>
+        </div>
+        <div>
+          <div class="feature-muted" style="font-size:11px;">Orçado / Planejado (referência · Orçado ≠ Realizado)</div>
+          <strong style="color:#6d28d9;">{{ s.orcado_referencia_fmt }}</strong>
+        </div>
+        <div>
+          <div class="feature-muted" style="font-size:11px;">Regra contábil</div>
+          <span class="feature-muted" style="font-size:12px;">Informe abaixo apenas o valor financeiro já executado (Realizado)</span>
+        </div>
+      </div>
+      {% else %}
       <div style="display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; padding:8px 10px; background:#f8fafc; border-radius:8px; margin-bottom:10px; font-size:13px;">
         <div>
           <div class="feature-muted" style="font-size:11px;">Acumulado vigente nos Dashboards</div>
@@ -146,11 +217,39 @@
           <strong style="color:#1d4ed8;">{{ s.novo_total_sugerido_fmt }}</strong>
         </div>
       </div>
+      {% endif %}
+
+      {% if s.aguardando_aprovacao %}
+      <div data-testid="aviso-aguardando-{{ s.tipo_alvo }}" style="padding:10px 12px; border:1px solid #fcd34d; background:#fffbeb; border-radius:8px; margin-bottom:8px; display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:10px;">
+        <div style="font-size:12px; color:#92400e;">
+          <strong>Proposta pendente de aprovação operacional:</strong> enviada por <strong>{{ s.integracao.executado_por.nome_exibicao }}</strong> com valor proposto de <strong>{{ s.valor_proposto_fmt }}</strong> na competência <strong>{{ s.lancamento_competencia_fmt }}</strong>.
+          Os Dashboards continuam exibindo <strong>{{ s.valor_vigente_fmt }}</strong> até que esta proposta seja aprovada.
+        </div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <form method="post" action="{% url 'semestral:aprovar_integracao_operacional' s.integracao.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="feature-button primary" data-testid="btn-aprovar-integracao-{{ s.tipo_alvo }}">
+              Aprovar e publicar agora nos Dashboards
+            </button>
+          </form>
+          {% if s.lancamento_periodo_pk %}
+          <a href="{% url 'entries:aprovacao' s.lancamento_periodo_pk %}" class="feature-button" data-testid="link-aprovacao-periodo-{{ s.tipo_alvo }}">
+            Abrir Painel de aprovação ({{ s.lancamento_competencia_fmt }})
+          </a>
+          {% endif %}
+        </div>
+      </div>
+      {% elif s.publicado_dashboard %}
+      <div class="feature-muted" style="font-size:12px;" data-testid="resumo-publicado-{{ s.tipo_alvo }}">
+        Publicado por <strong>{{ s.integracao.executado_por.nome_exibicao }}</strong> · Valor publicado nos Dashboards: <strong>{{ s.valor_proposto_fmt }}</strong> · Protegido contra dupla contagem.
+      </div>
+      {% elif s.devolvido %}
+      <div style="padding:8px 10px; border:1px solid #fdba74; background:#fff7ed; border-radius:8px; font-size:12px; color:#9a3412; margin-bottom:6px;">
+        Proposta devolvida{% if s.integracao.lancamento_operacional.comentario_revisao %}: <em>{{ s.integracao.lancamento_operacional.comentario_revisao }}</em>{% endif %}. Use <strong>Reaplicar com ajuste manual</strong> abaixo para corrigir e publicar.
+      </div>
+      {% endif %}
 
       {% if s.ja_integrado %}
-      <div class="feature-muted" style="font-size:12px;">
-        Integrado por <strong>{{ s.integracao.executado_por.nome_exibicao }}</strong> · Valor aplicado: <strong>{{ s.integracao.valor_proposto }}</strong> · Protegido contra dupla contagem.
-      </div>
       <details style="margin-top:8px;">
         <summary style="cursor:pointer; font-size:12px; color:#2563eb; font-weight:600;">Reaplicar com ajuste manual</summary>
         <form method="post" action="{% url 'semestral:integrar_operacional' comp.pk %}" style="margin-top:8px; display:flex; flex-wrap:wrap; gap:8px; align-items:flex-end;">
@@ -165,8 +264,8 @@
             <label style="display:block; font-size:11px; font-weight:600;">Justificativa do ajuste</label>
             <input type="text" name="justificativa" required placeholder="Descreva o motivo do reajuste..." style="width:100%; padding:6px 8px; border:1px solid var(--fp-border,#dce1ed); border-radius:6px;">
           </div>
-          <button type="submit" name="modo" value="PROPOSTA" class="feature-button">Reenviar proposta</button>
-          <button type="submit" name="modo" value="DIRETO" class="feature-button primary">Republicar direto</button>
+          <button type="submit" name="modo" value="PROPOSTA" class="feature-button">Reenviar proposta (2ª aprovação)</button>
+          <button type="submit" name="modo" value="DIRETO" class="feature-button primary">Republicar direto nos Dashboards</button>
         </form>
       </details>
       {% elif not s.disponivel %}
@@ -179,15 +278,17 @@
         {% csrf_token %}
         <input type="hidden" name="tipo_alvo" value="{{ s.tipo_alvo }}">
         <div>
-          <label for="val-{{ s.tipo_alvo }}" style="display:block; font-size:11px; font-weight:600;">Novo acumulado nos Dashboards (editável)</label>
-          <input id="val-{{ s.tipo_alvo }}" type="text" name="valor_alvo_final" value="{{ s.valor_input }}" required style="padding:6px 8px; border:1px solid var(--fp-border,#dce1ed); border-radius:6px;">
+          <label for="val-{{ s.tipo_alvo }}" style="display:block; font-size:11px; font-weight:600;">
+            {% if s.eh_orcado_manual %}Realizado acumulado (R$){% else %}Novo acumulado nos Dashboards (editável){% endif %}
+          </label>
+          <input id="val-{{ s.tipo_alvo }}" type="text" name="valor_alvo_final" value="{% if not s.eh_orcado_manual %}{{ s.valor_input }}{% endif %}" placeholder="{% if s.eh_orcado_manual %}Ex.: 10000,00{% endif %}" required style="padding:6px 8px; border:1px solid var(--fp-border,#dce1ed); border-radius:6px;">
         </div>
         <div style="flex:1; min-width:220px;">
           <label for="just-{{ s.tipo_alvo }}" style="display:block; font-size:11px; font-weight:600;">Observação adicional (opcional)</label>
           <input id="just-{{ s.tipo_alvo }}" type="text" name="justificativa" placeholder="Ex.: Conferido com extrato / planilha PFO..." style="width:100%; padding:6px 8px; border:1px solid var(--fp-border,#dce1ed); border-radius:6px;">
         </div>
         <button type="submit" name="modo" value="PROPOSTA" class="feature-button" data-testid="btn-integrar-proposta-{{ s.tipo_alvo }}">
-          Enviar para Painel de aprovação
+          Enviar como proposta (2ª aprovação)
         </button>
         <button type="submit" name="modo" value="DIRETO" class="feature-button primary" data-testid="btn-integrar-direto-{{ s.tipo_alvo }}">
           Publicar direto nos Dashboards

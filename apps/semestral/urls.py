@@ -34,6 +34,16 @@ urlpatterns = [
         name="integrar_operacional",
     ),
     path(
+        "integracao/<int:integracao_pk>/aprovar/",
+        views.aprovar_integracao_operacional_view,
+        name="aprovar_integracao_operacional",
+    ),
+    path(
+        "competencia/<int:pk>/sincronizar-projeto/<str:aba>/<int:reg_id>/",
+        views.sincronizar_projeto_oficial_view,
+        name="sincronizar_projeto_oficial",
+    ),
+    path(
         "aprovados/arquivar-todos/",
         views.arquivar_aprovados_em_lote_view,
         name="arquivar_aprovados_lote",

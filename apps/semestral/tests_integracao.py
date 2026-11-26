@@ -31,7 +31,7 @@ from apps.audit.models import AuditLog
 from apps.core.permissions import adicionar_grupo, garantir_grupos
 from apps.entries import operational as op
 from apps.entries.effective import estado as ler_estado_operacional, invalidar as invalidar_cache
-from apps.entries.models import ProjetoFinanceiroFonte
+from apps.entries.models import BaseOperacional, IndicadorOperacional, ProjetoFinanceiroFonte
 from apps.periods.models import Periodo
 from apps.pillars.models import Pilar, UsuarioPilar
 from apps.planning.views import contexto_painel, contexto_pilar
@@ -40,9 +40,11 @@ from apps.projects.models import Projeto
 from .integracao import (
     CARTEIRA_SEMESTRAL_NOME,
     aplicar_sugestao_operacional,
+    aprovar_integracao_operacional,
     calcular_semaforo_coerencia,
     calcular_sugestoes_competencia,
     listar_projetos_oficiais_para_pilar,
+    sincronizar_projeto_para_catalogo_oficial,
     validar_vinculo_projeto_oficial,
 )
 from .models import (
@@ -993,3 +995,260 @@ class Fase3SemaforoCoerenciaTestes(IntegracaoSemestralBaseTestCase):
         self.assertIn("alinhado(s)", log_cfg.justificativa)
         self.assertIn("divergente(s)", log_cfg.justificativa)
         self.assertIn("integração(ões)", log_cfg.justificativa)
+
+
+# ---------------------------------------------------------------------------
+# FLUXO OPERACIONAL COMPLETO — APROVAÇÃO EM 1 CLIQUE, REAPLICAÇÃO SOBRE ENVIADO,
+# SINCRONIZAÇÃO DE PROJETO NOVO AO PORTFÓLIO OFICIAL E REALIZADO FINANCEIRO
+# ---------------------------------------------------------------------------
+
+
+class FluxoAprovacao1CliqueEPortfolioFinanceiroTestes(IntegracaoSemestralBaseTestCase):
+    def test_proposta_enviada_exibe_aviso_aguardando_e_aprovacao_em_1_clique_atualiza_dashboards(self):
+        self.confirmar_base()
+        pe01_antes = ler_estado_operacional(self.acomp).kpi("PE-01", None)
+        pdi_fis_antes = contexto_pilar(self.pilares["PDI"], "todos", "fis", self.master, self.acomp)["painel_pilar"]["executado"]
+
+        comp_afcct = self.aprovar_comp(self.comp("AFCCT"))
+        self.criar_projeto_afcct(comp_afcct, "Novo Projeto Teste Aprovacao")
+
+        integ = aplicar_sugestao_operacional(
+            comp_afcct, "KPI_PE-01", self.master, modo="PROPOSTA", acompanhamento=self.acomp
+        )
+        self.assertEqual(integ.lancamento_operacional.status, "ENVIADO")
+
+        # Enquanto ENVIADO, Dashboards Físicos ainda exibem o valor anterior
+        invalidar_cache()
+        self.assertEqual(ler_estado_operacional(self.acomp).kpi("PE-01", None), pe01_antes)
+
+        # Tela da competência deixa explícito que está aguardando aprovação, sem decimal bruto, com botão 1-clique e link do período exato
+        self.client.force_login(self.master)
+        resp_pendente = self.client.get(reverse("semestral:competencia_form", args=[comp_afcct.pk]))
+        self.assertEqual(resp_pendente.status_code, 200)
+        self.assertContains(resp_pendente, 'data-testid="badge-aguardando-KPI_PE-01"')
+        self.assertContains(resp_pendente, 'data-testid="btn-aprovar-integracao-KPI_PE-01"')
+        self.assertContains(
+            resp_pendente,
+            reverse("entries:aprovacao", args=[integ.lancamento_operacional.periodo_id]),
+        )
+        self.assertContains(resp_pendente, f"{int(pe01_antes + 1)} projetos")
+        self.assertNotContains(resp_pendente, f"{int(pe01_antes + 1)},000000")
+        self.assertNotContains(resp_pendente, 'data-testid="badge-integrado-KPI_PE-01"')
+
+        # RBAC: PontoFocal não pode aprovar proposta operacional
+        self.client.force_login(self.focal_pdi)
+        resp_negado = self.client.post(
+            reverse("semestral:aprovar_integracao_operacional", args=[integ.pk])
+        )
+        self.assertEqual(resp_negado.status_code, 403)
+
+        # Master aprova em 1 clique -> Dashboards Físicos (Visão Geral e PDI) atualizam imediatamente
+        self.client.force_login(self.master)
+        resp_aprov = self.client.post(
+            reverse("semestral:aprovar_integracao_operacional", args=[integ.pk])
+        )
+        self.assertEqual(resp_aprov.status_code, 302)
+
+        integ.refresh_from_db()
+        integ.lancamento_operacional.refresh_from_db()
+        self.assertEqual(integ.lancamento_operacional.status, "APROVADO")
+        self.assertEqual(integ.lancamento_operacional.origem, "Integração Semestral (Aprovada)")
+
+        invalidar_cache()
+        self.assertEqual(ler_estado_operacional(self.acomp).kpi("PE-01", None), pe01_antes + 1)
+
+        painel_pdi_fis = contexto_pilar(self.pilares["PDI"], "todos", "fis", self.master, self.acomp)["painel_pilar"]
+        self.assertEqual(painel_pdi_fis["executado"], pdi_fis_antes + 1)
+
+        # AuditLog registra a aprovação via ponte
+        self.assertTrue(
+            AuditLog.objects.filter(
+                acao="SEMESTRAL_INTEGRACAO_APROVADA",
+                entidade="IntegracaoSemestralOperacional",
+                registro_id=str(integ.pk),
+                usuario=self.master,
+            ).exists()
+        )
+
+        # Agora a tela exibe badge verde "Publicado nos Dashboards" e remove o aviso âmbar
+        resp_pub = self.client.get(reverse("semestral:competencia_form", args=[comp_afcct.pk]))
+        self.assertEqual(resp_pub.status_code, 200)
+        self.assertContains(resp_pub, 'data-testid="badge-integrado-KPI_PE-01"')
+        self.assertNotContains(resp_pub, 'data-testid="badge-aguardando-KPI_PE-01"')
+
+    def test_reaplicar_sobre_proposta_enviada_substitui_sem_erro_e_publica_dashboards(self):
+        self.confirmar_base()
+        pe01_antes = ler_estado_operacional(self.acomp).kpi("PE-01", None)
+
+        comp_afcct = self.aprovar_comp(self.comp("AFCCT"))
+        self.criar_projeto_afcct(comp_afcct, "Projeto Reaplicar Sobre Enviado")
+
+        integ1 = aplicar_sugestao_operacional(
+            comp_afcct, "KPI_PE-01", self.master, modo="PROPOSTA", acompanhamento=self.acomp
+        )
+        self.assertEqual(integ1.lancamento_operacional.status, "ENVIADO")
+
+        # Reaplicar em modo DIRETO sobre proposta ainda ENVIADO deve devolver a anterior e publicar a nova sem ValidationError
+        integ2 = aplicar_sugestao_operacional(
+            comp_afcct,
+            "KPI_PE-01",
+            self.master,
+            valor_alvo_final=str(int(pe01_antes + 2)),
+            modo="DIRETO",
+            justificativa="Correção com 2 projetos efetivos",
+            acompanhamento=self.acomp,
+            reaplicar=True,
+        )
+        integ1.refresh_from_db()
+        self.assertEqual(integ1.status_execucao, "SUPERADA")
+        self.assertEqual(integ2.status_execucao, "APLICADA")
+        self.assertEqual(integ2.lancamento_operacional.status, "APROVADO")
+
+        invalidar_cache()
+        self.assertEqual(ler_estado_operacional(self.acomp).kpi("PE-01", None), pe01_antes + 2)
+        self.assertTrue(AuditLog.objects.filter(acao="DEVOLVER_OPERACIONAL", usuario=self.master).exists())
+
+    def test_sincronizar_projeto_novo_para_portfolio_oficial_e_lancar_realizado_financeiro(self):
+        self.confirmar_base()
+        pdi_real_antes = ler_estado_operacional(self.acomp).total("PDI", "realizado")
+        pe01_antes = ler_estado_operacional(self.acomp).kpi("PE-01", None)
+        resumo_pdi_antes = ResumoFinanceiro.objects.get(
+            acompanhamento=self.acomp, origem="TAB. 1", pilar__codigo="PDI", ano__isnull=True
+        ).realizado
+
+        # Usuário cadastra um NOVO projeto (sem selecionar projeto_oficial) com Valor Planejado = R$ 50.000,00
+        comp_afcct = self.aprovar_comp(self.comp("AFCCT"))
+        reg = self.criar_projeto_afcct(
+            comp_afcct,
+            "Novo Projeto Teste 2",
+            projeto_oficial=None,
+        )
+        reg.valor_total_planejado = D("50000.00")
+        reg.save(update_fields=["valor_total_planejado"])
+        # Também cria uma proposta PE-01 pendente ANTES de sincronizar, para garantir que o sync não invalida base.versao
+        integ_pe01 = aplicar_sugestao_operacional(
+            comp_afcct, "KPI_PE-01", self.master, modo="PROPOSTA", acompanhamento=self.acomp
+        )
+
+        # Página exibe o bloco de sincronização de novos projetos
+        self.client.force_login(self.master)
+        resp_antes = self.client.get(reverse("semestral:competencia_form", args=[comp_afcct.pk]))
+        self.assertEqual(resp_antes.status_code, 200)
+        self.assertContains(resp_antes, 'data-testid="bloco-projetos-sem-vinculo"')
+        self.assertContains(resp_antes, f'data-testid="btn-sincronizar-projeto-{reg.pk}"')
+
+        # RBAC: PontoFocal não pode sincronizar para o Portfólio Oficial
+        self.client.force_login(self.focal_pdi)
+        resp_forbidden = self.client.post(
+            reverse("semestral:sincronizar_projeto_oficial", args=[comp_afcct.pk, "afcct-2", reg.pk])
+        )
+        self.assertEqual(resp_forbidden.status_code, 403)
+
+        # Master sincroniza com 1 clique
+        self.client.force_login(self.master)
+        resp_sync = self.client.post(
+            reverse("semestral:sincronizar_projeto_oficial", args=[comp_afcct.pk, "afcct-2", reg.pk])
+        )
+        self.assertEqual(resp_sync.status_code, 302)
+
+        reg.refresh_from_db()
+        self.assertIsNotNone(reg.projeto_oficial)
+        proj = reg.projeto_oficial
+        self.assertEqual(proj.nome, "Novo Projeto Teste 2")
+        self.assertEqual(proj.pilar.codigo, "PDI")
+        self.assertTrue(proj.ativo)
+
+        # ProjetoFinanceiro criado em TAB. 2 com Orçado = 50.000,00 e Realizado inicial = 0,00 (Orçado != Realizado!)
+        pf = ProjetoFinanceiro.objects.get(acompanhamento=self.acomp, projeto=proj, origem="TAB. 2")
+        self.assertEqual(pf.orcado, D("50000.00"))
+        self.assertEqual(pf.realizado, D("0.00"))
+
+        # Indicador operacional registrado no snapshot da base com abertura 0.00
+        chave_proj = f"projeto:{proj.pk}:realizado"
+        self.assertTrue(
+            IndicadorOperacional.objects.filter(acompanhamento=self.acomp, chave=chave_proj, ativo=True).exists()
+        )
+        base = BaseOperacional.objects.get(acompanhamento=self.acomp)
+        self.assertEqual(base.snapshot["alvos"][chave_proj]["valor"], "0.00")
+
+        # Total Realizado de PDI NÃO muda apenas por cadastrar o orçamento planejado
+        invalidar_cache()
+        self.assertEqual(ler_estado_operacional(self.acomp).total("PDI", "realizado"), pdi_real_antes)
+
+        # Proposta PE-01 pendente (criada antes do sync) continua aprovável sem erro de versão!
+        aprovar_integracao_operacional(integ_pe01.pk, self.master)
+        invalidar_cache()
+        self.assertEqual(ler_estado_operacional(self.acomp).kpi("PE-01", None), pe01_antes + 1)
+
+        # Projeto já aparece em PDI (Físico) -> Entregáveis dos projetos E em PDI (Financeiro) -> tabela de projetos
+        resp_pdi_fis = self.client.get(reverse("core:pilar", args=[self.pilares["PDI"].pk]) + "?base=fis")
+        self.assertEqual(resp_pdi_fis.status_code, 200)
+        self.assertContains(resp_pdi_fis, "Novo Projeto Teste 2")
+
+        resp_pdi_fin = self.client.get(reverse("core:pilar", args=[self.pilares["PDI"].pk]) + "?base=fin")
+        self.assertEqual(resp_pdi_fin.status_code, 200)
+        self.assertContains(resp_pdi_fin, "Novo Projeto Teste 2")
+
+        # AuditLog registra a sincronização
+        self.assertTrue(
+            AuditLog.objects.filter(
+                acao="SEMESTRAL_PROJETO_SINCRONIZADO_CATALOGO",
+                entidade="Projeto",
+                registro_id=str(proj.pk),
+                usuario=self.master,
+            ).exists()
+        )
+
+        # Idempotência: sincronizar novamente não duplica Projeto nem ProjetoFinanceiro
+        qtd_projs = Projeto.objects.filter(centro=self.acomp.centro, pilar=self.pilares["PDI"]).count()
+        qtd_pfs = ProjetoFinanceiro.objects.filter(acompanhamento=self.acomp, origem="TAB. 2").count()
+        sincronizar_projeto_para_catalogo_oficial(comp_afcct, "afcct-2", reg.pk, self.master, acompanhamento=self.acomp)
+        self.assertEqual(Projeto.objects.filter(centro=self.acomp.centro, pilar=self.pilares["PDI"]).count(), qtd_projs)
+        self.assertEqual(ProjetoFinanceiro.objects.filter(acompanhamento=self.acomp, origem="TAB. 2").count(), qtd_pfs)
+
+        # Agora a Ponte exibe o card financeiro PROJ:<uuid_hex> exigindo Realizado explícito (nunca copia Orçado!)
+        tipo_proj = f"PROJ:{proj.pk.hex}"
+        self.assertLessEqual(len(tipo_proj), 40)
+        pacote = calcular_sugestoes_competencia(comp_afcct, acompanhamento=self.acomp)
+        self.assertEqual(pacote["total_projetos_sem_vinculo"], 0)
+        sug_fin = next(s for s in pacote["sugestoes"] if s["tipo_alvo"] == tipo_proj)
+        self.assertTrue(sug_fin["eh_orcado_manual"])
+        self.assertEqual(sug_fin["valor_vigente"], D("0.00"))
+        self.assertEqual(sug_fin["orcado_referencia"], D("50000.00"))
+
+        with self.assertRaises(ValidationError):
+            aplicar_sugestao_operacional(
+                comp_afcct, tipo_proj, self.master, valor_alvo_final="", modo="DIRETO", acompanhamento=self.acomp
+            )
+
+        # Lança Realizado financeiro de R$ 12.500,00 em modo DIRETO -> atualiza PDI Financeiro e Visão Geral Financeiro
+        integ_fin = aplicar_sugestao_operacional(
+            comp_afcct,
+            tipo_proj,
+            self.master,
+            valor_alvo_final="12500,00",
+            modo="DIRETO",
+            justificativa="1ª medição executada do projeto",
+            acompanhamento=self.acomp,
+        )
+        self.assertEqual(integ_fin.lancamento_operacional.status, "APROVADO")
+
+        invalidar_cache()
+        estado_final = ler_estado_operacional(self.acomp)
+        self.assertEqual(estado_final.valor(chave_proj), D("12500.00"))
+        self.assertEqual(estado_final.total("PDI", "realizado"), pdi_real_antes + D("12500.00"))
+
+        # ResumoFinanceiro importado continua preservado
+        self.assertEqual(
+            ResumoFinanceiro.objects.get(
+                acompanhamento=self.acomp, origem="TAB. 1", pilar__codigo="PDI", ano__isnull=True
+            ).realizado,
+            resumo_pdi_antes,
+        )
+
+        # Exportação EMBRAPII v3.1 continua 100% íntegra
+        _nome, dados_xlsx = exportar_planilha_embrapii(self.ciclo_s2, "AFCCT")
+        template_path, _pattern = TEMPLATE_MAP["AFCCT"]
+        relatorio = validar_integridade_xlsx(template_path, dados_xlsx)
+        self.assertGreater(relatorio["sheets_checked"], 0)
+        self.assertGreater(relatorio["formulas_preserved"], 0)
